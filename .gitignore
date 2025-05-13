@@ -1,0 +1,109 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# Dependency directories
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+backend/.env
+backend/.env.local
+backend/.env.production
+frontend/.env.production
+
+# API keys and secrets
+config/secrets.js
+config/api-keys.js
+secrets.json
+api-keys.json
+
+# Database files (local SQLite)
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Task management files with sensitive data
+tasks.json
+tasks/task_*.txt
+tasks/complexity-report-*.json
+
+# Build directories
+build/
+dist/
+frontend/build/
+backend/build/
+
+# Editor directories and files
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+ssl/
+certs/
+
+# Backup files
+*.backup
+*.bak
+backups/
+
+# Runtime files
+*.pid
+*.sock
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Docker volumes
+postgres_data/
+redis_data/
+
+# Local test files
+test.js
+test.ts
+playground.*
+
+# Generated files
+prisma/migrations/dev.db*
