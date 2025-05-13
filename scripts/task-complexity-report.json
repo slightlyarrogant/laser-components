@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "generatedAt": "2025-04-11T01:54:15.251Z",
+    "tasksAnalyzed": 12,
+    "thresholdScore": 5,
+    "projectName": "Your Project Name",
+    "usedResearch": false
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Set Up Project Infrastructure",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the project infrastructure setup into detailed technical subtasks covering repository initialization, database schema design, authentication system configuration, and API structure implementation.",
+      "reasoning": "This task involves multiple technical components (repository, database, authentication, API) that are foundational for the project. Each component requires specific technical expertise and configuration, making it moderately complex and suitable for breakdown into 4 distinct areas."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Implement Product Catalog Management",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the product catalog management implementation into subtasks covering data model creation, CRUD operations, UI component development, and bulk import functionality.",
+      "reasoning": "This task includes both backend (data models, CRUD) and frontend (UI components) work with moderate complexity. The bulk upload feature adds another layer of complexity, justifying 4 subtasks to properly organize the implementation."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Build Application Mapping Interface",
+      "complexityScore": 5,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Break down the application mapping interface into subtasks covering application data model implementation, UI for application management, and the many-to-many mapping functionality with search capabilities.",
+      "reasoning": "This task focuses on creating a specific feature with clear boundaries. The complexity comes from implementing the many-to-many relationship and search functionality, but the scope is narrower than other tasks, making 3 subtasks appropriate."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Develop Region-Based Search Functionality",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Divide the region-based search functionality into subtasks covering region data modeling, search algorithm implementation, caching mechanism development, and UI component creation for search and results display.",
+      "reasoning": "This task involves complex search algorithms, external data source integration, and caching mechanisms. The combination of backend complexity and UI requirements justifies breaking it into 4 distinct components."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Implement Lead Discovery and Storage",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down lead discovery and storage implementation into subtasks covering lead data model creation, API integrations for discovery, duplicate detection mechanisms, and lead management interface development.",
+      "reasoning": "This task requires external API integrations and duplicate detection logic, adding complexity. The mix of data modeling, integration work, and UI development makes it suitable for 4 subtasks to maintain clear focus areas."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Develop Lead Enrichment and Scoring System",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the lead enrichment and scoring system into subtasks covering data enrichment service integrations, scoring algorithm development, UI components for displaying enrichment data, manual override functionality, and batch processing implementation.",
+      "reasoning": "This is one of the more complex tasks due to external service integrations, algorithm development, and batch processing requirements. The 5 recommended subtasks align with the natural divisions in the requirements and help manage the complexity."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Build Lead Management Interface",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the lead management interface development into subtasks covering advanced search/filter implementation, sorting functionality, tagging system creation, and responsive UI design for lead details view.",
+      "reasoning": "This task involves significant UI development with multiple interactive components (search, filter, sort, tagging). The complexity lies in creating a cohesive, responsive interface with multiple features, justifying 4 subtasks."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Implement Lead Export Functionality",
+      "complexityScore": 4,
+      "recommendedSubtasks": 3,
+      "expansionPrompt": "Divide the lead export functionality into subtasks covering multi-select implementation, CSV/Excel generation with configurable fields, and export history tracking.",
+      "reasoning": "This is a relatively straightforward feature with limited scope compared to other tasks. The 3 recommended subtasks cover the core requirements while maintaining meaningful division of work."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement User Management and Permissions",
+      "complexityScore": 7,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down user management and permissions implementation into subtasks covering user model extension with roles, role-based access control implementation, user management interface development, and account management functionality.",
+      "reasoning": "Security and user management features require careful implementation. The complexity comes from ensuring proper access controls throughout the application and developing the administrative interfaces, making 4 subtasks appropriate."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Develop Analytics Dashboard and Final Integration",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the analytics dashboard and final integration into subtasks covering metrics tracking implementation, dashboard UI creation, user activity logging, integration testing, and performance optimization.",
+      "reasoning": "This task combines analytics implementation with final integration work, making it complex. It requires coordination across multiple system components and involves both development and testing aspects, justifying 5 subtasks."
+    },
+    {
+      "taskId": 11,
+      "taskTitle": "Fix Environment Setup Issues with Missing Modules and Frontend Configuration",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Break down the environment setup issues into subtasks covering Node.js module dependency resolution, frontend configuration fixes across environments, setup process documentation/automation, and CI/CD pipeline compatibility updates.",
+      "reasoning": "This task involves troubleshooting across multiple environments and configuration layers. The 4 subtasks align with the natural divisions in the requirements and help organize the debugging and resolution process methodically."
+    },
+    {
+      "taskId": 12,
+      "taskTitle": "Implement Industrial Application Research Module",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Divide the industrial application research module implementation into subtasks covering research workflow development, template and data model creation, collaboration and versioning features, export functionality, and dashboard integration.",
+      "reasoning": "This is a complex feature with multiple advanced components including collaboration, versioning, and integration requirements. The 5 recommended subtasks address distinct functional areas while managing the overall complexity of this significant module."
+    }
+  ]
+}
