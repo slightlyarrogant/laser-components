@@ -1,0 +1,484 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                              Int                             @id @default(autoincrement())
+  email                           String                          @unique
+  password_hash                   String
+  role                            UserRole                        @default(SALES)
+  createdAt                       DateTime                        @default(now()) @map("created_at")
+  updatedAt                       DateTime                        @updatedAt @map("updated_at")
+  resetTokenExpiry                DateTime?                       @map("reset_token_expiry")
+  resetTokenHash                  String?                         @map("reset_token_hash")
+  activities                      ActivityLog[]
+  industrial_application_research IndustrialApplicationResearch[]
+  leads                           Lead[]
+  research_attachments            ResearchAttachment[]
+  ResearchCollaborator            ResearchCollaborator[]
+  research_versions               ResearchVersion[]
+  searchTemplates                 SearchTemplate[]
+
+  @@map("users")
+}
+
+model SearchTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  filters     Json
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("search_templates")
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  description   String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  subcategories Subcategory[]
+
+  @@map("categories")
+}
+
+model Subcategory {
+  id                              Int                             @id @default(autoincrement())
+  name                            String
+  description                     String?
+  categoryId                      Int                             @map("category_id")
+  createdAt                       DateTime                        @default(now()) @map("created_at")
+  updatedAt                       DateTime                        @updatedAt @map("updated_at")
+  industrial_application_research IndustrialApplicationResearch[]
+  products                        Product[]
+  category                        Category                        @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, name])
+  @@map("subcategories")
+}
+
+model Product {
+  id                                                                                                   Int                             @id @default(autoincrement())
+  name                                                                                                 String
+  description                                                                                          String?
+  createdAt                                                                                            DateTime                        @default(now()) @map("created_at")
+  updatedAt                                                                                            DateTime                        @updatedAt @map("updated_at")
+  datasheet_url                                                                                        String?
+  price                                                                                                Decimal?                        @db.Decimal(10, 2)
+  sku                                                                                                  String?                         @unique
+  specifications                                                                                       Json?
+  subcategoryId                                                                                        Int                             @map("subcategory_id")
+  industrial_application_research_industrial_application_research_discovered_from_product_idToproducts IndustrialApplicationResearch[] @relation("industrial_application_research_discovered_from_product_idToproducts")
+  ResearchItems                                                                                        IndustrialApplicationResearch[]
+  leads                                                                                                Lead[]
+  product_applications                                                                                 product_applications[]
+  subcategory                                                                                          Subcategory                     @relation(fields: [subcategoryId], references: [id])
+
+  @@unique([name, subcategoryId])
+  @@map("products")
+}
+
+model Application {
+  id                   Int                    @id @default(autoincrement())
+  name                 String                 @unique
+  description          String?
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  status               ApplicationStatus      @default(ACTIVE)
+  leads                Lead[]
+  product_applications product_applications[]
+
+  @@map("applications")
+}
+
+model Region {
+  id               Int       @id @default(autoincrement())
+  name             String    @unique
+  code             String?   @unique
+  parent_region_id Int?
+  countries        Country[]
+  leads            Lead[]
+  regions          Region?   @relation("regionsToregions", fields: [parent_region_id], references: [id])
+  other_regions    Region[]  @relation("regionsToregions")
+
+  @@map("regions")
+}
+
+model Country {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  regionId  Int      @map("region_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  region    Region   @relation(fields: [regionId], references: [id])
+  leads     Lead[]
+
+  @@map("countries")
+}
+
+model Lead {
+  id                              Int                            @id @default(autoincrement())
+  name                            String
+  email                           String?
+  phone                           String?
+  status                          LeadStatus                     @default(NEW)
+  createdAt                       DateTime                       @default(now()) @map("created_at")
+  updatedAt                       DateTime                       @updatedAt @map("updated_at")
+  annual_revenue                  Decimal?                       @db.Decimal(15, 2)
+  confidence                      Decimal?                       @db.Decimal(5, 2)
+  country_id                      Int?
+  description                     String?
+  employee_count                  Int?
+  founded_year                    Int?
+  industry                        String?
+  last_enriched                   DateTime?
+  linkedInUrl                     String?                        @map("linkedin_url")
+  location                        String?
+  region_id                       Int?
+  source                          String?
+  source_id                       String?
+  tags                            String[]
+  website                         String?
+  sourceResearchId                Int?
+  applicationId                   Int?
+  organizationId                  Int?
+  productId                       Int
+  created_by_user_id              Int?
+  enrichmentJobs                  EnrichmentJob[]
+  applications                    Application?                   @relation(fields: [applicationId], references: [id])
+  countries                       Country?                       @relation(fields: [country_id], references: [id])
+  users                           User?                          @relation(fields: [created_by_user_id], references: [id])
+  organizations                   Organization?                  @relation(fields: [organizationId], references: [id])
+  products                        Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  regions                         Region?                        @relation(fields: [region_id], references: [id])
+  industrial_application_research IndustrialApplicationResearch? @relation(fields: [sourceResearchId], references: [id])
+  notes_relation                  Note[]
+  score_overrides                 score_overrides?
+
+  @@map("leads")
+}
+
+model Organization {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  website   String?
+  industry  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  leads     Lead[]
+
+  @@map("organizations")
+}
+
+model EnrichmentBatch {
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String?
+  totalJobs      Int
+  completed_jobs Int             @default(0)
+  failed_jobs    Int             @default(0)
+  status         String          @default("PENDING")
+  created_by     String?
+  startedAt      DateTime?       @map("started_at")
+  completedAt    DateTime?       @map("completed_at")
+  metadata       String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updated_at     DateTime
+  jobs           EnrichmentJob[]
+
+  @@map("enrichment_batches")
+}
+
+model EnrichmentJob {
+  id              Int                 @id @default(autoincrement())
+  batchId         Int?                @map("batch_id")
+  leadId          Int                 @map("lead_id")
+  status          EnrichmentJobStatus @default(PENDING)
+  attempts        Int                 @default(0)
+  result          String?
+  last_attempt_at DateTime?
+  completed_at    DateTime?
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updated_at      DateTime
+  metadata        String?
+  provider        String
+  batch           EnrichmentBatch?    @relation(fields: [batchId], references: [id])
+  lead            Lead                @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([status, last_attempt_at])
+  @@map("enrichment_jobs")
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user_id   Int?
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model TagPreset {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("tag_presets")
+}
+
+model ActivityLog {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  action        String
+  resource_type String
+  resource_id   String?
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  details       Json?
+  timestamp     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource_type])
+  @@index([timestamp])
+  @@map("activity_logs")
+}
+
+model IndustrialApplicationResearch {
+  id                                                                            Int                    @id @default(autoincrement())
+  application_name                                                              String
+  industry_sector                                                               String?
+  use_case_description                                                          String?
+  market_potential                                                              String?
+  technical_requirements                                                        String?
+  competitive_landscape                                                         String?
+  status                                                                        ResearchStatus         @default(DRAFT)
+  createdAt                                                                     DateTime               @default(now()) @map("created_at")
+  updatedAt                                                                     DateTime               @updatedAt @map("updated_at")
+  created_by_user_id                                                            Int
+  subcategory_id                                                                Int?
+  productId                                                                     Int?                   @map("product_id")
+  ai_summary                                                                    String?
+  ai_recommendations                                                            String?
+  ai_confidence_score                                                           Float?
+  discovered_from_product_id                                                    Int?
+  users                                                                         User                   @relation(fields: [created_by_user_id], references: [id])
+  products_industrial_application_research_discovered_from_product_idToproducts Product?               @relation("industrial_application_research_discovered_from_product_idToproducts", fields: [discovered_from_product_id], references: [id])
+  product                                                                       Product?               @relation(fields: [productId], references: [id])
+  subcategories                                                                 Subcategory?           @relation(fields: [subcategory_id], references: [id])
+  leads                                                                         Lead[]
+  attachments                                                                   ResearchAttachment[]
+  collaborators                                                                 ResearchCollaborator[]
+  versions                                                                      ResearchVersion[]
+
+  @@map("industrial_application_research")
+}
+
+model ResearchAttachment {
+  id                  Int                           @id @default(autoincrement())
+  researchId          Int                           @map("research_id")
+  url                 String
+  attachment_type     String
+  description         String?
+  uploaded_at         DateTime                      @default(now())
+  uploaded_by_user_id Int
+  research            IndustrialApplicationResearch @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  users               User                          @relation(fields: [uploaded_by_user_id], references: [id])
+
+  @@map("research_attachments")
+}
+
+model ResearchCollaborator {
+  researchId  Int                           @map("research_id")
+  userId      Int                           @map("user_id")
+  assigned_at DateTime                      @default(now())
+  role        String
+  research    IndustrialApplicationResearch @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  user        User                          @relation(fields: [userId], references: [id])
+
+  @@id([researchId, userId])
+  @@map("research_collaborators")
+}
+
+model ResearchVersion {
+  id                 Int                           @id @default(autoincrement())
+  researchId         Int                           @map("research_id")
+  version_number     Int
+  data_snapshot      Json
+  change_description String?
+  createdAt          DateTime                      @default(now()) @map("created_at")
+  created_by_user_id Int
+  users              User                          @relation(fields: [created_by_user_id], references: [id])
+  research           IndustrialApplicationResearch @relation(fields: [researchId], references: [id], onDelete: Cascade)
+
+  @@unique([researchId, version_number])
+  @@index([researchId, createdAt])
+  @@map("research_versions")
+}
+
+model analytics_events {
+  id         Int      @id @default(autoincrement())
+  event_type String
+  category   String
+  action     String
+  entity_id  String
+  metadata   Json?
+  timestamp  DateTime @default(now())
+  user_id    Int?
+
+  @@index([action])
+  @@index([category])
+  @@index([event_type])
+  @@index([timestamp])
+}
+
+model metric_aggregates {
+  id          Int      @id @default(autoincrement())
+  metric_name String
+  dimensions  Json?
+  count       Int
+  sum         Float?
+  min         Float?
+  max         Float?
+  avg         Float?
+  start_date  DateTime
+  end_date    DateTime
+  created_at  DateTime @default(now())
+
+  @@unique([metric_name, dimensions, start_date, end_date])
+  @@index([metric_name])
+  @@index([start_date, end_date])
+}
+
+model metric_values {
+  id          Int      @id @default(autoincrement())
+  metric_name String
+  value       Float
+  dimensions  Json?
+  timestamp   DateTime @default(now())
+
+  @@index([metric_name])
+  @@index([timestamp])
+}
+
+model product_applications {
+  product_id     Int
+  application_id Int
+  assigned_at    DateTime    @default(now())
+  assignedBy     String
+  applications   Application @relation(fields: [application_id], references: [id])
+  products       Product     @relation(fields: [product_id], references: [id])
+
+  @@id([product_id, application_id])
+}
+
+model score_overrides {
+  id                  Int      @id @default(autoincrement())
+  lead_id             Int      @unique
+  score               Int?
+  component_overrides String?
+  metadata            String
+  created_at          DateTime @default(now())
+  updated_at          DateTime
+  leads               Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  ADMIN
+  RESEARCHER
+  SALES
+}
+
+enum ApplicationStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ResearchStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+  PENDING_APPROVAL
+  AI_DISCOVERED
+  REVIEWED
+  REJECTED
+}
+
+enum EnrichmentJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  RATE_LIMITED
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  LOST
+  WON
+}
+
+model Resource {
+  id        Int               @id @default(autoincrement())
+  slug      String            @unique
+  title     String
+  content   String
+  category  String
+  version   Int               @default(1)
+  isActive  Boolean           @default(true) @map("is_active")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+  versions  ResourceVersion[]
+  events    LearningEvent[]
+
+  @@map("resources")
+}
+
+model ResourceVersion {
+  id           Int      @id @default(autoincrement())
+  resourceId   Int      @map("resource_id")
+  content      String
+  version      Int
+  changeReason String?  @map("change_reason")
+  changedBy    String?  @map("changed_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  resource     Resource @relation(fields: [resourceId], references: [id])
+
+  @@map("resource_versions")
+}
+
+model LearningEvent {
+  id              Int       @id @default(autoincrement())
+  eventType       String    @map("event_type")
+  resourceSlug    String?   @map("resource_slug")
+  observation     String
+  context         String?
+  suggestedUpdate String?   @map("suggested_update")
+  impact          String    @default("medium")
+  applied         Boolean   @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  resource        Resource? @relation(fields: [resourceSlug], references: [slug])
+
+  @@map("learning_events")
+}
