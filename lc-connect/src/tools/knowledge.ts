@@ -5,7 +5,13 @@ export const knowledgeToolDefinitions = [
   {
     name: 'list_resources',
     description:
-      'List all knowledge resources stored in LC Connect. Resources contain domain knowledge, sales guidelines, scoring rules, and session instructions that shape AI behaviour.',
+      'USE WHEN: user asks what knowledge/workflow resources exist or needs to discover a resource slug. READ-ONLY. DO NOT USE WHEN: user already knows the slug and needs full content -> use get_resource. RETURNS: compact previews only.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -23,7 +29,14 @@ export const knowledgeToolDefinitions = [
   },
   {
     name: 'get_resource',
-    description: 'Get the full content of a specific knowledge resource plus its last 3 versions.',
+    description:
+      'USE WHEN: user asks for the full content of a known knowledge/workflow resource. READ-ONLY. DO NOT USE WHEN: user needs to find the right slug first -> use list_resources. RETURNS: resource content and recent version previews.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -36,11 +49,62 @@ export const knowledgeToolDefinitions = [
     },
   },
   {
+    name: 'find_workflow_guidance',
+    description:
+      'USE WHEN: user asks how to perform a workflow or the model needs connector guidance before a multi-step task. READ-ONLY. DO NOT USE WHEN: the exact resource slug is already known -> use read_workflow_guide/get_resource. RETURNS: compact matching workflow/resource candidates; load only the selected guide.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Task or workflow to find guidance for, e.g. create lead, research applications, score leads',
+        },
+        limit: {
+          type: 'number',
+          default: 5,
+          description: 'Maximum number of guidance resources to return',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'read_workflow_guide',
+    description:
+      'USE WHEN: user or find_workflow_guidance identified a workflow/resource slug to load before executing a task. READ-ONLY. DO NOT USE WHEN: discovering candidate guides -> use find_workflow_guidance. RETURNS: full guide content.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    inputSchema: {
+      type: 'object',
+      properties: {
+        workflow: {
+          type: 'string',
+          description: 'Workflow/resource slug to read, e.g. research_methodology or lead_scoring_guide',
+        },
+      },
+      required: ['workflow'],
+    },
+  },
+  {
     name: 'save_learning',
     description:
-      'Capture a learning from the current conversation — a correction, new insight, confirmation, flag, or regional note. ' +
-      'Call this proactively whenever a user corrects you, confirms an unusual approach, or reveals something new about a company/region/market. ' +
-      'If impact is "critical" AND suggested_update + resource_slug are provided, the resource is updated automatically.',
+      'USE WHEN: user corrects the connector, confirms an unusual approach, or provides reusable domain knowledge that should be reviewed later. WRITE ACTION; stores a learning event only. DO NOT USE WHEN: user asks to immediately change a knowledge resource -> use update_resource after explicit confirmation. GOTCHAS: this does not auto-apply suggested_update; critical learnings remain pending review.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -68,7 +132,7 @@ export const knowledgeToolDefinitions = [
         impact: {
           type: 'string',
           enum: ['low', 'medium', 'high', 'critical'],
-          description: 'How important is this learning — critical triggers auto-apply if resource_slug + suggested_update provided',
+          description: 'How important is this learning. Critical items are sorted first for review but are not auto-applied.',
         },
       },
       required: ['event_type', 'observation', 'context', 'impact'],
@@ -77,7 +141,13 @@ export const knowledgeToolDefinitions = [
   {
     name: 'update_resource',
     description:
-      'Update the content of an existing resource. Saves the old version to history and bumps the version number.',
+      'USE WHEN: user explicitly asks to replace/update a knowledge resource. WRITE ACTION; should require confirmation. DO NOT USE WHEN: user only provides a learning/correction for later review -> use save_learning. GOTCHAS: content replaces the full resource body; fetch get_resource first if editing existing content.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -91,7 +161,14 @@ export const knowledgeToolDefinitions = [
   },
   {
     name: 'create_resource',
-    description: 'Create a new knowledge resource. Slug must be unique.',
+    description:
+      'USE WHEN: user explicitly asks to create a new knowledge/workflow resource. WRITE ACTION; should require confirmation. DO NOT USE WHEN: user is only sharing a correction or note -> use save_learning. GOTCHAS: slug must be unique, lowercase, and stable.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -113,7 +190,13 @@ export const knowledgeToolDefinitions = [
   {
     name: 'get_pending_learnings',
     description:
-      'Get unapplied learning events ordered by impact (critical first). Use to review what the system has learned and decide what to apply to resources.',
+      'USE WHEN: user asks to review pending captured learnings or decide what should be applied to resources. READ-ONLY. DO NOT USE WHEN: user asks to apply a learning -> use update_resource after reading the target resource. RETURNS: unapplied events ordered by impact.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -142,6 +225,10 @@ export async function handleKnowledgeTool(
       return listResources(a)
     case 'get_resource':
       return getResource(a)
+    case 'find_workflow_guidance':
+      return findWorkflowGuidance(a)
+    case 'read_workflow_guide':
+      return getResource({ slug: a.workflow })
     case 'save_learning':
       return saveLearning(a)
     case 'update_resource':
@@ -220,6 +307,44 @@ async function getResource(args: Record<string, any>) {
   })
 }
 
+async function findWorkflowGuidance(args: Record<string, any>) {
+  if (!args.query) throw new Error('query is required')
+
+  const limit = Math.min(args.limit ?? 5, 20)
+  const terms = String(args.query)
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+
+  const resources = await prisma.resource.findMany({
+    where: { isActive: true },
+    orderBy: [{ category: 'asc' }, { slug: 'asc' }],
+  })
+
+  const scored = resources
+    .map((r: any) => {
+      const haystack = `${r.slug} ${r.title} ${r.category} ${r.content}`.toLowerCase()
+      const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0)
+      return { resource: r, score }
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.resource.slug.localeCompare(b.resource.slug))
+    .slice(0, limit)
+
+  return ok({
+    query: args.query,
+    count: scored.length,
+    guides: scored.map(({ resource, score }) => ({
+      slug: resource.slug,
+      title: resource.title,
+      category: resource.category,
+      score,
+      preview: resource.content.slice(0, 300) + (resource.content.length > 300 ? '...' : ''),
+      nextTool: 'read_workflow_guide',
+    })),
+  })
+}
+
 async function saveLearning(args: Record<string, any>) {
   const { event_type, observation, context, resource_slug, suggested_update, impact } = args
 
@@ -261,25 +386,11 @@ async function saveLearning(args: Record<string, any>) {
     },
   })
 
-  // Auto-apply for critical learnings with full info
-  let autoApplied = false
-  if (impact === 'critical' && resource_slug && suggested_update) {
-    try {
-      await applyResourceUpdate(resource_slug, suggested_update, `Auto-applied from critical learning #${event.id}`, 'system')
-      await prisma.learningEvent.update({ where: { id: event.id }, data: { applied: true } })
-      autoApplied = true
-    } catch (err) {
-      console.error('Auto-apply failed:', err)
-    }
-  }
-
   return ok({
     saved: true,
     event_id: event.id,
-    auto_applied: autoApplied,
-    message: autoApplied
-      ? `Learning saved and automatically applied to resource "${resource_slug}" (critical impact).`
-      : `Learning saved (id: ${event.id}). Pending manual review.`,
+    auto_applied: false,
+    message: `Learning saved (id: ${event.id}). Pending manual review.`,
   })
 }
 

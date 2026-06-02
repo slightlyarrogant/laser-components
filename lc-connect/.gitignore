@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+server.log
+db/laser_components_full.sql

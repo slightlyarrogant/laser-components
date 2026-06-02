@@ -3,21 +3,35 @@ import { prisma } from '../db/client.js'
 export const applicationToolDefinitions = [
   {
     name: 'get_applications',
-    description: 'Get applications from the database',
+    description:
+      'USE WHEN: user asks to list/filter known industrial applications or needs application IDs. READ-ONLY. DO NOT USE WHEN: user asks AI to discover new possible applications -> use discover_applications; user wants product mappings -> use get_product_applications. GOTCHAS: status must use exact enum values.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'number', default: 10 },
         status: {
           type: 'string',
-          enum: ['ACTIVE', 'INACTIVE', 'ARCHIVED'],
+          enum: ['ACTIVE', 'INACTIVE'],
         },
       },
     },
   },
   {
     name: 'create_application',
-    description: 'Create a new application',
+    description:
+      'USE WHEN: user explicitly asks to create a new application record. WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user only asks for AI application ideas -> use discover_applications first. REQUIRED FIELDS: name.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -25,7 +39,7 @@ export const applicationToolDefinitions = [
         description: { type: 'string' },
         status: {
           type: 'string',
-          enum: ['ACTIVE', 'INACTIVE', 'ARCHIVED'],
+          enum: ['ACTIVE', 'INACTIVE'],
           default: 'ACTIVE',
         },
       },
@@ -34,7 +48,14 @@ export const applicationToolDefinitions = [
   },
   {
     name: 'get_product_applications',
-    description: 'Get product-application mappings',
+    description:
+      'USE WHEN: user asks which products are mapped to applications or which applications are mapped to a product. READ-ONLY. DO NOT USE WHEN: user asks to create a mapping -> use create_product_application. GOTCHAS: productId/applicationId should be resolved first with search_products/get_applications.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -46,7 +67,14 @@ export const applicationToolDefinitions = [
   },
   {
     name: 'create_product_application',
-    description: 'Create a product-application mapping',
+    description:
+      'USE WHEN: user explicitly asks to map/link a product to an application. WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user asks to inspect mappings -> use get_product_applications. REQUIRED FIELDS: productId and applicationId; never guess IDs.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -59,7 +87,14 @@ export const applicationToolDefinitions = [
   },
   {
     name: 'get_regions',
-    description: 'Get regions with their countries',
+    description:
+      'USE WHEN: user needs region/country IDs or asks about geographic coverage. READ-ONLY. DO NOT USE WHEN: user asks for lead records by region -> use get_leads after resolving IDs.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -70,7 +105,14 @@ export const applicationToolDefinitions = [
   },
   {
     name: 'advanced_search',
-    description: 'Advanced search across products, leads, and applications',
+    description:
+      'USE WHEN: user gives one broad search term and wants matches across products, leads, and applications. READ-ONLY. DO NOT USE WHEN: user clearly targets one entity type -> use search_products/search_leads/get_applications. RETURNS: grouped matches by entity type with counts.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -135,15 +177,15 @@ export async function handleApplicationTool(name: string, args: Record<string, u
     case 'get_product_applications': {
       const limit = a.limit || 20
       const whereConditions: any = {}
-      if (a.productId) whereConditions.product_id = a.productId
-      if (a.applicationId) whereConditions.application_id = a.applicationId
+      if (a.productId) whereConditions.productId = a.productId
+      if (a.applicationId) whereConditions.applicationId = a.applicationId
 
-      const mappings = await prisma.product_applications.findMany({
+      const mappings = await prisma.applicationProduct.findMany({
         where: whereConditions,
         take: limit,
-        orderBy: { assigned_at: 'desc' },
+        orderBy: { assignedAt: 'desc' },
         include: {
-          products: {
+          product: {
             select: {
               id: true,
               name: true,
@@ -151,7 +193,7 @@ export async function handleApplicationTool(name: string, args: Record<string, u
               subcategory: { include: { category: true } },
             },
           },
-          applications: {
+          application: {
             select: { id: true, name: true, description: true, status: true },
           },
         },
@@ -167,15 +209,15 @@ export async function handleApplicationTool(name: string, args: Record<string, u
     case 'create_product_application': {
       if (!a.productId || !a.applicationId) throw new Error('productId and applicationId are required')
 
-      const mapping = await prisma.product_applications.create({
+      const mapping = await prisma.applicationProduct.create({
         data: {
-          product_id: a.productId,
-          application_id: a.applicationId,
+          productId: a.productId,
+          applicationId: a.applicationId,
           assignedBy: a.assignedBy || 'MCP Server',
         },
         include: {
-          products: { select: { id: true, name: true, description: true } },
-          applications: { select: { id: true, name: true, description: true } },
+          product: { select: { id: true, name: true, description: true } },
+          application: { select: { id: true, name: true, description: true } },
         },
       })
       return ok({ success: true, data: mapping, message: 'Product-application mapping created successfully' })
@@ -231,8 +273,8 @@ export async function handleApplicationTool(name: string, args: Record<string, u
           },
           take: limit,
           include: {
-            products: { select: { id: true, name: true } },
-            applications: { select: { id: true, name: true } },
+            product: { select: { id: true, name: true } },
+            application: { select: { id: true, name: true } },
           },
         })
       }

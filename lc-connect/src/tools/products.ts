@@ -3,7 +3,14 @@ import { prisma } from '../db/client.js'
 export const productToolDefinitions = [
   {
     name: 'get_products',
-    description: 'Get products with flexible filtering options. All filters are optional and can be combined.',
+    description:
+      'USE WHEN: user asks to browse/list/filter product catalog records, optionally by category, subcategory, application, or text search. READ-ONLY; no approval should be needed. DO NOT USE WHEN: user only has a free-text product query and expects fuzzy lookup -> use search_products; user wants to create/delete product records -> use create_product/delete_product. GOTCHAS: categoryId/subcategoryId/applicationId must be resolved first; never guess IDs. Large results should be summarized with counts and top items, not dumped row-by-row.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -31,7 +38,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'search_products',
-    description: 'Search products by name, description, or subcategory name',
+    description:
+      'USE WHEN: user gives a product/category/subcategory phrase and wants matching catalog items. READ-ONLY fuzzy lookup. DO NOT USE WHEN: exact filtered browsing by known IDs is needed -> use get_products. RETURNS: up to 20 matching products with category/subcategory context. GOTCHAS: use returned product IDs before calling create_lead, analyze_product_market, or discover_applications.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -42,7 +56,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'create_product',
-    description: 'Create a new product in the database',
+    description:
+      'USE WHEN: user explicitly asks to create a product catalog record. WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user is asking whether a product exists -> use search_products/get_products first. REQUIRED FIELDS: name and subcategoryId. GOTCHAS: resolve subcategoryId with get_categories; never guess IDs.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -59,7 +80,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'delete_product',
-    description: 'Delete a product from the database',
+    description:
+      'USE WHEN: user explicitly asks to delete a product record by ID. DESTRUCTIVE WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user asks to archive, hide, or clean duplicate data without explicit deletion. GOTCHAS: deletion fails if product has leads or application mappings; inspect get_products/get_product_applications first.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -70,7 +98,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'get_categories',
-    description: 'Get categories with their subcategories',
+    description:
+      'USE WHEN: user needs category/subcategory IDs or wants to understand product taxonomy. READ-ONLY. DO NOT USE WHEN: user wants product rows -> use get_products/search_products. RETURNS: categories and optionally subcategories with product counts. GOTCHAS: use this before create_product because create_product requires subcategoryId.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -81,7 +116,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'find_category_like_products',
-    description: 'Find products that appear to be category pages needing deeper scraping',
+    description:
+      'USE WHEN: user asks for data-quality cleanup candidates, especially product rows that look like category/landing pages rather than real SKU/product records. READ-ONLY diagnostic. DO NOT USE WHEN: user asks for normal product search -> use search_products/get_products.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -91,7 +133,14 @@ export const productToolDefinitions = [
   },
   {
     name: 'get_statistics',
-    description: 'Get database statistics',
+    description:
+      'USE WHEN: user asks for high-level database/catalog statistics or current system coverage. READ-ONLY. RETURNS: counts of products, applications, leads, and product-application mappings. DO NOT USE WHEN: user wants analytical breakdowns by segment; use dedicated list/search/group tools when available.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {},
@@ -136,7 +185,7 @@ export async function handleProductTool(name: string, args: Record<string, unkno
       }
 
       if (applicationId) {
-        whereConditions.product_applications = { some: { application_id: applicationId } }
+        whereConditions.product_applications = { some: { applicationId } }
       }
 
       if (search) {
@@ -155,7 +204,7 @@ export async function handleProductTool(name: string, args: Record<string, unkno
         include: {
           subcategory: { include: { category: true } },
           ...(includeApplications && {
-            product_applications: { include: { applications: true } },
+            product_applications: { include: { application: true } },
           }),
         },
       })
@@ -218,7 +267,7 @@ export async function handleProductTool(name: string, args: Record<string, unkno
         where: { id: a.id },
         include: {
           leads: { select: { id: true } },
-          product_applications: { select: { product_id: true, application_id: true } },
+          product_applications: { select: { productId: true, applicationId: true } },
         },
       })
       if (!product) throw new Error(`Product with ID ${a.id} not found`)
@@ -276,7 +325,7 @@ export async function handleProductTool(name: string, args: Record<string, unkno
         include: {
           subcategory: { include: { category: true } },
           leads: { select: { id: true } },
-          product_applications: { select: { product_id: true, application_id: true } },
+          product_applications: { select: { productId: true, applicationId: true } },
         },
       })
 
@@ -313,7 +362,7 @@ export async function handleProductTool(name: string, args: Record<string, unkno
         prisma.product.count(),
         prisma.application.count(),
         prisma.lead.count(),
-        prisma.product_applications.count(),
+        prisma.applicationProduct.count(),
       ])
       return ok({
         success: true,

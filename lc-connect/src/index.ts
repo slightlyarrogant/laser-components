@@ -94,6 +94,12 @@ app.get('/dashboard', (_req, res) =>
 app.get('/notes', (_req, res) =>
   res.sendFile('meeting-notes.html', { root: PRESENTATION_DIR })
 )
+app.get('/proposal', (_req, res) =>
+  res.sendFile('proposal.html', { root: PRESENTATION_DIR })
+)
+app.get('/pitch', (_req, res) =>
+  res.sendFile('lc-connect-pitch.html', { root: PRESENTATION_DIR })
+)
 
 // ---------------------------------------------------------------------------
 // Health check

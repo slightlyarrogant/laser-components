@@ -3,14 +3,21 @@ import { prisma } from '../db/client.js'
 export const leadToolDefinitions = [
   {
     name: 'get_leads',
-    description: 'Get leads from the database',
+    description:
+      'USE WHEN: user asks to list, review, filter, or inspect sales leads. READ-ONLY; no approval should be needed. DO NOT USE WHEN: user asks to create/update/delete leads -> use create_lead/update_lead/delete_lead. GOTCHAS: productId/applicationId must be resolved with search_products/get_applications first; status must be one of the enum values. Large result sets should be summarized analytically.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
         limit: { type: 'number', default: 10 },
         status: {
           type: 'string',
-          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'OPPORTUNITY', 'CLOSED_WON', 'CLOSED_LOST'],
+          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'WON'],
         },
         productId: { type: 'number' },
         applicationId: { type: 'number' },
@@ -19,7 +26,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'create_lead',
-    description: 'Create a new lead',
+    description:
+      'USE WHEN: user explicitly asks to create a lead/prospect. WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user is researching candidates or asking whether a lead exists -> use search_leads first. REQUIRED FIELDS: name and productId. GOTCHAS: resolve productId with search_products/get_products; do not guess IDs.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,7 +43,7 @@ export const leadToolDefinitions = [
         productId: { type: 'number' },
         status: {
           type: 'string',
-          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'OPPORTUNITY', 'CLOSED_WON', 'CLOSED_LOST'],
+          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'WON'],
           default: 'NEW',
         },
         industry: { type: 'string' },
@@ -43,7 +57,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'update_lead',
-    description: 'Update an existing lead',
+    description:
+      'USE WHEN: user explicitly asks to change fields on an existing lead. WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user asks only to analyze or score a lead -> use get_leads/generate_lead_score. REQUIRED FIELDS: id. GOTCHAS: lookup lead first if ID is unknown; status must use exact enum values.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -53,7 +74,7 @@ export const leadToolDefinitions = [
         phone: { type: 'string' },
         status: {
           type: 'string',
-          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'OPPORTUNITY', 'CLOSED_WON', 'CLOSED_LOST'],
+          enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'WON'],
         },
         industry: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
@@ -69,7 +90,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'delete_lead',
-    description: 'Delete a lead by ID',
+    description:
+      'USE WHEN: user explicitly asks to delete a lead by ID. DESTRUCTIVE WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user asks to mark lost, archive, or disqualify -> use update_lead with the correct status if appropriate.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -80,7 +108,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'search_leads',
-    description: 'Search leads by name or tags',
+    description:
+      'USE WHEN: user provides a company/person/tag phrase and wants matching lead records or IDs. READ-ONLY lookup. DO NOT USE WHEN: user wants all leads with structured filters -> use get_leads. RETURNS: matching lead records with product/application context.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -91,7 +126,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'get_lead_notes',
-    description: 'Retrieve notes and activity history for a lead',
+    description:
+      'USE WHEN: user asks for notes, call history, meeting history, or activity context for a specific lead. READ-ONLY. DO NOT USE WHEN: user asks to add a note -> use create_lead_note. REQUIRED FIELDS: leadId; use search_leads/get_leads first if unknown.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -106,7 +148,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'create_lead_note',
-    description: 'Add a note to a lead for activity tracking',
+    description:
+      'USE WHEN: user explicitly asks to record a note, call, meeting, email, task, or follow-up on a lead. WRITE ACTION; should require confirmation/approval if the client treats note creation as mutation. DO NOT USE WHEN: user only asks to read lead history -> use get_lead_notes. REQUIRED FIELDS: leadId and content.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -124,7 +173,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'batch_create_leads',
-    description: 'Create multiple leads from bulk data',
+    description:
+      'USE WHEN: user explicitly asks to import/create multiple leads from prepared candidate data. BULK WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user is still researching or validating candidate companies. GOTCHAS: each lead needs name and productId; resolve product IDs first; maximum 200 per call; prefer skipDuplicates=true.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -153,7 +209,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'batch_update_leads',
-    description: 'Update multiple leads in bulk',
+    description:
+      'USE WHEN: user explicitly asks to change status/tags/metadata for multiple existing leads. BULK WRITE ACTION; should require confirmation/approval. DO NOT USE WHEN: user asks to analyze or filter leads. GOTCHAS: maximum 500 IDs; operation=append only affects tags; status must use exact enum value.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -166,7 +229,7 @@ export const leadToolDefinitions = [
           properties: {
             status: {
               type: 'string',
-              enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'OPPORTUNITY', 'CLOSED_WON', 'CLOSED_LOST'],
+              enum: ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'WON'],
             },
             tags: { type: 'array', items: { type: 'string' } },
             assignedTo: { type: 'string' },
@@ -185,7 +248,14 @@ export const leadToolDefinitions = [
   },
   {
     name: 'generate_lead_score',
-    description: 'AI-powered lead scoring based on multiple factors',
+    description:
+      'USE WHEN: user asks to evaluate, prioritize, rank, or score a specific lead. READ-ONLY analysis; does not update the lead. DO NOT USE WHEN: user wants to persist score/status changes -> use update_lead after explicit approval. REQUIRED FIELDS: leadId.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -219,7 +289,7 @@ export async function handleLeadTool(name: string, args: Record<string, unknown>
       const whereConditions: any = {}
 
       if (a.status) {
-        const validStatuses = ['NEW', 'CONTACTED', 'QUALIFIED', 'OPPORTUNITY', 'CLOSED_WON', 'CLOSED_LOST']
+        const validStatuses = ['NEW', 'CONTACTED', 'QUALIFIED', 'LOST', 'WON']
         if (!validStatuses.includes(a.status)) {
           throw new Error(`Invalid status "${a.status}". Valid statuses are: ${validStatuses.join(', ')}`)
         }
@@ -233,10 +303,10 @@ export async function handleLeadTool(name: string, args: Record<string, unknown>
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          products: { select: { id: true, name: true } },
-          applications: { select: { id: true, name: true } },
-          regions: { select: { id: true, name: true } },
-          countries: { select: { id: true, name: true } },
+          product: { select: { id: true, name: true } },
+          application: { select: { id: true, name: true } },
+          region: { select: { id: true, name: true } },
+          country: { select: { id: true, name: true } },
         },
       })
       return ok({ success: true, data: leads, count: leads.length })
@@ -260,7 +330,7 @@ export async function handleLeadTool(name: string, args: Record<string, unknown>
 
       const lead = await prisma.lead.create({
         data: leadData,
-        include: { products: true, applications: true },
+        include: { product: true, application: true },
       })
       return ok({ success: true, data: lead, message: 'Lead created successfully' })
     }
@@ -278,15 +348,15 @@ export async function handleLeadTool(name: string, args: Record<string, unknown>
       if (a.description !== undefined) updateData.description = a.description
       if (a.website !== undefined) updateData.website = a.website
       if (a.applicationId !== undefined) updateData.applicationId = a.applicationId
-      if (a.annualRevenue !== undefined) updateData.annual_revenue = a.annualRevenue
-      if (a.employeeCount !== undefined) updateData.employee_count = a.employeeCount
+      if (a.annualRevenue !== undefined) updateData.annualRevenue = a.annualRevenue
+      if (a.employeeCount !== undefined) updateData.employeeCount = a.employeeCount
       if (a.confidence !== undefined) updateData.confidence = a.confidence
 
       try {
         const updatedLead = await prisma.lead.update({
           where: { id: a.id },
           data: updateData,
-          include: { products: true, applications: true, regions: true, countries: true },
+          include: { product: true, application: true, region: true, country: true },
         })
         return ok({ success: true, data: updatedLead, message: 'Lead updated successfully' })
       } catch (error: any) {
@@ -328,8 +398,8 @@ export async function handleLeadTool(name: string, args: Record<string, unknown>
         take: 20,
         orderBy: { createdAt: 'desc' },
         include: {
-          products: { select: { id: true, name: true } },
-          applications: { select: { id: true, name: true } },
+          product: { select: { id: true, name: true } },
+          application: { select: { id: true, name: true } },
         },
       })
       return ok({ success: true, data: leads, count: leads.length, searchCriteria: { query: a.query, tags: a.tags } })

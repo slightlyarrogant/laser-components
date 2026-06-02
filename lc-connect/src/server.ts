@@ -106,8 +106,8 @@ function registerPrompts(server: Server): void {
       fullContext += (sessionInstructions as any).content
     } else {
       fullContext +=
-        'Call save_learning automatically whenever a user corrects you, confirms an unusual approach, ' +
-        'or reveals something new about a company, region, or market. Do not wait to be asked.'
+        'Suggest save_learning when the user wants the connector to remember a reusable correction, ' +
+        'confirmation, or market insight. Do not call it for casual conversation; it is a write action.'
     }
 
     return {

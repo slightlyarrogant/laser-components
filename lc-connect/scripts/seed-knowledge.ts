@@ -1,20 +1,8 @@
 // Seed foundational domain knowledge resources for LC Connect.
 // Safe to re-run — checks for existing slugs before inserting.
 import 'dotenv/config'
-import { createRequire } from 'module'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
+import { PrismaClient } from '@prisma/client'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-
-const pathParts = __dirname.split('/')
-const lcIndex = pathParts.indexOf('laser_components')
-if (lcIndex === -1) throw new Error('Cannot find laser_components in path')
-const projectRoot = pathParts.slice(0, lcIndex + 1).join('/')
-
-const require = createRequire(import.meta.url)
-const { PrismaClient } = require(join(projectRoot, 'node_modules', '@prisma', 'client'))
 const prisma = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL } } })
 
 // ---------------------------------------------------------------------------
@@ -212,17 +200,16 @@ Response: The interface is a conversation. No training needed. A sales rep asks 
 
 At the start of each session, read all active resources to load domain knowledge.
 
-## CRITICAL: Learning Protocol
+## Learning Protocol
 
-Call save_learning automatically whenever:
+Suggest save_learning when the user explicitly wants the connector to remember something reusable, or when the conversation produces a correction that should be reviewed later:
 - A user corrects your suggestion (event_type: correction)
 - A user confirms an unusual or non-obvious approach (event_type: confirmation)
 - You learn something new about a company, region, or market (event_type: new_insight)
 - A user flags something as wrong or outdated (event_type: flag)
 - You discover a regional pattern worth remembering (event_type: regional_note)
 
-Do NOT wait for the user to ask you to save something. Capture learnings proactively.
-When saving, include the full context of what was said so future sessions understand why.
+Do not call save_learning for casual conversation or every minor observation; it is a write action and may require confirmation. When saving, include the full context of what was said so future sessions understand why. Suggested updates remain pending review and must be applied explicitly with update_resource.
 
 ## Supply Chain Awareness
 Always apply supply chain positioning when identifying leads. Target companies 2-3 steps before final manufacturers, not the final manufacturers themselves. If you find yourself suggesting Tesla or BMW as leads, stop — those are end product makers.

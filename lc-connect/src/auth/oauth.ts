@@ -118,7 +118,7 @@ export async function handleAuthorizePost(req: Request, res: Response): Promise<
     const user = await prisma.user.findUnique({ where: { email } })
     if (!user) { sendError('Invalid email or password'); return }
 
-    const valid: boolean = await bcrypt.compare(password, user.password_hash)
+    const valid: boolean = await bcrypt.compare(password, user.passwordHash)
     if (!valid) { sendError('Invalid email or password'); return }
 
     purgeExpired()

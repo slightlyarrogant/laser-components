@@ -10,7 +10,13 @@ export const reportToolDefinitions = [
   {
     name: 'report_issue',
     description:
-      'Report a bug, problem, or issue with the LC Connect system or laser components data. The report will be sent directly to the system administrator via WhatsApp.',
+      'USE WHEN: user explicitly asks to report/send a bug, data problem, or connector issue to the system administrator. EXTERNAL SIDE EFFECT; should require confirmation because it sends a WhatsApp message. DO NOT USE WHEN: user is merely discussing a possible issue or asking for analysis. REQUIRED FIELDS: title and description.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       required: ['title', 'description'],

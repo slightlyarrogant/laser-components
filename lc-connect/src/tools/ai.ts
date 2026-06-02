@@ -155,7 +155,14 @@ function generateMarkdownReport(title: string, sections: Array<{ title: string; 
 export const aiToolDefinitions = [
   {
     name: 'analyze_product_market',
-    description: 'AI-powered market analysis for a product',
+    description:
+      'USE WHEN: user asks for market size, trends, competitors, or strategic market analysis for a known product. READ-ONLY but calls Perplexity/web-backed AI, so results may include external information. DO NOT USE WHEN: user only needs local catalog data -> use get_products/search_products. REQUIRED FIELDS: productId from search_products/get_products; never guess IDs. RETURNS: analytical narrative, not database changes.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -171,7 +178,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'discover_applications',
-    description: 'AI-powered discovery of potential applications for a product',
+    description:
+      'USE WHEN: user asks what industries/use cases/applications a known product could serve. READ-ONLY but calls Perplexity/web-backed AI. DO NOT USE WHEN: user wants existing mapped applications only -> use get_product_applications. REQUIRED FIELDS: productId from search_products/get_products. GOTCHAS: this does not create application records or product mappings; review output before create_application/create_product_application.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -184,7 +198,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'enrich_lead',
-    description: 'AI-powered lead enrichment with company and market data',
+    description:
+      'USE WHEN: user asks to research/enrich a known lead with company, market, technology, or growth information. READ-ONLY but calls Perplexity/web-backed AI. DO NOT USE WHEN: user asks to change the CRM record -> use update_lead after explicit confirmation. REQUIRED FIELDS: leadId from get_leads/search_leads. RETURNS: suggested enrichment only; does not persist changes.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -203,7 +224,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'analyze_competition',
-    description: 'AI-powered competitive analysis for products or markets',
+    description:
+      'USE WHEN: user asks for competitors, market positioning, SWOT, or alternative solutions for a known product. READ-ONLY but calls Perplexity/web-backed AI. DO NOT USE WHEN: user only wants local product/application records -> use get_products/get_product_applications. REQUIRED FIELDS: productId; optional competitorNames narrows the analysis.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -223,7 +251,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'generate_insights',
-    description: 'Generate business insights from data patterns',
+    description:
+      'USE WHEN: user asks for analytical business insights from LaserConnect data, such as market trends, customer patterns, product performance, or sales opportunities. READ-ONLY but may call Perplexity using summarized database context. DO NOT USE WHEN: user asks for raw rows -> use get_leads/get_products/get_applications. RETURNS: interpretation, deltas, contributors, and next steps rather than row dumps.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -243,7 +278,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'generate_lead_score',
-    description: 'AI-powered lead scoring based on multiple factors',
+    description:
+      'USE WHEN: user asks to score/prioritize a known lead or explain sales fit. READ-ONLY but calls Perplexity/web-backed AI. DO NOT USE WHEN: user asks to persist the score/status -> use update_lead after explicit confirmation. REQUIRED FIELDS: leadId from get_leads/search_leads. RETURNS: score analysis and recommendations only.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -262,7 +304,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'export_data',
-    description: 'Export data in various formats',
+    description:
+      'USE WHEN: user explicitly asks to export leads, products, applications, or a database summary. READ-ONLY local database operation. DO NOT USE WHEN: user only needs an answer/analysis -> prefer generate_insights or narrower list tools. GOTCHAS: large exports can be too big for chat; prefer summaries/samples and a future dataset/widget handle instead of dumping all rows inline.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -294,7 +343,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'generate_report',
-    description: 'Generate formatted reports',
+    description:
+      'USE WHEN: user asks for a formatted lead, product, pipeline, or activity report. READ-ONLY; generates report content but does not save or send it. DO NOT USE WHEN: user asks for external delivery -> use explicit sending/reporting tools if available. RETURNS: HTML or markdown report text.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -322,7 +378,14 @@ export const aiToolDefinitions = [
   },
   {
     name: 'get_activity_feed',
-    description: 'Get recent activity across all leads and users',
+    description:
+      'USE WHEN: user asks what recently changed or wants a recent CRM activity timeline. READ-ONLY. DO NOT USE WHEN: user asks for issue reporting -> use report_issue. RETURNS: recent lead and note activity, sorted newest first. GOTCHAS: use dateFrom/dateTo as ISO dates when filtering.',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     inputSchema: {
       type: 'object',
       properties: {
@@ -359,7 +422,7 @@ export async function handleAITool(name: string, args: Record<string, unknown> |
         where: { id: a.productId },
         include: {
           subcategory: { include: { category: true } },
-          product_applications: { include: { applications: true } },
+          product_applications: { include: { application: true } },
         },
       })
       if (!product) throw new Error(`Product with ID ${a.productId} not found`)
@@ -370,7 +433,7 @@ export async function handleAITool(name: string, args: Record<string, unknown> |
       const context = `Product: ${product.name}
 Category: ${(product.subcategory as any).category.name} > ${(product.subcategory as any).name}
 Description: ${product.description || 'N/A'}
-Applications: ${product.product_applications.map((pa: any) => pa.applications.name).join(', ') || 'None mapped'}`
+Applications: ${product.product_applications.map((pa: any) => pa.application.name).join(', ') || 'None mapped'}`
 
       let prompt = ''
       switch (analysisType) {
@@ -437,7 +500,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.applications.na
 
       const lead = await prisma.lead.findUnique({
         where: { id: a.leadId },
-        include: { products: true, applications: true, regions: true, countries: true },
+        include: { product: true, application: true, region: true, country: true },
       })
       if (!lead) throw new Error(`Lead with ID ${a.leadId} not found`)
 
@@ -453,7 +516,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.applications.na
       }
 
       if (shouldEnrichAll || enrichmentTypes.includes('company_info')) {
-        const prompt = `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ''}. Provide: company size, founding year, key products/services, headquarters location, and recent news.`
+        const prompt = `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ''}. Provide: company size, founding year, key product/services, headquarters location, and recent news.`
         enrichmentData.enrichedData.company_info = await perplexity.analyze(prompt)
       }
       if (shouldEnrichAll || enrichmentTypes.includes('market_position')) {
@@ -613,10 +676,10 @@ Product Description: ${product.description || 'N/A'}`
       const lead = await prisma.lead.findUnique({
         where: { id: a.leadId },
         include: {
-          products: true,
-          applications: true,
-          regions: true,
-          notes_relation: { orderBy: { createdAt: 'desc' }, take: 5 },
+          product: true,
+          application: true,
+          region: true,
+          notes: { orderBy: { createdAt: 'desc' }, take: 5 },
         },
       })
       if (!lead) throw new Error(`Lead with ID ${a.leadId} not found`)
@@ -630,9 +693,9 @@ Product Description: ${product.description || 'N/A'}`
 Industry: ${lead.industry || 'Unknown'}
 Website: ${lead.website || 'N/A'}
 Status: ${lead.status}
-Products of Interest: ${(lead.products as any).name}
-Annual Revenue: ${lead.annual_revenue || 'Unknown'}
-Employee Count: ${lead.employee_count || 'Unknown'}`
+Product of Interest: ${(lead.product as any)?.name || 'Unknown'}
+Annual Revenue: ${lead.annualRevenue || 'Unknown'}
+Employee Count: ${lead.employeeCount || 'Unknown'}`
 
       const prompt = `Score this lead on a scale of 0-100 based on the following factors: ${scoringFactors.join(', ')}.
 For each factor, provide:
@@ -700,8 +763,8 @@ Also provide an overall weighted score and recommendation for next steps.`
           data = await prisma.lead.findMany({
             where: filters,
             include: {
-              products: { select: { name: true } },
-              applications: { select: { name: true } },
+              product: { select: { name: true } },
+              application: { select: { name: true } },
             },
           })
           filename = `leads_export_${new Date().toISOString().split('T')[0]}`
@@ -763,7 +826,7 @@ Also provide an overall weighted score and recommendation for next steps.`
           const [totalLeads, statusCounts, recentLeads] = await Promise.all([
             prisma.lead.count(),
             prisma.lead.groupBy({ by: ['status'], _count: true }),
-            prisma.lead.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { products: true } }),
+            prisma.lead.findMany({ take: 10, orderBy: { createdAt: 'desc' }, include: { product: true } }),
           ])
           sections.push({ title: 'Overview', content: `Total Leads: ${totalLeads}`, type: 'text' })
           sections.push({
@@ -776,8 +839,8 @@ Also provide an overall weighted score and recommendation for next steps.`
           sections.push({
             title: 'Recent Leads',
             content: format === 'html'
-              ? createTableHTML(recentLeads.map((l: any) => ({ Name: l.name, Status: l.status, Product: l.products.name, Created: new Date(l.createdAt).toLocaleDateString() })))
-              : createTableMarkdown(recentLeads.map((l: any) => ({ Name: l.name, Status: l.status, Product: l.products.name, Created: new Date(l.createdAt).toLocaleDateString() }))),
+              ? createTableHTML(recentLeads.map((l: any) => ({ Name: l.name, Status: l.status, Product: l.product.name, Created: new Date(l.createdAt).toLocaleDateString() })))
+              : createTableMarkdown(recentLeads.map((l: any) => ({ Name: l.name, Status: l.status, Product: l.product.name, Created: new Date(l.createdAt).toLocaleDateString() }))),
             type: 'table',
           })
           break
@@ -830,7 +893,7 @@ Also provide an overall weighted score and recommendation for next steps.`
         where: { createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined },
         take: Math.floor(limit / 2),
         orderBy: { createdAt: 'desc' },
-        include: { products: { select: { name: true } } },
+        include: { product: { select: { name: true } } },
       })
 
       recentLeads.forEach((lead: any) => {
@@ -838,7 +901,7 @@ Also provide an overall weighted score and recommendation for next steps.`
           type: 'lead_created',
           timestamp: lead.createdAt,
           description: `New lead created: ${lead.name}`,
-          details: { leadId: lead.id, leadName: lead.name, product: lead.products.name, status: lead.status },
+          details: { leadId: lead.id, leadName: lead.name, product: lead.product.name, status: lead.status },
         })
       })
 
