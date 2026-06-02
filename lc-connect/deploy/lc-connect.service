@@ -1,0 +1,16 @@
+[Unit]
+Description=LC Connect MCP server (laser_components)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/bogdan/Desktop/Projects/laser_components/lc-connect
+ExecStart=/usr/local/bin/node --env-file=.env dist/index.js
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/server.log
+StandardError=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/server.log
+
+[Install]
+WantedBy=default.target
