@@ -1,6 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { prisma } from "../db/client.js";
+import { registerProductsTools } from "./products.js";
+import { registerApplicationsTools } from "./applications.js";
+import { registerLeadsTools } from "./leads.js";
+import { registerReportTools } from "./report.js";
+import { registerAiTools } from "./ai.js";
+import { registerKnowledgeTools } from "./knowledge.js";
+import { registerAnalyticsTools } from "./analytics.js";
 
 /**
  * registerAllTools — registers the LC Connect tool set on a fresh McpServer.
@@ -9,17 +16,22 @@ import { prisma } from "../db/client.js";
  *   - get_statistics : DB-backed counts (products / applications / leads / mappings)
  *   - ping           : liveness probe
  *
- * TODO (CHUNK 2 — port the remaining 38 tools from the old low-level server,
- * grouped by domain; each becomes a high-level `server.tool(...)` with a zod
- * schema and a USE WHEN / DON'T USE description in VC's style):
- *   - products   (src/tools/products.ts)   — catalog CRUD, search, spec lookup
- *   - leads      (src/tools/leads.ts)       — lead list/create/update, scoring
- *   - applications (src/tools/applications.ts) — application catalog + product mappings
- *   - ai         (src/tools/ai.ts)          — lead scoring, enrichment, Perplexity research
- *   - knowledge  (src/tools/knowledge.ts)   — DB-backed knowledge/resource retrieval
- *   - report     (src/tools/report.ts)      — report generation / export
+ * CHUNK 2a: DB/CRUD domains ported to high-level `server.tool(...)`:
+ *   - products     (src/tools/products.ts)     — catalog CRUD, search, taxonomy
+ *   - applications (src/tools/applications.ts) — application catalog + product mappings + cross-search
+ *   - leads        (src/tools/leads.ts)         — lead list/search, single + batch CRUD, notes
+ *   - report       (src/tools/report.ts)        — report_issue via WhatsApp bridge
+ *
+ * CHUNK 2b (this chunk): AI + knowledge domains ported to high-level `server.tool(...)`,
+ * plus DB-backed resources and the session-start prompt (wired in src/server.ts):
+ *   - ai         (src/tools/ai.ts)          — Perplexity market intel + DB export/report/feed
+ *   - knowledge  (src/tools/knowledge.ts)   — DB-backed resources, workflow guidance, learnings
+ *                                             (+ registerKnowledgeResources for lc://resources/<slug>)
+ *   - prompts    (src/prompts.ts)           — lc_session_start (loads knowledge base)
+ *
+ * TODO (chunk 2c — still on the old low-level server):
  *   - analytics-widget (src/widgets/analytics-widget.ts) — analytics dashboards as widgets
- * Chunk 2 also re-introduces the widget/dataset layer (datasets.ts, widgets.ts,
+ * Chunk 2c also re-introduces the widget/dataset layer (datasets.ts, widgets.ts,
  * okList()) and the /widget, /widget-data, /datasets CSV routes.
  *
  * The `getTenantSub` resolver is threaded in so per-tenant tools (leads owned by
@@ -95,4 +107,23 @@ export function registerAllTools(
       };
     }
   );
+
+  // -------------------------------------------------------------------------
+  // CHUNK 2a domain tool sets.
+  // -------------------------------------------------------------------------
+  registerProductsTools(server, getTenantSub);
+  registerApplicationsTools(server, getTenantSub);
+  registerLeadsTools(server, getTenantSub);
+  registerReportTools(server, getTenantSub);
+
+  // -------------------------------------------------------------------------
+  // CHUNK 2b domain tool sets.
+  // -------------------------------------------------------------------------
+  registerAiTools(server, getTenantSub);
+  registerKnowledgeTools(server, getTenantSub);
+
+  // -------------------------------------------------------------------------
+  // CHUNK 2c — analytics widget card (leads_analytics).
+  // -------------------------------------------------------------------------
+  registerAnalyticsTools(server, getTenantSub);
 }

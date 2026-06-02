@@ -1,25 +1,25 @@
 import "node:process";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import {
+  getWidgetSdkJs,
+  WIDGET_SDK_PATH,
+  WIDGET_SDK_CONTENT_TYPE,
+} from "@cfi/mcp-widgets";
 import { config } from "./config.js";
 import { VERSION } from "./version.js";
 import { oauthRouter, requireBearerToken } from "./auth/oauth.js";
 import { createMcpServer, tenantContext } from "./server.js";
+import { datasetCsvHandler } from "./datasets.js";
 import { getRecentEvents, logEmitter, type SessionLogEvent } from "./core/session-log.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// The MCP Apps SDK browser bundle, served verbatim at /widget-sdk/app.js so
-// widget HTML can `import(window.__LC_SDK_URL__)`.
-const APP_SDK_JS = readFileSync(
-  join(__dirname, "../node_modules/@modelcontextprotocol/ext-apps/dist/src/app-with-deps.js"),
-  "utf-8"
-);
+// The MCP Apps SDK browser bundle (app-with-deps.js, bundled/self-contained),
+// resolved through the shared @cfi/mcp-widgets helper against LC's own ext-apps
+// dependency so the served SDK matches the version the widgets expect. Served
+// verbatim at /widget-sdk/app.js so widget HTML can `import(window.__SDK_URL__)`.
+const APP_SDK_JS = getWidgetSdkJs();
 
 // ---------------------------------------------------------------------------
 // Application
@@ -200,19 +200,33 @@ app.get("/session-log/stream", (c) => {
 
 // ---------------------------------------------------------------------------
 // Widget SDK bundle — served as a static asset for widget HTML to import.
-// (The /widget, /widget-data, /datasets CSV routes return in chunk 2 with the
-// dataset/widget layer.)
+// Path/Content-Type come from @cfi/mcp-widgets so they stay in lockstep with
+// the URL the widgets bake into their HTML + CSP.
 // ---------------------------------------------------------------------------
 
-app.get("/widget-sdk/app.js", () =>
+app.get(WIDGET_SDK_PATH, () =>
   new Response(APP_SDK_JS, {
     headers: {
-      "Content-Type": "application/javascript",
+      "Content-Type": WIDGET_SDK_CONTENT_TYPE,
       "Cache-Control": "public, max-age=86400",
       "Access-Control-Allow-Origin": "*",
     },
   })
 );
+
+// ---------------------------------------------------------------------------
+// Dataset CSV download — backs the DATASET widget's `exportUrl` toolbar button.
+// The route param carries the ".csv" suffix (Hono can't put a literal suffix
+// after a plain param), so we match "<id>.csv" and strip the extension. Returns
+// 404 for an unknown/expired dataset id.
+// ---------------------------------------------------------------------------
+
+app.get("/datasets/:name{[a-zA-Z0-9_-]+\\.csv}", (c) => {
+  const id = c.req.param("name").replace(/\.csv$/, "");
+  const res = datasetCsvHandler(id);
+  if (!res) return c.text("Dataset not found or expired", 404);
+  return res;
+});
 
 // ---------------------------------------------------------------------------
 // MCP endpoint — stateless, one fresh transport + server per request.

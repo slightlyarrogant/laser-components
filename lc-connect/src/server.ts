@@ -1,6 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { registerAllTools } from "./tools/index.js";
+import { registerKnowledgeResources } from "./tools/knowledge.js";
+import { registerSharedWidgets } from "./widgets.js";
+import { registerPrompts } from "./prompts.js";
 import { VERSION } from "./version.js";
 
 /**
@@ -62,7 +65,18 @@ export function createMcpServer(): McpServer {
   );
 
   registerAllTools(server, getTenantSub);
-  // TODO (chunk 2): registerKnowledgeResources(server), registerPrompts(server).
+
+  // CHUNK 2c: register the shared @cfi/mcp-widgets resources (analytics,
+  // dataset, action) ONCE on this server. Guarded internally + here so the
+  // per-request server build never throws on a duplicate resource URI.
+  registerSharedWidgets(server);
+
+  // CHUNK 2b: DB-backed knowledge resources (lc://resources/<slug>) and the
+  // session-start prompt (lc_session_start). Resources/prompts are global, not
+  // tenant-scoped, so they are registered here rather than threaded through
+  // getTenantSub.
+  registerKnowledgeResources(server);
+  registerPrompts(server);
 
   return server;
 }
