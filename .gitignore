@@ -1,3 +1,6 @@
+# Archived legacy project surface (pre-restructure 2026-06) — kept on disk, out of git
+legacy/
+
 # Logs
 logs
 *.log

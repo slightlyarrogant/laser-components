@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "ResearchStatus" ADD VALUE 'PENDING_APPROVAL';
