@@ -1,122 +1,68 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import {
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js'
-import { registerAllTools } from './tools/index.js'
-import { prisma } from './db/client.js'
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { registerAllTools } from "./tools/index.js";
+import { VERSION } from "./version.js";
 
-export function createMCPServer(): Server {
-  const server = new Server(
-    { name: 'lc-connect', version: '1.0.0' },
-    { capabilities: { tools: {}, resources: {}, prompts: {} } }
-  )
+/**
+ * AsyncLocalStorage carries the current request's tenant sub (String(user.id))
+ * through the async call chain so tool handlers can retrieve it without
+ * threading it through every signature.
+ *
+ *   tenantContext.run(sub, () => { ... tool call executes here ... })
+ *   const sub = getTenantSub();  // inside a tool handler
+ */
+export const tenantContext = new AsyncLocalStorage<string>();
 
-  registerAllTools(server)
-  registerResources(server)
-  registerPrompts(server)
-
-  return server
+export function getTenantSub(): string {
+  const sub = tenantContext.getStore();
+  if (!sub) {
+    throw new Error(
+      "No tenant context found. The MCP request was not wrapped in tenantContext.run()."
+    );
+  }
+  return sub;
 }
 
-function registerResources(server: Server): void {
-  // List all active resources
-  server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    const resources = await prisma.resource.findMany({
-      where: { isActive: true },
-      orderBy: { category: 'asc' },
-    })
+const INSTRUCTIONS = `
+You are connected to LC Connect — an MCP server over the Laser Components CRM and
+knowledge base (PostgreSQL). It exposes products, applications, leads, market
+research, knowledge resources, and reporting/analytics for a laser-components
+sales operation.
 
-    return {
-      resources: resources.map((r: any) => ({
-        uri: `lc://resources/${r.slug}`,
-        name: r.title,
-        description: `[${r.category}] v${r.version} — ${r.content.slice(0, 120)}...`,
-        mimeType: 'text/plain',
-      })),
-    }
-  })
+## How to answer
+- Prefer widget answers for any result set that is naturally tabular or large
+  (product catalogs, lead lists, application mappings, analytics). When a tool
+  returns a widget/dataset link, present that link as the visualization — do NOT
+  rebuild it as a React artifact or a raw JSON dump. Summarize from the sample.
+- Treat large result sets as datasets, not prose: profile, group, aggregate, and
+  compare rather than reading row-by-row.
 
-  // Read a specific resource by URI
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const slug = (request.params.uri as string).replace('lc://resources/', '')
-    const resource = await prisma.resource.findUnique({ where: { slug } })
+## Knowledge resources
+- Knowledge/answers are DB-backed. When a knowledge or research tool exists,
+  resolve facts from it rather than guessing. Only report confirmed facts; if a
+  supplier/spec relationship is not in the data, say it is unknown rather than
+  speculating.
 
-    if (!resource) throw new Error(`Resource not found: ${slug}`)
+## General rules
+- Resolve names to IDs with lookup tools before calling action tools. Never guess IDs.
+- Dates are YYYY-MM-DD unless a tool specifies otherwise.
+- If a lookup returns multiple matches, present them and ask the user to confirm.
+`.trim();
 
-    return {
-      contents: [
-        {
-          uri: request.params.uri,
-          mimeType: 'text/plain',
-          text:
-            `# ${resource.title}\n` +
-            `_Category: ${(resource as any).category} | Version: ${(resource as any).version} | Updated: ${(resource as any).updatedAt.toISOString().slice(0, 10)}_\n\n` +
-            `${(resource as any).content}`,
-        },
-      ],
-    }
-  })
-}
+/**
+ * Creates and configures a fresh MCP server. A new instance is built per request
+ * (the SDK forbids reusing one server across stateless requests); registration is
+ * just O(n) function calls. The tenant sub is resolved per-request via
+ * AsyncLocalStorage (getTenantSub), not captured at construction time.
+ */
+export function createMcpServer(): McpServer {
+  const server = new McpServer(
+    { name: "lc-connect", version: VERSION },
+    { instructions: INSTRUCTIONS }
+  );
 
-function registerPrompts(server: Server): void {
-  // List available prompts
-  server.setRequestHandler(ListPromptsRequestSchema, async () => {
-    return {
-      prompts: [
-        {
-          name: 'lc_session_start',
-          description:
-            'Initialize an LC Connect session — loads all domain knowledge and configures intelligent learning behaviour',
-          arguments: [],
-        },
-      ],
-    }
-  })
+  registerAllTools(server, getTenantSub);
+  // TODO (chunk 2): registerKnowledgeResources(server), registerPrompts(server).
 
-  // Return the session start prompt with all knowledge loaded
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    if (request.params.name !== 'lc_session_start') {
-      throw new Error(`Unknown prompt: ${request.params.name}`)
-    }
-
-    const resources = await prisma.resource.findMany({
-      where: { isActive: true },
-      orderBy: [{ category: 'asc' }, { slug: 'asc' }],
-    })
-
-    // Pull session_instructions out to use as the learning protocol section
-    const sessionInstructions = resources.find((r: any) => r.slug === 'session_instructions')
-    const knowledgeResources = resources.filter((r: any) => r.slug !== 'session_instructions')
-
-    let fullContext =
-      'You are connected to LC Connect — the Laser Components B2B intelligence system.\n\n'
-    fullContext += '## Your Knowledge Base (loaded from LC Connect)\n\n'
-
-    for (const r of knowledgeResources) {
-      fullContext += `### ${(r as any).title}\n`
-      fullContext += `${(r as any).content}\n\n`
-      fullContext += '---\n\n'
-    }
-
-    fullContext += '## Learning Protocol\n\n'
-    if (sessionInstructions) {
-      fullContext += (sessionInstructions as any).content
-    } else {
-      fullContext +=
-        'Suggest save_learning when the user wants the connector to remember a reusable correction, ' +
-        'confirmation, or market insight. Do not call it for casual conversation; it is a write action.'
-    }
-
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: { type: 'text', text: fullContext },
-        },
-      ],
-    }
-  })
+  return server;
 }

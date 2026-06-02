@@ -1,131 +1,269 @@
-import 'dotenv/config'
-import express from 'express'
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import {
-  handleAuthorizeGet,
-  handleAuthorizePost,
-  handleTokenPost,
-} from './auth/oauth.js'
-import { requireAuth } from './auth/middleware.js'
-import { createMCPServer } from './server.js'
+import "node:process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { config } from "./config.js";
+import { VERSION } from "./version.js";
+import { oauthRouter, requireBearerToken } from "./auth/oauth.js";
+import { createMcpServer, tenantContext } from "./server.js";
+import { getRecentEvents, logEmitter, type SessionLogEvent } from "./core/session-log.js";
 
-const PORT = parseInt(process.env.PORT || '3003', 10)
-const PUBLIC_URL = process.env.PUBLIC_URL || 'https://lasercomponents.ngrok.app'
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const app = express()
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// The MCP Apps SDK browser bundle, served verbatim at /widget-sdk/app.js so
+// widget HTML can `import(window.__LC_SDK_URL__)`.
+const APP_SDK_JS = readFileSync(
+  join(__dirname, "../node_modules/@modelcontextprotocol/ext-apps/dist/src/app-with-deps.js"),
+  "utf-8"
+);
 
 // ---------------------------------------------------------------------------
-// OAuth 2.0 Authorization Server Metadata  (RFC 8414)
-// Claude.ai probes this first to discover all endpoints
+// Application
 // ---------------------------------------------------------------------------
-const metadata = {
-  issuer: PUBLIC_URL,
-  authorization_endpoint: `${PUBLIC_URL}/oauth/authorize`,
-  token_endpoint: `${PUBLIC_URL}/token`,
-  registration_endpoint: `${PUBLIC_URL}/register`,
-  response_types_supported: ['code'],
-  grant_types_supported: ['authorization_code'],
-  token_endpoint_auth_methods_supported: ['none'],
-  code_challenge_methods_supported: ['S256'],
-}
 
-app.get('/.well-known/oauth-authorization-server', (_req, res) => res.json(metadata))
-app.get('/.well-known/openid-configuration', (_req, res) => res.json(metadata))
+const app = new Hono();
 
-// OAuth Protected Resource Metadata (RFC 9728) — Claude.ai reads this after 401
-app.get('/.well-known/oauth-protected-resource', (_req, res) =>
-  res.json({
-    resource: PUBLIC_URL,
-    authorization_servers: [PUBLIC_URL],
-    bearer_methods_supported: ['header'],
-    resource_registration_endpoint: `${PUBLIC_URL}/register`,
+// Request/error logging so 500 causes are visible in stdout.
+app.use("*", async (c, next) => {
+  try {
+    await next();
+    console.log(`[http] ${c.req.method} ${c.req.path} → ${c.res.status}`);
+  } catch (err) {
+    console.error(`[http] ${c.req.method} ${c.req.path} → 500`, err);
+    throw err;
+  }
+});
+
+// Permissive CORS — required for Claude.ai and ChatGPT to reach the MCP endpoint.
+app.use(
+  "*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "mcp-session-id",
+      "Last-Event-ID",
+      "mcp-protocol-version",
+    ],
+    exposeHeaders: ["mcp-session-id", "mcp-protocol-version"],
   })
-)
-app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) =>
-  res.json({
-    resource: `${PUBLIC_URL}/mcp`,
-    authorization_servers: [PUBLIC_URL],
-    bearer_methods_supported: ['header'],
-    resource_registration_endpoint: `${PUBLIC_URL}/register`,
-  })
-)
-
-// ---------------------------------------------------------------------------
-// Dynamic Client Registration (RFC 7591)
-// Claude.ai registers itself before starting the OAuth flow
-// ---------------------------------------------------------------------------
-app.post('/register', (req, res) => {
-  const body = req.body ?? {}
-  const clientId: string =
-    typeof body.client_id === 'string' && body.client_id
-      ? body.client_id
-      : Math.random().toString(36).slice(2)
-
-  res.status(201).json({
-    client_id: clientId,
-    client_id_issued_at: Math.floor(Date.now() / 1000),
-    redirect_uris: body.redirect_uris ?? [],
-    grant_types: ['authorization_code'],
-    response_types: ['code'],
-    token_endpoint_auth_method: 'none',
-  })
-})
-
-// ---------------------------------------------------------------------------
-// OAuth routes
-// ---------------------------------------------------------------------------
-app.get('/oauth/authorize', handleAuthorizeGet)
-app.post('/oauth/authorize', handleAuthorizePost)
-app.post('/token', handleTokenPost)
-
-// ---------------------------------------------------------------------------
-// Static files for Łukasz (no auth required)
-// ---------------------------------------------------------------------------
-const PRESENTATION_DIR = '/home/bogdan/Desktop/Projects/laser_components/presentation'
-
-app.get('/presentation', (_req, res) =>
-  res.sendFile('laser-components-connect.html', { root: PRESENTATION_DIR })
-)
-app.get('/dashboard', (_req, res) =>
-  res.sendFile('Laser-Components-Dashboard.html', { root: PRESENTATION_DIR })
-)
-app.get('/notes', (_req, res) =>
-  res.sendFile('meeting-notes.html', { root: PRESENTATION_DIR })
-)
-app.get('/proposal', (_req, res) =>
-  res.sendFile('proposal.html', { root: PRESENTATION_DIR })
-)
-app.get('/pitch', (_req, res) =>
-  res.sendFile('lc-connect-pitch.html', { root: PRESENTATION_DIR })
-)
+);
 
 // ---------------------------------------------------------------------------
 // Health check
 // ---------------------------------------------------------------------------
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'lc-connect' }))
+
+app.get("/health", (c) =>
+  c.json({ status: "ok", service: "lc-connect", version: VERSION })
+);
 
 // ---------------------------------------------------------------------------
-// MCP endpoint — requires valid Bearer token
+// OAuth discovery metadata — root variants + /mcp-path variants so both
+// Claude.ai and ChatGPT connectors can discover the authorization server.
 // ---------------------------------------------------------------------------
-app.post('/mcp', requireAuth, async (req, res) => {
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
-  const server = createMCPServer()
-  await server.connect(transport)
-  await transport.handleRequest(req, res, req.body)
-  res.on('finish', () => server.close().catch(() => {}))
-})
 
-app.get('/mcp', requireAuth, (_req, res) => res.status(405).json({ error: 'Use POST /mcp' }))
-app.delete('/mcp', requireAuth, (_req, res) => res.status(405).json({ error: 'Use POST /mcp' }))
+function authServerMetadata() {
+  const base = config.PUBLIC_BASE_URL.replace(/\/$/, "");
+  return {
+    issuer: config.JWT_ISSUER,
+    authorization_endpoint: `${base}/authorize`,
+    token_endpoint: `${base}/token`,
+    registration_endpoint: `${base}/register`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    code_challenge_methods_supported: ["S256"],
+    token_endpoint_auth_methods_supported: ["none"],
+    scopes_supported: ["lc:read", "lc:write"],
+  };
+}
+
+function protectedResourceMetadata(resource: string) {
+  return {
+    resource,
+    authorization_servers: [config.PUBLIC_BASE_URL],
+    bearer_methods_supported: ["header"],
+    resource_registration_endpoint: `${config.PUBLIC_BASE_URL}/register`,
+  };
+}
+
+// Root protected-resource + OpenID alias (the authorization-server doc itself is
+// served by oauthRouter, mounted below).
+app.get("/.well-known/oauth-protected-resource", (c) =>
+  c.json(protectedResourceMetadata(config.PUBLIC_BASE_URL))
+);
+app.get("/.well-known/openid-configuration", (c) => c.json(authServerMetadata()));
+
+// /mcp-path variants (ChatGPT connectors look here).
+app.get("/mcp/.well-known/oauth-authorization-server", (c) => c.json(authServerMetadata()));
+app.get("/mcp/.well-known/openid-configuration", (c) => c.json(authServerMetadata()));
+app.get("/mcp/.well-known/oauth-protected-resource", (c) =>
+  c.json(protectedResourceMetadata(`${config.PUBLIC_BASE_URL}/mcp`))
+);
+
+// OAuth endpoints (authorization-server discovery, /authorize, /token,
+// /register, legacy /oauth/authorize aliases).
+app.route("/", oauthRouter);
 
 // ---------------------------------------------------------------------------
-// Start
+// Session log — live terminal view at /session-log
 // ---------------------------------------------------------------------------
-app.listen(PORT, () => {
-  console.error(`[lc-connect] :${PORT}  ${PUBLIC_URL}`)
-})
 
-process.on('SIGINT', () => process.exit(0))
-process.on('SIGTERM', () => process.exit(0))
+const SESSION_LOG_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LC Connect — Session Log</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #c9d1d9; font-family: 'Cascadia Code', 'Fira Mono', monospace; font-size: 13px; }
+    header { padding: 12px 16px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 14px; font-weight: 600; color: #e6edf3; }
+    #status { font-size: 11px; color: #8b949e; }
+    #status.connected { color: #3fb950; }
+    #log { padding: 8px; height: calc(100vh - 45px); overflow-y: auto; }
+    .row { display: flex; gap: 10px; padding: 3px 6px; border-radius: 4px; align-items: baseline; }
+    .ts { color: #8b949e; min-width: 90px; font-size: 11px; }
+    .sid { color: #58a6ff; min-width: 80px; font-size: 11px; }
+    .tag { min-width: 60px; }
+    .tool .tag { color: #79c0ff; }
+    .auth .tag { color: #f0c040; font-weight: 700; }
+    .auth { background: #2d2200; border: 1px solid #f0c040; border-radius: 4px; margin: 4px 0; padding: 6px; }
+    .detail { color: #e6edf3; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <header><h1>LC Connect — Session Log</h1><span id="status">connecting…</span></header>
+  <div id="log"></div>
+  <script>
+    const log = document.getElementById('log');
+    const status = document.getElementById('status');
+    function fmt(ts){ return new Date(ts).toLocaleTimeString('en-GB',{hour12:false}); }
+    function addRow(ev){
+      const row = document.createElement('div');
+      row.className = 'row ' + ev.type;
+      row.innerHTML =
+        '<span class="ts">' + fmt(ev.ts) + '</span>' +
+        '<span class="sid">' + (ev.sessionId||'').slice(0,8) + '</span>' +
+        '<span class="tag">' + ev.type + '</span>' +
+        '<span class="detail">' + (ev.detail||'').replace(/</g,'&lt;') + '</span>';
+      if (ev.type === 'auth') {
+        row.querySelector('.detail').innerHTML =
+          '👉 <a href="' + (ev.detail||'').replace(/"/g,'&quot;') + '" target="_blank" style="color:#f0c040">' +
+          (ev.detail||'').replace(/</g,'&lt;') + '</a>';
+      }
+      log.appendChild(row);
+      log.scrollTop = log.scrollHeight;
+    }
+    const es = new EventSource('/session-log/stream');
+    es.onopen = () => { status.textContent='live'; status.className='connected'; };
+    es.onerror = () => { status.textContent='disconnected'; status.className=''; };
+    es.onmessage = (e) => addRow(JSON.parse(e.data));
+  </script>
+</body>
+</html>`;
+
+app.get("/session-log", (c) => c.html(SESSION_LOG_HTML));
+
+app.get("/session-log/stream", (c) => {
+  const encoder = new TextEncoder();
+  const recent = getRecentEvents();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(": connected\n\n"));
+      for (const ev of recent) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(ev)}\n\n`));
+      }
+      const handler = (ev: SessionLogEvent) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(ev)}\n\n`));
+      };
+      logEmitter.on("event", handler);
+      c.req.raw.signal.addEventListener("abort", () => {
+        logEmitter.off("event", handler);
+        controller.close();
+      });
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Widget SDK bundle — served as a static asset for widget HTML to import.
+// (The /widget, /widget-data, /datasets CSV routes return in chunk 2 with the
+// dataset/widget layer.)
+// ---------------------------------------------------------------------------
+
+app.get("/widget-sdk/app.js", () =>
+  new Response(APP_SDK_JS, {
+    headers: {
+      "Content-Type": "application/javascript",
+      "Cache-Control": "public, max-age=86400",
+      "Access-Control-Allow-Origin": "*",
+    },
+  })
+);
+
+// ---------------------------------------------------------------------------
+// MCP endpoint — stateless, one fresh transport + server per request.
+// ---------------------------------------------------------------------------
+
+async function handleMcp(c: { get: (k: string) => string; req: { raw: Request } }) {
+  const tenantSub = c.get("tenantSub");
+
+  // Best-effort tool-call logging without consuming the transport's body.
+  let toolName: string | undefined;
+  try {
+    const body = (await c.req.raw.clone().json()) as {
+      method?: string;
+      params?: { name?: string; arguments?: unknown };
+    };
+    if (body?.method === "tools/call") {
+      toolName = body.params?.name ?? "unknown";
+      const args = JSON.stringify(body.params?.arguments ?? {});
+      console.log(`[tool] → ${toolName} ${args.slice(0, 200)}`);
+    }
+  } catch {
+    /* not JSON — ping, initialize, etc. */
+  }
+
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+  });
+  return tenantContext.run(tenantSub, async () => {
+    const server = createMcpServer();
+    await server.connect(transport);
+    const response = await transport.handleRequest(c.req.raw);
+    if (toolName) console.log(`[tool] ← ${toolName} done`);
+    return response;
+  });
+}
+
+app.all("/mcp", requireBearerToken, (c) => handleMcp(c));
+// Root alias — ChatGPT web connectors POST to the base URL, not /mcp.
+app.all("/", requireBearerToken, (c) => handleMcp(c));
+
+// ---------------------------------------------------------------------------
+// Start HTTP server
+// ---------------------------------------------------------------------------
+
+const port = config.PORT;
+
+serve({ fetch: app.fetch, port }, () => {
+  console.log(`[lc-connect] listening on port ${port}`);
+  console.log(
+    `[lc-connect] OAuth discovery: ${config.PUBLIC_BASE_URL}/.well-known/oauth-authorization-server`
+  );
+  console.log(`[lc-connect] MCP endpoint: ${config.PUBLIC_BASE_URL}/mcp`);
+  console.log(`[lc-connect] NODE_ENV: ${config.NODE_ENV}`);
+});

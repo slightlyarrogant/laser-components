@@ -1,37 +1,40 @@
 {
   "name": "lc-connect",
   "version": "1.0.0",
-  "description": "LC Connect - MCP Server for Laser Components",
-  "main": "dist/src/index.js",
+  "description": "LC Connect - Remote MCP server exposing the Laser Components CRM/knowledge base to Claude.ai and ChatGPT",
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx --watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/src/index.js",
+    "start": "node dist/index.js",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "seed-user": "tsx scripts/seed-test-user.ts",
-    "seed-knowledge": "tsx scripts/seed-knowledge.ts",
-    "prisma:generate": "prisma generate --schema=prisma/schema.prisma"
+    "seed-knowledge": "tsx scripts/seed-knowledge.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.19.1",
+    "@cfi/mcp-widgets": "file:vendor/cfi-mcp-widgets-0.1.4.tgz",
+    "@hono/node-server": "^1.13.0",
+    "@modelcontextprotocol/ext-apps": "^1.7.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^6.6.0",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
+    "hono": "^4.6.0",
+    "jose": "^5.9.6",
     "node-fetch": "^2.7.0",
-    "uuid": "^9.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.14.8",
+    "@types/node": "^22.10.0",
     "@types/node-fetch": "^2.6.12",
-    "@types/uuid": "^9.0.8",
     "prisma": "^6.6.0",
-    "tsx": "^4.16.2",
-    "typescript": "^5.4.5"
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }
