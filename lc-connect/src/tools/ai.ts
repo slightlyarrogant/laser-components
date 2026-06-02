@@ -1,5 +1,16 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+import {
+  KPI_WIDGET_URI,
+  buildKpiEnvelope,
+  type KpiItem,
+  type KpiMeta,
+  ACTION_WIDGET_URI,
+  buildActionEnvelope,
+} from "@cfi/mcp-widgets";
+import { DATASET_WIDGET_URI, okList } from "../datasets.js";
+import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 
 /**
@@ -17,6 +28,10 @@ import { prisma } from "../db/client.js";
  * max_tokens. The only change is using the global `fetch` (Node >= 20) instead of
  * the `node-fetch` require, which is behaviourally identical for this call shape.
  */
+
+// Row count above which a list result is emitted as a DATASET widget rather than
+// inline JSON (mirrors the threshold used by get_products/get_leads).
+const DATASET_THRESHOLD = 10;
 
 // ---------------------------------------------------------------------------
 // Perplexity client (inline, no external file dependency)
@@ -188,6 +203,52 @@ function ok(data: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
   };
+}
+
+// Human-readable label per scoring factor enum value (used as the KPI tile label).
+const SCORING_FACTOR_LABELS: Record<string, string> = {
+  company_fit: "Dopasowanie firmy",
+  budget_potential: "Potencjał budżetu",
+  timeline: "Horyzont czasowy",
+  engagement: "Zaangażowanie",
+  technology_alignment: "Dopasowanie technologii",
+};
+
+/**
+ * Best-effort extraction of a 0-100 score for a named factor from the free-text
+ * AI analysis. Looks at the line(s) that mention the factor (by its enum token or
+ * its human label) and pulls the first plausible 0-100 integer near it. Returns
+ * null when no score can be confidently located (the tile then shows "—").
+ */
+function extractFactorScore(analysis: string, factor: string): number | null {
+  const label = (SCORING_FACTOR_LABELS[factor] ?? factor).toLowerCase();
+  const spaced = factor.replace(/_/g, " ");
+  for (const line of analysis.split(/\n+/)) {
+    const lower = line.toLowerCase();
+    if (lower.includes(spaced) || lower.includes(factor) || lower.includes(label)) {
+      const m = line.match(/(\d{1,3})\s*(?:\/\s*100|%)?/);
+      if (m) {
+        const n = Number(m[1]);
+        if (n >= 0 && n <= 100) return n;
+      }
+    }
+  }
+  return null;
+}
+
+/** Pull the overall/weighted 0-100 score from the analysis text, if stated. */
+function extractOverallScore(analysis: string): number | null {
+  for (const line of analysis.split(/\n+/)) {
+    if (/overall|weighted|total|łączn|ogóln|całkowit/i.test(line)) {
+      const m = line.match(/(\d{1,3})\s*(?:\/\s*100|%)?/);
+      if (m) {
+        const n = Number(m[1]);
+        if (n >= 0 && n <= 100) return n;
+      }
+    }
+  }
+  // Fallback: average of any factor scores the caller computed (handled by caller).
+  return null;
 }
 
 export function registerAiTools(
@@ -638,36 +699,51 @@ Product Description: ${product.description || "N/A"}`;
   // -------------------------------------------------------------------------
   // generate_lead_score — Perplexity-backed lead scoring.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "generate_lead_score",
-    [
-      "AI scoring/prioritization of a known lead with reasoning and next steps.",
-      "USE WHEN: the user asks to score, prioritize, or explain sales fit for a",
-      "specific lead. Calls a web-backed AI (Perplexity).",
-      "DO NOT USE WHEN: the user asks to persist the score/status -> use update_lead",
-      "after explicit confirmation.",
-      "RETURNS: { success, data{ leadId, leadName, scoringFactors, analysis,",
-      "currentStatus, recommendations, scoreTimestamp } } — analysis only.",
-      "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Requires",
-      "PERPLEXITY_API_KEY.",
-    ].join("\n"),
     {
-      leadId: z.number().describe("Lead ID to score (resolve via get_leads/search_leads)."),
-      scoringFactors: z
-        .array(
-          z.enum([
-            "company_fit",
-            "budget_potential",
-            "timeline",
-            "engagement",
-            "technology_alignment",
-          ])
-        )
-        .optional()
-        .default(["company_fit", "budget_potential", "technology_alignment"])
-        .describe("Factors to score against. Defaults to company_fit, budget_potential, technology_alignment."),
+      title: "Scoring leada",
+      description: [
+        "AI scoring/prioritization of a known lead with reasoning and next steps.",
+        "USE WHEN: the user asks to score, prioritize, or explain sales fit for a",
+        "specific lead. Calls a web-backed AI (Perplexity).",
+        "DO NOT USE WHEN: the user asks to persist the score/status -> use update_lead",
+        "after explicit confirmation.",
+        "RETURNS: a KPI card — one tile per scoring factor plus an accented overall-score",
+        "tile; the card IS the answer. The full AI reasoning + recommendations stay in",
+        "the steer/structuredContent (textual analysis only — nothing is persisted).",
+        "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Requires",
+        "PERPLEXITY_API_KEY. Factor/overall scores are extracted from the AI text",
+        "best-effort; a tile shows '—' when no number could be parsed.",
+      ].join("\n"),
+      inputSchema: {
+        leadId: z.number().describe("Lead ID to score (resolve via get_leads/search_leads)."),
+        scoringFactors: z
+          .array(
+            z.enum([
+              "company_fit",
+              "budget_potential",
+              "timeline",
+              "engagement",
+              "technology_alignment",
+            ])
+          )
+          .optional()
+          .default(["company_fit", "budget_potential", "technology_alignment"])
+          .describe("Factors to score against. Defaults to company_fit, budget_potential, technology_alignment."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      _meta: {
+        ui: { resourceUri: KPI_WIDGET_URI },
+        "openai/outputTemplate": KPI_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     async (a) => {
       void getTenantSub();
 
@@ -706,73 +782,136 @@ For each factor, provide:
 Also provide an overall weighted score and recommendation for next steps.`;
 
       const aiAnalysis = await perplexity.analyze(prompt, context);
-      return ok({
-        success: true,
-        data: {
-          leadId: a.leadId,
-          leadName: lead.name,
-          scoringFactors,
-          analysis: aiAnalysis,
-          currentStatus: lead.status,
-          recommendations: {
-            immediate_actions: [
-              "Review AI-generated score and factors",
-              "Update lead status based on score",
-              "Prioritize high-scoring leads for outreach",
-            ],
-            score_interpretation: {
-              "80-100": "Hot lead - immediate follow-up recommended",
-              "60-79": "Warm lead - nurture with targeted content",
-              "40-59": "Cool lead - add to long-term nurture campaign",
-              "0-39": "Cold lead - reassess fit or archive",
-            },
-          },
-          scoreTimestamp: new Date().toISOString(),
+
+      const recommendations = {
+        immediate_actions: [
+          "Review AI-generated score and factors",
+          "Update lead status based on score",
+          "Prioritize high-scoring leads for outreach",
+        ],
+        score_interpretation: {
+          "80-100": "Hot lead - immediate follow-up recommended",
+          "60-79": "Warm lead - nurture with targeted content",
+          "40-59": "Cool lead - add to long-term nurture campaign",
+          "0-39": "Cold lead - reassess fit or archive",
         },
-      });
+      };
+
+      // Best-effort numeric extraction from the unstructured AI text -> KPI tiles.
+      const factorScores = scoringFactors.map((f: string) => ({
+        factor: f,
+        label: SCORING_FACTOR_LABELS[f] ?? f,
+        score: extractFactorScore(aiAnalysis, f),
+      }));
+      const parsed = factorScores
+        .map((s) => s.score)
+        .filter((n): n is number => n != null);
+      const overall =
+        extractOverallScore(aiAnalysis) ??
+        (parsed.length
+          ? Math.round(parsed.reduce((x, y) => x + y, 0) / parsed.length)
+          : null);
+
+      const factorTiles: KpiItem[] = factorScores.map((s) => ({
+        label: s.label,
+        value: s.score != null ? s.score : "—",
+        format: s.score != null ? "int" : "text",
+      }));
+      const overallTile: KpiItem = {
+        label: "Wynik ogólny",
+        value: overall != null ? overall : "—",
+        format: overall != null ? "int" : "text",
+        accent: true,
+        note: "/100",
+      };
+
+      const meta: KpiMeta = {
+        title: `Scoring leada — ${lead.name}`,
+        kpis: [overallTile, ...factorTiles],
+        notes: [aiAnalysis],
+      };
+
+      const steer =
+        `[PREZENTACJA] Scoring leada "${lead.name}" (ID ${a.leadId}). ` +
+        (overall != null
+          ? `Wynik ogólny: ${overall}/100. `
+          : `Wyniku ogólnego nie udało się sparsować z analizy. `) +
+        `Kafelki KPI (jeden na czynnik + ogólny) SĄ odpowiedzią — nie powtarzaj liczb w tabeli. ` +
+        `Rekomendacja: przedstaw zwięźle kluczowe wnioski i następne kroki z analizy AI poniżej.\n\n` +
+        `--- Analiza AI ---\n${aiAnalysis}`;
+
+      const env = buildKpiEnvelope(meta, steer);
+      // Keep the original structured payload available to the model.
+      (env.structuredContent as Record<string, unknown>).data = {
+        leadId: a.leadId,
+        leadName: lead.name,
+        scoringFactors,
+        factorScores,
+        overallScore: overall,
+        analysis: aiAnalysis,
+        currentStatus: lead.status,
+        recommendations,
+        scoreTimestamp: new Date().toISOString(),
+      };
+      return env as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // export_data — DB export (CSV/JSON). Local DB only, no AI.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "export_data",
-    [
-      "Export leads, products, applications, or a database summary as CSV/JSON text.",
-      "USE WHEN: the user explicitly asks to export one of these datasets. Read-only",
-      "local DB operation (no AI).",
-      "DO NOT USE WHEN: the user only needs an answer/analysis -> prefer",
-      "generate_insights or a narrower list tool.",
-      "RETURNS: { success, dataType, format, filename, recordCount, data } where",
-      "`data` is the serialized export string.",
-      "GOTCHAS: large exports can overflow chat — prefer summaries/samples; 'excel'",
-      "is accepted but serialized as CSV.",
-    ].join("\n"),
     {
-      dataType: z
-        .enum(["leads", "products", "applications", "full_database"])
-        .describe("Which dataset to export (required)."),
-      format: z
-        .enum(["csv", "json", "excel"])
-        .optional()
-        .default("csv")
-        .describe("Output format. 'excel' is serialized as CSV. Defaults to 'csv'."),
-      filters: z
-        .object({
-          status: z.string().optional().describe("Filter by lead status."),
-          dateFrom: z.string().optional().describe("Only records created on/after this date (ISO)."),
-          dateTo: z.string().optional().describe("Only records created on/before this date (ISO)."),
-          tags: z.array(z.string()).optional().describe("Records must carry ALL these tags (hasEvery)."),
-        })
-        .optional()
-        .describe("Optional filters applied to the exported records."),
-      fields: z
-        .array(z.string())
-        .optional()
-        .describe("Optional explicit column list for CSV output."),
+      title: "Eksport danych",
+      description: [
+        "Export leads, products, applications, or a database summary as CSV/JSON text.",
+        "USE WHEN: the user explicitly asks to export one of these datasets. Read-only",
+        "local DB operation (no AI).",
+        "DO NOT USE WHEN: the user only needs an answer/analysis -> prefer",
+        "generate_insights or a narrower list tool.",
+        "RETURNS: a confirmation card ('Eksport gotowy — N rekordów (format)'); the",
+        "serialized export string + metadata ride in structuredContent.data",
+        "({ success, dataType, format, filename, recordCount, data }).",
+        "GOTCHAS: large exports can overflow chat — prefer summaries/samples; 'excel'",
+        "is accepted but serialized as CSV.",
+      ].join("\n"),
+      inputSchema: {
+        dataType: z
+          .enum(["leads", "products", "applications", "full_database"])
+          .describe("Which dataset to export (required)."),
+        format: z
+          .enum(["csv", "json", "excel"])
+          .optional()
+          .default("csv")
+          .describe("Output format. 'excel' is serialized as CSV. Defaults to 'csv'."),
+        filters: z
+          .object({
+            status: z.string().optional().describe("Filter by lead status."),
+            dateFrom: z.string().optional().describe("Only records created on/after this date (ISO)."),
+            dateTo: z.string().optional().describe("Only records created on/before this date (ISO)."),
+            tags: z.array(z.string()).optional().describe("Records must carry ALL these tags (hasEvery)."),
+          })
+          .optional()
+          .describe("Optional filters applied to the exported records."),
+        fields: z
+          .array(z.string())
+          .optional()
+          .describe("Optional explicit column list for CSV output."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        // OpenAI compat alias so ChatGPT binds this widget explicitly.
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -854,14 +993,30 @@ Also provide an overall weighted score and recommendation for next steps.`;
         output = convertToCSV(data, a.fields as string[]);
       }
 
-      return ok({
+      // Action-confirmation card. The bulky serialized export stays in
+      // structuredContent.data (the model can read it / re-emit it), while the
+      // widget shows a slim "done" card. No real download URL exists here, so
+      // the card is purely a confirmation — not a link.
+      const env = buildActionEnvelope(
+        {
+          status: "success",
+          title: "Eksport gotowy",
+          detail: `${data.length} rekordów (${format})`,
+          id: `${filename}.${format}`,
+          idLabel: "Plik",
+        },
+        `[PREZENTACJA] Eksport ${a.dataType} gotowy: ${data.length} rekordów w formacie ${format}. ` +
+          `Karta potwierdzenia JEST odpowiedzią — potwierdź zwięźle. Pełne dane są w structuredContent.data.`
+      );
+      (env.structuredContent as Record<string, unknown>).data = {
         success: true,
         dataType: a.dataType,
         format,
         filename: `${filename}.${format}`,
         recordCount: data.length,
         data: output,
-      });
+      };
+      return env as any;
     }
   );
 
@@ -1037,29 +1192,44 @@ Also provide an overall weighted score and recommendation for next steps.`;
   // -------------------------------------------------------------------------
   // get_activity_feed — recent lead/note timeline. Local DB only, no AI.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "get_activity_feed",
-    [
-      "Recent CRM activity timeline (lead creations + notes), newest first.",
-      "USE WHEN: the user asks what recently changed or wants a recent activity feed.",
-      "Read-only local DB operation (no AI).",
-      "DO NOT USE WHEN: the user asks to report an issue to the admin -> use",
-      "report_issue.",
-      "RETURNS: { success, totalActivities, dateRange, activities[] }.",
-      "GOTCHAS: dateFrom/dateTo are ISO dates; the feed mixes lead-created and",
-      "note-added events split evenly up to `limit`.",
-    ].join("\n"),
     {
-      limit: z.number().optional().default(50).describe("Maximum number of activities to return. Defaults to 50."),
-      userId: z.number().optional().describe("Optional user ID filter (reserved)."),
-      activityTypes: z
-        .array(z.enum(["lead_created", "lead_updated", "note_added", "status_changed"]))
-        .optional()
-        .describe("Optional activity type filter (reserved)."),
-      dateFrom: z.string().optional().describe("Only activity on/after this date (ISO)."),
-      dateTo: z.string().optional().describe("Only activity on/before this date (ISO)."),
+      title: "Aktywność",
+      description: [
+        "Recent CRM activity timeline (lead creations + notes), newest first.",
+        "USE WHEN: the user asks what recently changed or wants a recent activity feed.",
+        "Read-only local DB operation (no AI).",
+        "DO NOT USE WHEN: the user asks to report an issue to the admin -> use",
+        "report_issue.",
+        "RETURNS: a small result inline as { success, totalActivities, dateRange,",
+        "activities[] }; a LARGE result (> threshold) as an interactive DATASET widget",
+        "(sortable/searchable table + CSV export). The card IS the answer.",
+        "GOTCHAS: dateFrom/dateTo are ISO dates; the feed mixes lead-created and",
+        "note-added events split evenly up to `limit`.",
+      ].join("\n"),
+      inputSchema: {
+        limit: z.number().optional().default(50).describe("Maximum number of activities to return. Defaults to 50."),
+        userId: z.number().optional().describe("Optional user ID filter (reserved)."),
+        activityTypes: z
+          .array(z.enum(["lead_created", "lead_updated", "note_added", "status_changed"]))
+          .optional()
+          .describe("Optional activity type filter (reserved)."),
+        dateFrom: z.string().optional().describe("Only activity on/after this date (ISO)."),
+        dateTo: z.string().optional().describe("Only activity on/before this date (ISO)."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -1109,12 +1279,33 @@ Also provide an overall weighted score and recommendation for next steps.`;
       activities.sort((x: any, y: any) => new Date(y.timestamp).getTime() - new Date(x.timestamp).getTime());
       const limitedActivities = activities.slice(0, limit);
 
-      return ok({
-        success: true,
-        totalActivities: limitedActivities.length,
-        dateRange: { from: a.dateFrom || "unlimited", to: a.dateTo || "now" },
-        activities: limitedActivities,
-      });
+      // Flatten the nested `details` into scalar columns for the DATASET widget.
+      const rows = limitedActivities.map((act: any) => ({
+        timestamp: act.timestamp,
+        type: act.type,
+        description: act.description,
+        leadId: act.details?.leadId ?? null,
+        lead: act.details?.leadName ?? null,
+        product: act.details?.product ?? null,
+        status: act.details?.status ?? null,
+      }));
+
+      const widget = okList(
+        rows,
+        "Aktywność",
+        config.PUBLIC_BASE_URL,
+        DATASET_THRESHOLD,
+        ["timestamp", "type", "lead", "description"]
+      );
+      if (!("structuredContent" in widget)) {
+        return ok({
+          success: true,
+          totalActivities: limitedActivities.length,
+          dateRange: { from: a.dateFrom || "unlimited", to: a.dateTo || "now" },
+          activities: limitedActivities,
+        });
+      }
+      return widget as any;
     }
   );
 }

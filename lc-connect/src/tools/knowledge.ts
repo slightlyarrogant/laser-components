@@ -1,7 +1,15 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
+import { DATASET_WIDGET_URI, okList } from "../datasets.js";
+import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+
+// Row count above which a list result is emitted as a DATASET widget rather than
+// inline JSON (mirrors the threshold used by get_products/get_leads).
+const DATASET_THRESHOLD = 10;
 
 /**
  * Knowledge / learning domain: DB-backed resource retrieval, workflow guidance,
@@ -51,7 +59,7 @@ async function listResources(args: Record<string, any>) {
     preview: r.content.slice(0, 200) + (r.content.length > 200 ? "..." : ""),
   }));
 
-  return ok({ count: result.length, resources: result });
+  return { count: result.length, resources: result };
 }
 
 async function getResource(args: Record<string, any>) {
@@ -150,10 +158,10 @@ async function saveLearning(args: Record<string, any>) {
   if (resource_slug) {
     const exists = await prisma.resource.findUnique({ where: { slug: resource_slug } });
     if (!exists) {
-      return ok({
-        saved: false,
+      return {
+        saved: false as const,
         message: `resource_slug "${resource_slug}" not found — learning NOT saved. Use list_resources to find valid slugs or omit resource_slug.`,
-      });
+      };
     }
   }
 
@@ -169,12 +177,14 @@ async function saveLearning(args: Record<string, any>) {
     },
   });
 
-  return ok({
-    saved: true,
+  return {
+    saved: true as const,
     event_id: event.id,
+    event_type,
+    impact,
     auto_applied: false,
     message: `Learning saved (id: ${event.id}). Pending manual review.`,
-  });
+  };
 }
 
 async function updateResource(args: Record<string, any>) {
@@ -189,12 +199,12 @@ async function updateResource(args: Record<string, any>) {
     args.changed_by
   );
 
-  return ok({
-    updated: true,
-    slug: args.slug,
+  return {
+    updated: true as const,
+    slug: args.slug as string,
     newVersion,
     message: `Resource "${args.slug}" updated to version ${newVersion}.`,
-  });
+  };
 }
 
 async function createResource(args: Record<string, any>) {
@@ -210,10 +220,11 @@ async function createResource(args: Record<string, any>) {
 
   const existing = await prisma.resource.findUnique({ where: { slug: args.slug } });
   if (existing) {
-    return ok({
-      created: false,
+    return {
+      created: false as const,
+      slug: args.slug as string,
       message: `A resource with slug "${args.slug}" already exists (version ${existing.version}). Use update_resource to modify it.`,
-    });
+    };
   }
 
   const resource = await prisma.resource.create({
@@ -225,13 +236,13 @@ async function createResource(args: Record<string, any>) {
     },
   });
 
-  return ok({
-    created: true,
+  return {
+    created: true as const,
     id: resource.id,
     slug: resource.slug,
     version: resource.version,
     message: `Resource "${args.slug}" created successfully.`,
-  });
+  };
 }
 
 async function getPendingLearnings(args: Record<string, any>) {
@@ -252,7 +263,7 @@ async function getPendingLearnings(args: Record<string, any>) {
     return ia !== ib ? ia - ib : b.createdAt.getTime() - a.createdAt.getTime();
   });
 
-  return ok({
+  return {
     count: events.length,
     events: events.map((e: any) => ({
       id: e.id,
@@ -264,7 +275,7 @@ async function getPendingLearnings(args: Record<string, any>) {
       suggested_update: e.suggestedUpdate,
       createdAt: e.createdAt,
     })),
-  });
+  };
 }
 
 async function applyResourceUpdate(
@@ -308,34 +319,58 @@ export function registerKnowledgeTools(
   // -------------------------------------------------------------------------
   // list_resources — discover knowledge/workflow resource slugs.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "list_resources",
-    [
-      "List knowledge/workflow resources (compact previews) to discover slugs.",
-      "USE WHEN: the user asks what knowledge/workflow resources exist, or you need",
-      "to discover a resource slug before reading it.",
-      "DO NOT USE WHEN: you already know the slug and need full content -> use",
-      "get_resource.",
-      "RETURNS: { count, resources[] } where each item is a slug/title/category/",
-      "version preview (content truncated to 200 chars).",
-      "GOTCHAS: active_only defaults to true; pass false to include archived",
-      "resources.",
-    ].join("\n"),
     {
-      category: z
-        .enum(RESOURCE_CATEGORIES)
-        .optional()
-        .describe("Filter by category: knowledge | region | sales | product | scoring."),
-      active_only: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Only return active resources. Defaults to true."),
+      title: "Zasoby wiedzy",
+      description: [
+        "List knowledge/workflow resources (compact previews) to discover slugs.",
+        "USE WHEN: the user asks what knowledge/workflow resources exist, or you need",
+        "to discover a resource slug before reading it.",
+        "DO NOT USE WHEN: you already know the slug and need full content -> use",
+        "get_resource.",
+        "RETURNS: a small result inline as { count, resources[] }; a LARGE result",
+        "(> threshold) as an interactive DATASET widget (sortable/searchable table + CSV",
+        "export). The card IS the answer — do not re-list rows.",
+        "GOTCHAS: active_only defaults to true; pass false to include archived",
+        "resources.",
+      ].join("\n"),
+      inputSchema: {
+        category: z
+          .enum(RESOURCE_CATEGORIES)
+          .optional()
+          .describe("Filter by category: knowledge | region | sales | product | scoring."),
+        active_only: z
+          .boolean()
+          .optional()
+          .default(true)
+          .describe("Only return active resources. Defaults to true."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
-      return listResources(a);
+      const payload = await listResources(a);
+
+      const widget = okList(
+        payload.resources,
+        "Zasoby wiedzy",
+        config.PUBLIC_BASE_URL,
+        DATASET_THRESHOLD,
+        ["slug", "title", "category", "version", "isActive"]
+      );
+      if (!("structuredContent" in widget)) return ok(payload);
+      return widget as any;
     }
   );
 
@@ -427,136 +462,260 @@ export function registerKnowledgeTools(
   // -------------------------------------------------------------------------
   // save_learning — capture a learning event for later review. WRITE.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "save_learning",
-    [
-      "Capture a reusable correction / insight / confirmation as a pending learning.",
-      "USE WHEN: the user corrects the connector, confirms an unusual approach, or",
-      "shares reusable domain knowledge that should be reviewed later. WRITE ACTION —",
-      "stores a learning event only.",
-      "DO NOT USE WHEN: the user asks to immediately change a knowledge resource ->",
-      "use update_resource after explicit confirmation; or for casual conversation.",
-      "RETURNS: { saved, event_id, auto_applied:false, message } — or { saved:false }",
-      "if resource_slug was given but does not exist.",
-      "GOTCHAS: this does NOT auto-apply suggested_update; critical learnings remain",
-      "pending review. event_type, observation, context, impact are required.",
-    ].join("\n"),
     {
-      event_type: z
-        .enum(EVENT_TYPES)
-        .describe("Type of learning event (required)."),
-      observation: z
-        .string()
-        .describe("What was learned — specific and detailed, useful without further context (required)."),
-      context: z
-        .string()
-        .describe("2-3 sentences from the conversation that led to this learning (required)."),
-      resource_slug: z
-        .string()
-        .optional()
-        .describe("Slug of the resource this learning relates to, if known."),
-      suggested_update: z
-        .string()
-        .optional()
-        .describe("Proposed text to update or add to the related resource."),
-      impact: z
-        .enum(IMPACTS)
-        .describe("Importance. Critical items sort first for review but are not auto-applied (required)."),
+      title: "Zapisz wniosek",
+      description: [
+        "Capture a reusable correction / insight / confirmation as a pending learning.",
+        "USE WHEN: the user corrects the connector, confirms an unusual approach, or",
+        "shares reusable domain knowledge that should be reviewed later. WRITE ACTION —",
+        "stores a learning event only.",
+        "DO NOT USE WHEN: the user asks to immediately change a knowledge resource ->",
+        "use update_resource after explicit confirmation; or for casual conversation.",
+        "RETURNS: an ACTION confirmation card on success (event type + impact) — a",
+        "warning card if resource_slug was given but does not exist (nothing saved).",
+        "GOTCHAS: this does NOT auto-apply suggested_update; critical learnings remain",
+        "pending review. event_type, observation, context, impact are required.",
+      ].join("\n"),
+      inputSchema: {
+        event_type: z
+          .enum(EVENT_TYPES)
+          .describe("Type of learning event (required)."),
+        observation: z
+          .string()
+          .describe("What was learned — specific and detailed, useful without further context (required)."),
+        context: z
+          .string()
+          .describe("2-3 sentences from the conversation that led to this learning (required)."),
+        resource_slug: z
+          .string()
+          .optional()
+          .describe("Slug of the resource this learning relates to, if known."),
+        suggested_update: z
+          .string()
+          .optional()
+          .describe("Proposed text to update or add to the related resource."),
+        impact: z
+          .enum(IMPACTS)
+          .describe("Importance. Critical items sort first for review but are not auto-applied (required)."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     async (a) => {
       void getTenantSub();
-      return saveLearning(a);
+      const result = await saveLearning(a);
+
+      // resource_slug supplied but unknown -> nothing was saved -> warning card.
+      if (result.saved === false) {
+        return buildActionEnvelope(
+          {
+            status: "warning",
+            title: "Wniosek niezapisany",
+            detail: result.message,
+          },
+          `[PREZENTACJA] Wniosek NIE został zapisany (nieznany resource_slug). Poinformuj użytkownika.`
+        ) as any;
+      }
+
+      return buildActionEnvelope(
+        {
+          status: "success",
+          title: "Wniosek zapisany",
+          detail: `${result.event_type} — impact: ${result.impact}`,
+          id: String(result.event_id),
+          idLabel: "ID wniosku",
+        },
+        `[PREZENTACJA] Wniosek (${result.event_type}, impact ${result.impact}) zapisany (ID ${result.event_id}), oczekuje na przegląd. Potwierdź zwięźle.`
+      ) as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // update_resource — replace a resource body (versioned). WRITE.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "update_resource",
-    [
-      "Replace a knowledge resource body, archiving the prior version.",
-      "USE WHEN: the user explicitly asks to update/replace a knowledge resource.",
-      "WRITE ACTION — confirm intent first.",
-      "DO NOT USE WHEN: the user only provides a learning/correction for later review",
-      "-> use save_learning.",
-      "RETURNS: { updated, slug, newVersion, message }.",
-      "GOTCHAS: content REPLACES the full resource body — fetch get_resource first if",
-      "editing existing content. slug, content, and change_reason are required. Fails",
-      "if the slug does not exist.",
-    ].join("\n"),
     {
-      slug: z.string().describe("Slug of the resource to update (required)."),
-      content: z.string().describe("New full content for the resource (replaces the body) (required)."),
-      change_reason: z.string().describe("Why this update was made (required)."),
-      changed_by: z.string().optional().describe("Who made the change (optional)."),
+      title: "Aktualizuj zasób",
+      description: [
+        "Replace a knowledge resource body, archiving the prior version.",
+        "USE WHEN: the user explicitly asks to update/replace a knowledge resource.",
+        "WRITE ACTION — confirm intent first.",
+        "DO NOT USE WHEN: the user only provides a learning/correction for later review",
+        "-> use save_learning.",
+        "RETURNS: an ACTION confirmation card on success (slug + new version); the model",
+        "should confirm briefly.",
+        "GOTCHAS: content REPLACES the full resource body — fetch get_resource first if",
+        "editing existing content. slug, content, and change_reason are required. Fails",
+        "if the slug does not exist.",
+      ].join("\n"),
+      inputSchema: {
+        slug: z.string().describe("Slug of the resource to update (required)."),
+        content: z.string().describe("New full content for the resource (replaces the body) (required)."),
+        change_reason: z.string().describe("Why this update was made (required)."),
+        changed_by: z.string().optional().describe("Who made the change (optional)."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     async (a) => {
       void getTenantSub();
-      return updateResource(a);
+      const result = await updateResource(a);
+      return buildActionEnvelope(
+        {
+          status: "success",
+          title: "Zasób zaktualizowany",
+          detail: `${result.slug} → wersja ${result.newVersion}`,
+          id: result.slug,
+          idLabel: "Slug",
+        },
+        `[PREZENTACJA] Zasób "${result.slug}" zaktualizowany do wersji ${result.newVersion}. Potwierdź zwięźle.`
+      ) as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // create_resource — create a new knowledge/workflow resource. WRITE.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "create_resource",
-    [
-      "Create a new knowledge/workflow resource.",
-      "USE WHEN: the user explicitly asks to create a new knowledge/workflow resource.",
-      "WRITE ACTION — confirm intent first.",
-      "DO NOT USE WHEN: the user is only sharing a correction or note -> use",
-      "save_learning.",
-      "RETURNS: { created, id, slug, version, message } — or { created:false } if a",
-      "resource with that slug already exists (use update_resource instead).",
-      "GOTCHAS: slug must be unique, lowercase, and stable; category must be one of",
-      "knowledge|region|sales|product|scoring.",
-    ].join("\n"),
     {
-      slug: z
-        .string()
-        .describe("Unique identifier (lowercase, underscores), e.g. german_market_notes."),
-      title: z.string().describe("Human-readable title."),
-      content: z.string().describe("Full content of the resource."),
-      category: z
-        .enum(RESOURCE_CATEGORIES)
-        .describe("Resource category: knowledge | region | sales | product | scoring."),
+      title: "Utwórz zasób",
+      description: [
+        "Create a new knowledge/workflow resource.",
+        "USE WHEN: the user explicitly asks to create a new knowledge/workflow resource.",
+        "WRITE ACTION — confirm intent first.",
+        "DO NOT USE WHEN: the user is only sharing a correction or note -> use",
+        "save_learning.",
+        "RETURNS: an ACTION confirmation card on success (the new resource slug) — a",
+        "warning card if a resource with that slug already exists (use update_resource",
+        "instead).",
+        "GOTCHAS: slug must be unique, lowercase, and stable; category must be one of",
+        "knowledge|region|sales|product|scoring.",
+      ].join("\n"),
+      inputSchema: {
+        slug: z
+          .string()
+          .describe("Unique identifier (lowercase, underscores), e.g. german_market_notes."),
+        title: z.string().describe("Human-readable title."),
+        content: z.string().describe("Full content of the resource."),
+        category: z
+          .enum(RESOURCE_CATEGORIES)
+          .describe("Resource category: knowledge | region | sales | product | scoring."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     async (a) => {
       void getTenantSub();
-      return createResource(a);
+      const result = await createResource(a);
+
+      // Slug already taken -> nothing created -> warning card.
+      if (result.created === false) {
+        return buildActionEnvelope(
+          {
+            status: "warning",
+            title: "Zasób już istnieje",
+            detail: result.message,
+            id: result.slug,
+            idLabel: "Slug",
+          },
+          `[PREZENTACJA] Zasób o slug "${result.slug}" już istnieje — nic nie utworzono. Zasugeruj update_resource.`
+        ) as any;
+      }
+
+      return buildActionEnvelope(
+        {
+          status: "success",
+          title: "Zasób utworzony",
+          detail: `${result.slug} (wersja ${result.version})`,
+          id: result.slug,
+          idLabel: "Slug",
+        },
+        `[PREZENTACJA] Zasób "${result.slug}" utworzony. Potwierdź zwięźle.`
+      ) as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // get_pending_learnings — review unapplied learnings.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "get_pending_learnings",
-    [
-      "List captured learnings that have not yet been applied, ordered by impact.",
-      "USE WHEN: the user asks to review pending captured learnings or decide what",
-      "should be applied to resources.",
-      "DO NOT USE WHEN: the user asks to apply a learning -> read the target resource",
-      "with get_resource, then use update_resource.",
-      "RETURNS: { count, events[] } sorted critical-first then newest.",
-      "GOTCHAS: limit is capped at 100 (defaults to 20).",
-    ].join("\n"),
     {
-      limit: z
-        .number()
-        .optional()
-        .default(20)
-        .describe("Maximum number of events to return (capped at 100). Defaults to 20."),
+      title: "Oczekujące wnioski",
+      description: [
+        "List captured learnings that have not yet been applied, ordered by impact.",
+        "USE WHEN: the user asks to review pending captured learnings or decide what",
+        "should be applied to resources.",
+        "DO NOT USE WHEN: the user asks to apply a learning -> read the target resource",
+        "with get_resource, then use update_resource.",
+        "RETURNS: a small result inline as { count, events[] } (critical-first then",
+        "newest); a LARGE result (> threshold) as an interactive DATASET widget",
+        "(sortable/searchable table + CSV export). The card IS the answer.",
+        "GOTCHAS: limit is capped at 100 (defaults to 20).",
+      ].join("\n"),
+      inputSchema: {
+        limit: z
+          .number()
+          .optional()
+          .default(20)
+          .describe("Maximum number of events to return (capped at 100). Defaults to 20."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
-      return getPendingLearnings(a);
+      const payload = await getPendingLearnings(a);
+
+      const widget = okList(
+        payload.events,
+        "Oczekujące wnioski",
+        config.PUBLIC_BASE_URL,
+        DATASET_THRESHOLD,
+        ["id", "event_type", "impact", "observation", "resource_slug"]
+      );
+      if (!("structuredContent" in widget)) return ok(payload);
+      return widget as any;
     }
   );
 }

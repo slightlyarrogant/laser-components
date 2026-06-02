@@ -225,7 +225,6 @@ model Note {
   id        Int      @id @default(autoincrement())
   leadId    Int      @map("lead_id")
   content   String
-  createdBy String?   @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   user_id   Int?

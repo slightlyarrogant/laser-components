@@ -3,6 +3,9 @@ import {
   registerAnalyticsWidget,
   registerDatasetWidget,
   registerActionWidget,
+  registerKpiWidget,
+  registerMessagesWidget,
+  registerMapWidget,
 } from "@cfi/mcp-widgets";
 import { config } from "./config.js";
 
@@ -32,4 +35,7 @@ export function registerSharedWidgets(server: McpServer): void {
   registerAnalyticsWidget(server, baseUrl);
   registerDatasetWidget(server, baseUrl);
   registerActionWidget(server, baseUrl);
+  registerKpiWidget(server, baseUrl);
+  registerMessagesWidget(server, baseUrl);
+  registerMapWidget(server, baseUrl);
 }

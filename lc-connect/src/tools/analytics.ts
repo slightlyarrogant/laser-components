@@ -6,6 +6,10 @@ import {
   buildAnalyticsEnvelope,
   type AnalyticsMeta,
   type AnalyticsView,
+  MAP_WIDGET_URI,
+  buildMapEnvelope,
+  type MapMeta,
+  type MapScope,
 } from "@cfi/mcp-widgets";
 import { prisma } from "../db/client.js";
 
@@ -163,6 +167,124 @@ export function registerAnalyticsTools(
       // signature that WidgetEnvelope omits — Vendo's analytics tools cast the
       // same way. The runtime shape (content/structuredContent/_meta) is exact.
       return buildAnalyticsEnvelope(meta, steer) as any;
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // leads_by_country — choropleth map of lead counts per country.
+  //
+  // Read-only. Leads are grouped by their Lead.countryId; each country carries
+  // an ISO-2 `code` (uppercased -> the MAP value key) and a `name` (a `names`
+  // override so the widget shows the DB's spelling). Leads with no country
+  // (countryId == null) are not codable to the map and are reported in `note`.
+  // Renders the SHARED @cfi/mcp-widgets MAP widget (registered once per server
+  // by registerSharedWidgets) — this file only registers the tool + binds the
+  // MAP resourceUri, exactly like leads_analytics binds the analytics widget.
+  // -------------------------------------------------------------------------
+  registerAppTool(
+    server,
+    "leads_by_country",
+    {
+      title: "Leady wg kraju",
+      description: [
+        "Read-only choropleth MAP of sales leads counted per country, rendered as",
+        "an INTERACTIVE inline widget (a coloured world/Europe map with a legend,",
+        "hover tooltips and a Europa/Świat scope switch). ONE call computes",
+        "everything; the map IS the answer.",
+        "USE WHEN: the user wants leads BY COUNTRY on a map, a geographic/territorial",
+        "distribution of the pipeline, 'leady wg kraju', 'gdzie mamy leady', 'leads",
+        "by country', 'mapa leadów'.",
+        "DO NOT USE WHEN: the user wants leads by SECTOR/industry -> use",
+        "leads_analytics; or the actual lead RECORDS -> use get_leads/search_leads.",
+        "RETURNS: an interactive choropleth map (the widget IS the answer) plus a",
+        "slim summary (total leads, how many countries carry data, top countries,",
+        "and how many leads have no country). Do NOT enumerate every country in",
+        "prose — point at the map. Read-only — no confirmation needed.",
+      ].join("\n"),
+      inputSchema: {
+        scope: z
+          .enum(["europe", "world"])
+          .optional()
+          .default("world")
+          .describe(
+            "Initial map scope: 'world' (default) or 'europe'. Purely the widget's starting view — the underlying per-country counts are identical."
+          ),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: MAP_WIDGET_URI },
+        // OpenAI compat alias so ChatGPT binds this widget explicitly.
+        "openai/outputTemplate": MAP_WIDGET_URI,
+      },
+    },
+    async (args: { scope?: MapScope }) => {
+      void getTenantSub();
+
+      const scope: MapScope = args.scope === "europe" ? "europe" : "world";
+
+      // Leads grouped by their country FK; resolve each FK -> ISO-2 code + name.
+      const [grouped, countries, totalLeads] = await Promise.all([
+        prisma.lead.groupBy({
+          by: ["countryId"],
+          _count: { _all: true },
+        }),
+        prisma.country.findMany({ select: { id: true, code: true, name: true } }),
+        prisma.lead.count(),
+      ]);
+
+      const countryById = new Map(countries.map((c) => [c.id, c]));
+
+      // Build the per-ISO-2 value map (uppercased) + DB-name overrides.
+      // Coalesce leads whose country has no resolvable code, and count leads
+      // with no country at all (countryId == null) as "uncoded".
+      const values: Record<string, number> = {};
+      const names: Record<string, string> = {};
+      let uncoded = 0;
+      let codedLeads = 0;
+
+      for (const row of grouped) {
+        const count = row._count._all;
+        const country =
+          row.countryId != null ? countryById.get(row.countryId) : undefined;
+        const code = country?.code?.trim().toUpperCase();
+        if (!code) {
+          uncoded += count;
+          continue;
+        }
+        values[code] = (values[code] ?? 0) + count;
+        if (country?.name) names[code] = country.name;
+        codedLeads += count;
+      }
+
+      const codedCountries = Object.keys(values).length;
+
+      const meta: MapMeta = {
+        title: "Leady wg kraju",
+        scope,
+        unit: "leady",
+        values,
+        names,
+        palette: "blues",
+      };
+
+      const note =
+        uncoded > 0
+          ? ` ${uncoded} z ${totalLeads} leadów bez przypisanego kraju — nieujęte na mapie.`
+          : "";
+      const steer =
+        `[PREZENTACJA] Mapa leadów wg kraju (zakres: ${scope === "europe" ? "Europa" : "Świat"}) ` +
+        `jest w widgecie: ${codedLeads} leadów w ${codedCountries} krajach. ` +
+        `Widget JEST odpowiedzią — NIE wypisuj listy krajów w tekście. ` +
+        `Skomentuj najwyżej 1-2 zdaniami największe kraje i liczbę leadów bez kraju.${note}`;
+
+      // Cast to `any`: ext-apps ToolCallback expects an index signature that
+      // WidgetEnvelope omits; the runtime shape is exact. Mirrors leads_analytics.
+      return buildMapEnvelope(meta, steer) as any;
     }
   );
 }

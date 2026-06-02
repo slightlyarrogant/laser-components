@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
@@ -206,25 +207,40 @@ export function registerProductsTools(
   // -------------------------------------------------------------------------
   // search_products — fuzzy lookup across name/description/subcategory.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "search_products",
-    [
-      "Fuzzy product lookup by a free-text phrase across name, description, and",
-      "subcategory name.",
-      "USE WHEN: the user gives a product/category/subcategory phrase and wants",
-      "matching catalog items (e.g. to resolve a product ID).",
-      "DO NOT USE WHEN: the user wants exact filtered browsing by known IDs or",
-      "pagination -> use get_products.",
-      "RETURNS: { success, data[] (up to 20 with category/subcategory context), count, query }.",
-      "GOTCHAS: use the returned product IDs before calling create_lead or",
-      "create_product_application; never guess IDs.",
-    ].join("\n"),
     {
-      query: z
-        .string()
-        .describe("Free-text phrase to match against name, description, and subcategory name."),
+      title: "Szukaj produktów",
+      description: [
+        "Fuzzy product lookup by a free-text phrase across name, description, and",
+        "subcategory name.",
+        "USE WHEN: the user gives a product/category/subcategory phrase and wants",
+        "matching catalog items (e.g. to resolve a product ID).",
+        "DO NOT USE WHEN: the user wants exact filtered browsing by known IDs or",
+        "pagination -> use get_products.",
+        "RETURNS: a small result inline as { success, data[], count, query }; a LARGE",
+        "result (> threshold) as an interactive DATASET widget (sortable/searchable",
+        "table + CSV export). The card IS the answer — do not re-list rows.",
+        "GOTCHAS: use the returned product IDs before calling create_lead or",
+        "create_product_application; never guess IDs.",
+      ].join("\n"),
+      inputSchema: {
+        query: z
+          .string()
+          .describe("Free-text phrase to match against name, description, and subcategory name."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -240,39 +256,76 @@ export function registerProductsTools(
         take: 20,
         include: { subcategory: { include: { category: true } } },
       });
-      return ok({ success: true, data: products, count: products.length, query });
+
+      // Flatten relations to scalar columns for the DATASET widget.
+      const rows = products.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        sku: p.sku ?? null,
+        price: p.price != null ? Number(p.price) : null,
+        subcategory: p.subcategory?.name ?? null,
+        category: p.subcategory?.category?.name ?? null,
+        description: p.description ?? null,
+      }));
+
+      const widget = okList(
+        rows,
+        `Produkty — "${query}"`,
+        config.PUBLIC_BASE_URL,
+        DATASET_THRESHOLD,
+        ["id", "name", "sku", "price", "subcategory", "category"]
+      );
+      if (!("structuredContent" in widget)) {
+        return ok({ success: true, data: products, count: products.length, query });
+      }
+      return widget as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // create_product — catalog write.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "create_product",
-    [
-      "Create a product catalog record.",
-      "USE WHEN: the user explicitly asks to create a product. WRITE ACTION —",
-      "confirm intent first.",
-      "DO NOT USE WHEN: the user is asking whether a product exists -> use",
-      "search_products/get_products first.",
-      "RETURNS: { success, message, product } with subcategory+category context.",
-      "GOTCHAS: name and subcategoryId are required; resolve subcategoryId with",
-      "get_categories. Fails (P2002) if a product with the same name already exists",
-      "in that subcategory.",
-    ].join("\n"),
     {
-      name: z.string().describe("Product name (required)."),
-      subcategoryId: z.number().describe("Subcategory ID the product belongs to (required)."),
-      description: z.string().optional().describe("Product description."),
-      sku: z.string().optional().describe("Stock keeping unit (optional, unique)."),
-      price: z.number().optional().describe("Product price (optional)."),
-      datasheet_url: z.string().optional().describe("URL to product datasheet (optional)."),
-      specifications: z
-        .record(z.any())
-        .optional()
-        .describe("Product specifications as a JSON object (optional)."),
+      title: "Utwórz produkt",
+      description: [
+        "Create a product catalog record.",
+        "USE WHEN: the user explicitly asks to create a product. WRITE ACTION —",
+        "confirm intent first.",
+        "DO NOT USE WHEN: the user is asking whether a product exists -> use",
+        "search_products/get_products first.",
+        "RETURNS: an ACTION confirmation card on success (the created product's id +",
+        "name); the model should confirm briefly. Subcategory+category context is in",
+        "structuredContent.",
+        "GOTCHAS: name and subcategoryId are required; resolve subcategoryId with",
+        "get_categories. Fails (P2002) if a product with the same name already exists",
+        "in that subcategory.",
+      ].join("\n"),
+      inputSchema: {
+        name: z.string().describe("Product name (required)."),
+        subcategoryId: z.number().describe("Subcategory ID the product belongs to (required)."),
+        description: z.string().optional().describe("Product description."),
+        sku: z.string().optional().describe("Stock keeping unit (optional, unique)."),
+        price: z.number().optional().describe("Product price (optional)."),
+        datasheet_url: z.string().optional().describe("URL to product datasheet (optional)."),
+        specifications: z
+          .record(z.any())
+          .optional()
+          .describe("Product specifications as a JSON object (optional)."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -294,7 +347,19 @@ export function registerProductsTools(
           data: productData,
           include: { subcategory: { include: { category: true } } },
         });
-        return ok({ success: true, message: "Product created successfully", product: newProduct });
+        const sub = (newProduct as any).subcategory;
+        const cat = sub?.category;
+        const ctx = [cat?.name, sub?.name].filter(Boolean).join(" / ");
+        return buildActionEnvelope(
+          {
+            status: "success",
+            title: "Produkt utworzony",
+            detail: `${newProduct.name}${ctx ? ` (${ctx})` : ""}`,
+            id: String(newProduct.id),
+            idLabel: "ID produktu",
+          },
+          `[PREZENTACJA] Produkt "${newProduct.name}" (ID ${newProduct.id}) utworzony. Potwierdź zwięźle.`
+        ) as any;
       } catch (error: any) {
         if (error.code === "P2002") {
           throw new Error(
@@ -309,23 +374,37 @@ export function registerProductsTools(
   // -------------------------------------------------------------------------
   // delete_product — destructive catalog write.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "delete_product",
-    [
-      "Permanently delete a product record by ID.",
-      "USE WHEN: the user explicitly asks to delete a product by ID. DESTRUCTIVE —",
-      "confirm intent first.",
-      "DO NOT USE WHEN: the user asks to archive, hide, or clean duplicate data",
-      "without explicit deletion.",
-      "RETURNS: { success, message }.",
-      "GOTCHAS: deletion is refused if the product has any leads or application",
-      "mappings; inspect get_products/get_product_applications and remove those",
-      "associations first.",
-    ].join("\n"),
     {
-      id: z.number().describe("Product ID to delete."),
+      title: "Usuń produkt",
+      description: [
+        "Permanently delete a product record by ID.",
+        "USE WHEN: the user explicitly asks to delete a product by ID. DESTRUCTIVE —",
+        "confirm intent first.",
+        "DO NOT USE WHEN: the user asks to archive, hide, or clean duplicate data",
+        "without explicit deletion.",
+        "RETURNS: an ACTION confirmation card on success (the deleted product's id +",
+        "name); the model should confirm briefly.",
+        "GOTCHAS: deletion is refused if the product has any leads or application",
+        "mappings; inspect get_products/get_product_applications and remove those",
+        "associations first.",
+      ].join("\n"),
+      inputSchema: {
+        id: z.number().describe("Product ID to delete."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
     },
-    { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -344,35 +423,57 @@ export function registerProductsTools(
         );
       }
       await prisma.product.delete({ where: { id: a.id } });
-      return ok({
-        success: true,
-        message: `Product "${product.name}" (ID: ${a.id}) deleted successfully`,
-      });
+      return buildActionEnvelope(
+        {
+          status: "success",
+          title: "Usunięto produkt",
+          detail: product.name,
+          id: String(a.id),
+          idLabel: "ID produktu",
+        },
+        `[PREZENTACJA] Produkt "${product.name}" (ID ${a.id}) usunięty. Potwierdź zwięźle.`
+      ) as any;
     }
   );
 
   // -------------------------------------------------------------------------
   // get_categories — taxonomy lookup.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "get_categories",
-    [
-      "List product categories (and optionally their subcategories with product counts).",
-      "USE WHEN: the user needs category/subcategory IDs or wants to understand the",
-      "product taxonomy.",
-      "DO NOT USE WHEN: the user wants product rows -> use get_products/search_products.",
-      "RETURNS: { success, data[] (categories, optionally with subcategories+counts), count }.",
-      "GOTCHAS: call this before create_product, which requires a subcategoryId.",
-    ].join("\n"),
     {
-      limit: z.number().optional().default(20).describe("Maximum number of categories to return."),
-      includeSubcategories: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Include subcategories (with product counts) for each category."),
+      title: "Kategorie",
+      description: [
+        "List product categories (and optionally their subcategories with product counts).",
+        "USE WHEN: the user needs category/subcategory IDs or wants to understand the",
+        "product taxonomy.",
+        "DO NOT USE WHEN: the user wants product rows -> use get_products/search_products.",
+        "RETURNS: a small result inline as { success, data[], count }; a LARGE result",
+        "(> threshold rows) as an interactive DATASET widget (one row per subcategory",
+        "with its product count, or per category when subcategories are excluded). The",
+        "card IS the answer — do not re-list rows.",
+        "GOTCHAS: call this before create_product, which requires a subcategoryId.",
+      ].join("\n"),
+      inputSchema: {
+        limit: z.number().optional().default(20).describe("Maximum number of categories to return."),
+        includeSubcategories: z
+          .boolean()
+          .optional()
+          .default(true)
+          .describe("Include subcategories (with product counts) for each category."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
       void getTenantSub();
 
@@ -391,7 +492,45 @@ export function registerProductsTools(
             }
           : { _count: { select: { subcategories: true } } },
       });
-      return ok({ success: true, data: categories, count: categories.length });
+
+      // Flatten to scalar rows: one row per subcategory (category/subcategory/
+      // productCount) when subcategories are included, else one row per category
+      // with its subcategory count. Either way every column is a scalar.
+      const rows: Record<string, unknown>[] = includeSubcategories
+        ? categories.flatMap((c: any) =>
+            (c.subcategories ?? []).length
+              ? c.subcategories.map((s: any) => ({
+                  categoryId: c.id,
+                  category: c.name,
+                  subcategoryId: s.id,
+                  subcategory: s.name,
+                  productCount: s._count?.products ?? 0,
+                }))
+              : [
+                  {
+                    categoryId: c.id,
+                    category: c.name,
+                    subcategoryId: null,
+                    subcategory: null,
+                    productCount: 0,
+                  },
+                ]
+          )
+        : categories.map((c: any) => ({
+            categoryId: c.id,
+            category: c.name,
+            subcategoryCount: c._count?.subcategories ?? 0,
+          }));
+
+      const keyColumns = includeSubcategories
+        ? ["categoryId", "category", "subcategoryId", "subcategory", "productCount"]
+        : ["categoryId", "category", "subcategoryCount"];
+
+      const widget = okList(rows, "Kategorie", config.PUBLIC_BASE_URL, DATASET_THRESHOLD, keyColumns);
+      if (!("structuredContent" in widget)) {
+        return ok({ success: true, data: categories, count: categories.length });
+      }
+      return widget as any;
     }
   );
 

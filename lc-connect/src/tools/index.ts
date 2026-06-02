@@ -1,5 +1,12 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
+import {
+  KPI_WIDGET_URI,
+  buildKpiEnvelope,
+  type KpiItem,
+  type KpiMeta,
+} from "@cfi/mcp-widgets";
 import { prisma } from "../db/client.js";
 import { registerProductsTools } from "./products.js";
 import { registerApplicationsTools } from "./applications.js";
@@ -74,18 +81,34 @@ export function registerAllTools(
   // -------------------------------------------------------------------------
   // get_statistics — high-level counts straight from Postgres.
   // -------------------------------------------------------------------------
-  server.tool(
+  registerAppTool(
+    server,
     "get_statistics",
-    [
-      "Return headline counts for the Laser Components database: total products,",
-      "applications, leads, and product↔application mappings.",
-      "USE WHEN: the user asks 'how many products/leads do we have?', wants a quick",
-      "overview, or you need a sanity-check that the data layer is reachable.",
-      "DON'T USE WHEN: the user wants the actual records (use the product/lead/",
-      "application list tools in chunk 2) or filtered/segmented metrics.",
-      "RETURNS: a small JSON object of integer counts.",
-    ].join("\n"),
-    {},
+    {
+      title: "Statystyki bazy",
+      description: [
+        "Return headline counts for the Laser Components database: total products,",
+        "applications, leads, and product↔application mappings.",
+        "USE WHEN: the user asks 'how many products/leads do we have?', wants a quick",
+        "overview, or you need a sanity-check that the data layer is reachable.",
+        "DON'T USE WHEN: the user wants the actual records (use the product/lead/",
+        "application list tools in chunk 2) or filtered/segmented metrics.",
+        "RETURNS: a KPI card (interactive tiles for products / applications / leads /",
+        "mappings) — the card IS the answer; the model also receives the same integer",
+        "counts in structuredContent. Present them briefly.",
+      ].join("\n"),
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: KPI_WIDGET_URI },
+        "openai/outputTemplate": KPI_WIDGET_URI,
+      },
+    },
     async () => {
       // Touch the tenant context so the wiring is exercised even though these
       // aggregate counts are not user-scoped.
@@ -101,10 +124,24 @@ export function registerAllTools(
 
       const stats = { products, applications, leads, productApplications };
 
-      return {
-        content: [{ type: "text" as const, text: JSON.stringify(stats, null, 2) }],
-        structuredContent: stats,
-      };
+      // Render the same counts as a KPI card. structuredContent keeps the raw
+      // numbers so the model can answer "how many?" without parsing the card.
+      const kpis: KpiItem[] = [
+        { label: "Produkty", value: products, format: "int" },
+        { label: "Aplikacje", value: applications, format: "int" },
+        { label: "Leady", value: leads, format: "int" },
+        { label: "Mapowania prod.↔apl.", value: productApplications, format: "int" },
+      ];
+      const meta: KpiMeta = { title: "Statystyki bazy", kpis };
+      const steer =
+        `[PREZENTACJA] Statystyki: ${products} produktów, ${applications} aplikacji, ` +
+        `${leads} leadów, ${productApplications} mapowań produkt↔aplikacja. ` +
+        `Widget (kafelki KPI) JEST odpowiedzią — podsumuj zwięźle, nie buduj tabel.`;
+
+      const env = buildKpiEnvelope(meta, steer);
+      // Surface the raw counts alongside the slim KPI summary for the model.
+      (env.structuredContent as Record<string, unknown>).stats = stats;
+      return env as any;
     }
   );
 
