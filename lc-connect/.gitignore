@@ -17,5 +17,12 @@ demo/presentation/index.html
 # ChatGPT recording — login profile (session cookies) + raw video, never commit
 demo/.chatgpt-profile/
 demo/video/
+demo/video-install/
 demo/chatgpt-state.json
 demo/_*.mjs
+
+# Remotion film — node_modules symlink + render scratch (keep src + assets + audio)
+demo/film/remotion/node_modules
+demo/film/remotion/out/
+demo/film/assets/
+demo/film/audio/

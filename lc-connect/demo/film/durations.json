@@ -1,0 +1,47 @@
+{
+  "01_title": {
+    "scene": "title",
+    "dur": 6.870204,
+    "text": "LC Connect. Your laser-components lead database, answered in plain English, right inside ChatGPT."
+  },
+  "02_demo_bar": {
+    "scene": "demo",
+    "dur": 6.164898,
+    "text": "Just ask. Here's the big picture: every lead, broken down by industry, as a live chart."
+  },
+  "03_demo_list": {
+    "scene": "demo",
+    "dur": 8.777143,
+    "text": "Drill into a sector, like defense electronics, and it returns the actual companies. Real, structured data, not a wall of text."
+  },
+  "04_demo_co": {
+    "scene": "demo",
+    "dur": 3.84,
+    "text": "Ask about a single company, and it pulls together everything on file."
+  },
+  "05_demo_map": {
+    "scene": "demo",
+    "dur": 3.239184,
+    "text": "And see exactly where your leads are, across Europe."
+  },
+  "06_inst_a": {
+    "scene": "install",
+    "dur": 2.220408,
+    "text": "Installing it takes about two minutes."
+  },
+  "07_inst_b": {
+    "scene": "install",
+    "dur": 4.675918,
+    "text": "In ChatGPT, open Settings, go to Apps, and create a new app."
+  },
+  "08_inst_c": {
+    "scene": "install",
+    "dur": 5.668571,
+    "text": "Give it a name, paste the connector's address, and click Create. That's it, you're connected."
+  },
+  "09_outro": {
+    "scene": "outro",
+    "dur": 5.041633,
+    "text": "LC Connect. Find and enrich your leads, in plain English. Try it yourself."
+  }
+}

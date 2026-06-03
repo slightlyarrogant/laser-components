@@ -1,0 +1,10 @@
+{
+  "name": "lc-connect-film",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts LcConnectFilm out/lc-connect-film.mp4 --concurrency=2"
+  }
+}
