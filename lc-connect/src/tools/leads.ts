@@ -407,7 +407,8 @@ export function registerLeadsTools(
     {
       title: "Search leads",
       description: [
-        "Fuzzy lead lookup by a company/person phrase and/or required tags.",
+        "Fuzzy lead lookup by a company/person phrase and/or required tags, with",
+        "optional structured filters by industry/sector, country, and status.",
         "USE WHEN: the user wants to SEE, LIST, FIND, or BROWSE leads/companies in a",
         "sector/industry/country or by any filter — this is the primary tool for showing",
         "a set of leads.",
@@ -418,21 +419,38 @@ export function registerLeadsTools(
         "records or IDs.",
         "DO NOT USE WHEN: the user wants all leads with structured filters -> use",
         "get_leads.",
-        "RETURNS: a small result inline as { success, data[], count, searchCriteria }; a",
-        "LARGE result (> threshold) as an interactive DATASET widget (sortable/searchable",
-        "table + CSV export). The card IS the answer — do not re-list rows.",
-        "GOTCHAS: tags use hasEvery (a lead must carry ALL provided tags).",
+        "RETURNS: matching rows as an interactive DATASET widget (sortable/searchable",
+        "table + CSV export). The card IS the answer — do not re-list rows. An empty",
+        "result is returned inline as { success, data[], count, searchCriteria }.",
+        "GOTCHAS: tags use hasEvery (a lead must carry ALL provided tags); the",
+        "industry/country/status filters narrow the result (ANDed with the phrase).",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         query: z
           .string()
           .optional()
-          .describe("Free-text phrase matched against name, description, and email."),
+          .describe(
+            "Free-text phrase matched against name, description, email, and industry/sector."
+          ),
         tags: z
           .array(z.string())
           .optional()
           .describe("Tags that a matching lead must ALL carry (hasEvery)."),
+        industry: z
+          .string()
+          .optional()
+          .describe(
+            "Filter by industry / sector (case-insensitive contains, e.g. 'Defense Electronics')."
+          ),
+        country: z
+          .string()
+          .optional()
+          .describe("Filter by country name (case-insensitive contains)."),
+        status: z
+          .string()
+          .optional()
+          .describe("Filter by lead status (e.g. NEW, WON, LOST)."),
       },
       annotations: {
         readOnlyHint: true,
@@ -448,21 +466,41 @@ export function registerLeadsTools(
     async (a) => {
       void getTenantSub();
 
-      const whereConditions: any = { OR: [] };
+      // Fuzzy OR-group (phrase + tags) is matched loosely; the structured
+      // filters (industry/country/status) narrow the set and are ANDed with it.
+      const or: any[] = [];
+      const and: any[] = [];
 
       if (a.query) {
-        whereConditions.OR.push(
+        or.push(
           { name: { contains: a.query, mode: "insensitive" } },
           { description: { contains: a.query, mode: "insensitive" } },
-          { email: { contains: a.query, mode: "insensitive" } }
+          { email: { contains: a.query, mode: "insensitive" } },
+          { industry: { contains: a.query, mode: "insensitive" } }
         );
       }
       if (a.tags && Array.isArray(a.tags) && a.tags.length > 0) {
-        whereConditions.OR.push({ tags: { hasEvery: a.tags } });
+        or.push({ tags: { hasEvery: a.tags } });
       }
-      if (whereConditions.OR.length === 0) {
-        delete whereConditions.OR;
+
+      if (a.industry) {
+        and.push({ industry: { contains: a.industry, mode: "insensitive" } });
       }
+      if (a.status) {
+        and.push({ status: a.status.toUpperCase() });
+      }
+      if (a.country) {
+        and.push({
+          country: { is: { name: { contains: a.country, mode: "insensitive" } } },
+        });
+      }
+
+      const whereConditions: any =
+        or.length > 0
+          ? { AND: [{ OR: or }, ...and] }
+          : and.length > 0
+            ? { AND: and }
+            : {};
 
       const leads = await prisma.lead.findMany({
         where: whereConditions,
@@ -486,11 +524,15 @@ export function registerLeadsTools(
         website: l.website ?? null,
       }));
 
+      // search_leads is THE "show me the list" tool, so it renders the DATASET
+      // widget unconditionally whenever there are matching rows — threshold 0
+      // means any non-empty set produces the interactive table. A zero-row
+      // result falls through to the inline empty result below.
       const widget = okList(
         rows,
         "Leads — search",
         config.PUBLIC_BASE_URL,
-        DATASET_THRESHOLD,
+        0,
         ["id", "name", "status", "industry", "product", "application"]
       );
       if (!("structuredContent" in widget)) {
@@ -498,7 +540,13 @@ export function registerLeadsTools(
           success: true,
           data: leads,
           count: leads.length,
-          searchCriteria: { query: a.query, tags: a.tags },
+          searchCriteria: {
+            query: a.query,
+            tags: a.tags,
+            industry: a.industry,
+            country: a.country,
+            status: a.status,
+          },
         });
       }
       return widget as any;
