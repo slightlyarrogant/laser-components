@@ -13,3 +13,9 @@ demo/envelopes/
 demo/widget-html/
 demo/presentation/_images.json
 demo/presentation/index.html
+
+# ChatGPT recording — login profile (session cookies) + raw video, never commit
+demo/.chatgpt-profile/
+demo/video/
+demo/chatgpt-state.json
+demo/_*.mjs
