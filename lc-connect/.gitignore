@@ -26,3 +26,7 @@ demo/film/remotion/node_modules
 demo/film/remotion/out/
 demo/film/assets/
 demo/film/audio/
+
+# Demo access sheet — contains demo credentials; keep local, do not publish
+demo/presentation/access-sheet.html
+demo/presentation/lc-connect-demo-access.pdf
