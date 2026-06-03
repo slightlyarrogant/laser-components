@@ -85,7 +85,7 @@ export function registerAllTools(
     server,
     "get_statistics",
     {
-      title: "Statystyki bazy",
+      title: "Database statistics",
       description: [
         "Return headline counts for the Laser Components database: total products,",
         "applications, leads, and product↔application mappings.",
@@ -127,16 +127,16 @@ export function registerAllTools(
       // Render the same counts as a KPI card. structuredContent keeps the raw
       // numbers so the model can answer "how many?" without parsing the card.
       const kpis: KpiItem[] = [
-        { label: "Produkty", value: products, format: "int" },
-        { label: "Aplikacje", value: applications, format: "int" },
-        { label: "Leady", value: leads, format: "int" },
-        { label: "Mapowania prod.↔apl.", value: productApplications, format: "int" },
+        { label: "Products", value: products, format: "int" },
+        { label: "Applications", value: applications, format: "int" },
+        { label: "Leads", value: leads, format: "int" },
+        { label: "Product↔application links", value: productApplications, format: "int" },
       ];
-      const meta: KpiMeta = { title: "Statystyki bazy", kpis };
+      const meta: KpiMeta = { title: "Database statistics", kpis };
       const steer =
-        `[PREZENTACJA] Statystyki: ${products} produktów, ${applications} aplikacji, ` +
-        `${leads} leadów, ${productApplications} mapowań produkt↔aplikacja. ` +
-        `Widget (kafelki KPI) JEST odpowiedzią — podsumuj zwięźle, nie buduj tabel.`;
+        `[PRESENTATION] Statistics: ${products} products, ${applications} applications, ` +
+        `${leads} leads, ${productApplications} product↔application links. ` +
+        `The widget (KPI tiles) IS the answer — summarize briefly, do not build tables.`;
 
       const env = buildKpiEnvelope(meta, steer);
       // Surface the raw counts alongside the slim KPI summary for the model.

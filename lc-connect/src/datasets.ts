@@ -247,8 +247,8 @@ export function okList(
   const views =
     columns.length && columns.length < all.length
       ? [
-          { id: "kluczowe", label: "Kluczowe", columns },
-          { id: "wszystkie", label: "Wszystkie", columns: all },
+          { id: "kluczowe", label: "Key", columns },
+          { id: "wszystkie", label: "All", columns: all },
         ]
       : undefined;
 
@@ -265,10 +265,10 @@ export function okList(
   };
 
   const steer =
-    `[PREZENTACJA] ${title}: ${count} rekordów w widgecie (tabela interaktywna z sortowaniem, ` +
-    `wyszukiwaniem i eksportem CSV). Widget JEST odpowiedzią — NIE wypisuj wierszy w tekście, ` +
-    `nie buduj tabel ani list. Podsumuj zwięźle (liczba rekordów, najważniejsze pozycje z próbki). ` +
-    `Pełny zbiór dostępny przez eksport CSV w widgecie. dataset_id: ${datasetId}.`;
+    `[PRESENTATION] ${title}: ${count} records in the widget (interactive table with sorting, ` +
+    `search and CSV export). The widget IS the answer — do NOT list rows in text, ` +
+    `do not build tables or lists. Summarize briefly (record count, key items from the sample). ` +
+    `The full set is available via CSV export in the widget. dataset_id: ${datasetId}.`;
 
   return buildDatasetEnvelope(meta, steer);
 }

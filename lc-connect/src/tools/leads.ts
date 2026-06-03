@@ -45,7 +45,7 @@ export function registerLeadsTools(
     server,
     "get_leads",
     {
-      title: "Leady",
+      title: "Leads",
       description: [
         "List/filter sales leads (with product/application/region/country context).",
         "USE WHEN: the user asks to list, review, filter, or inspect leads by status,",
@@ -130,7 +130,7 @@ export function registerLeadsTools(
 
       const widget = okList(
         rows,
-        "Leady",
+        "Leads",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "name", "status", "industry", "product", "country"]
@@ -147,7 +147,7 @@ export function registerLeadsTools(
     server,
     "create_lead",
     {
-      title: "Utwórz lead",
+      title: "Create lead",
       description: [
         "Create a single lead/prospect.",
         "USE WHEN: the user explicitly asks to create a lead. WRITE ACTION — confirm",
@@ -216,12 +216,12 @@ export function registerLeadsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Lead utworzony",
+          title: "Lead created",
           detail: `${lead.name}${lead.product ? ` → ${lead.product.name}` : ""} (status: ${lead.status})`,
           id: String(lead.id),
-          idLabel: "ID leada",
+          idLabel: "Lead ID",
         },
-        `[PREZENTACJA] Lead "${lead.name}" (ID ${lead.id}) utworzony. Potwierdź zwięźle.`
+        `[PRESENTATION] Lead "${lead.name}" (ID ${lead.id}) created. Confirm briefly.`
       ) as any;
     }
   );
@@ -233,7 +233,7 @@ export function registerLeadsTools(
     server,
     "update_lead",
     {
-      title: "Aktualizuj lead",
+      title: "Update lead",
       description: [
         "Update fields on an existing lead.",
         "USE WHEN: the user explicitly asks to change fields (status, contact info,",
@@ -308,21 +308,21 @@ export function registerLeadsTools(
           updateData.status !== undefined
             ? `Status → ${updateData.status}` +
               (changedFields.length > 1
-                ? ` (+${changedFields.length - 1} pól)`
+                ? ` (+${changedFields.length - 1} fields)`
                 : "")
             : changedFields.length > 0
-              ? `Zmieniono: ${changedFields.join(", ")}`
-              : "Brak zmian";
+              ? `Changed: ${changedFields.join(", ")}`
+              : "No changes";
 
         return buildActionEnvelope(
           {
             status: "success",
-            title: "Lead zaktualizowany",
+            title: "Lead updated",
             detail: `${updatedLead.name} — ${detail}`,
             id: String(updatedLead.id),
-            idLabel: "ID leada",
+            idLabel: "Lead ID",
           },
-          `[PREZENTACJA] Lead "${updatedLead.name}" (ID ${updatedLead.id}) zaktualizowany. Potwierdź zwięźle.`
+          `[PRESENTATION] Lead "${updatedLead.name}" (ID ${updatedLead.id}) updated. Confirm briefly.`
         ) as any;
       } catch (error: any) {
         if (error.code === "P2025") throw new Error(`Lead with ID ${a.id} not found`);
@@ -338,7 +338,7 @@ export function registerLeadsTools(
     server,
     "delete_lead",
     {
-      title: "Usuń lead",
+      title: "Delete lead",
       description: [
         "Permanently delete a lead by ID.",
         "USE WHEN: the user explicitly asks to delete a lead by ID. DESTRUCTIVE —",
@@ -383,12 +383,12 @@ export function registerLeadsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Usunięto lead",
+          title: "Lead deleted",
           detail: existing?.name ?? `Lead #${a.id}`,
           id: String(a.id),
-          idLabel: "ID leada",
+          idLabel: "Lead ID",
         },
-        `[PREZENTACJA] Lead${existing?.name ? ` "${existing.name}"` : ""} (ID ${a.id}) usunięty. Potwierdź zwięźle.`
+        `[PRESENTATION] Lead${existing?.name ? ` "${existing.name}"` : ""} (ID ${a.id}) deleted. Confirm briefly.`
       ) as any;
     }
   );
@@ -400,7 +400,7 @@ export function registerLeadsTools(
     server,
     "search_leads",
     {
-      title: "Szukaj leadów",
+      title: "Search leads",
       description: [
         "Fuzzy lead lookup by a company/person phrase and/or required tags.",
         "USE WHEN: the user gives a company/person/tag phrase and wants matching lead",
@@ -476,7 +476,7 @@ export function registerLeadsTools(
 
       const widget = okList(
         rows,
-        "Leady — wyszukiwanie",
+        "Leads — search",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "name", "status", "industry", "product", "application"]
@@ -562,7 +562,7 @@ export function registerLeadsTools(
           leadId: a.leadId,
           leadName,
           totalNotes: 0,
-          message: `Brak notatek dla leada "${leadName}" (ID ${a.leadId}).`,
+          message: `No notes for lead "${leadName}" (ID ${a.leadId}).`,
         });
       }
 
@@ -583,9 +583,9 @@ export function registerLeadsTools(
         // Body = content without the leading [TYPE] prefix (cleaner read).
         const body = m ? raw.slice(m[0].length) : raw;
         const firstLine =
-          body.split(/\r?\n/, 1)[0]?.trim() || "(brak treści)";
+          body.split(/\r?\n/, 1)[0]?.trim() || "(no content)";
         const sender =
-          note.user_id != null ? `Użytkownik #${note.user_id}` : "System";
+          note.user_id != null ? `User #${note.user_id}` : "System";
 
         return {
           id: String(note.id),
@@ -601,16 +601,16 @@ export function registerLeadsTools(
 
       const hasMail = messages.some((msg) => msg.source === "mail");
       const meta: MessagesMeta = {
-        title: `Historia leada — ${leadName}`,
+        title: `Lead history — ${leadName}`,
         kind: hasMail ? "mixed" : "chat",
         messages,
       };
 
       const steer =
-        `[PREZENTACJA] Historia notatek leada "${leadName}" (ID ${a.leadId}): ` +
-        `${messages.length} wpis(ów) w widgecie wiadomości (rozwijane, z filtrem). ` +
-        `Widget JEST odpowiedzią — NIE wypisuj treści notatek w tekście. ` +
-        `Podsumuj zwięźle (ile wpisów, najnowsza aktywność); szczegóły są w widgecie.`;
+        `[PRESENTATION] Note history for lead "${leadName}" (ID ${a.leadId}): ` +
+        `${messages.length} entr(ies) in the messages widget (expandable, with a filter). ` +
+        `The widget IS the answer — do NOT list note contents in text. ` +
+        `Summarize briefly (how many entries, latest activity); the detail is in the widget.`;
 
       return buildMessagesEnvelope(meta, steer) as any;
     }
@@ -623,7 +623,7 @@ export function registerLeadsTools(
     server,
     "create_lead_note",
     {
-      title: "Dodaj notatkę",
+      title: "Add note",
       description: [
         "Record a note / call / meeting / email / task / follow-up on a lead.",
         "USE WHEN: the user explicitly asks to log activity or a note on a lead.",
@@ -691,12 +691,12 @@ export function registerLeadsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Notatka dodana",
+          title: "Note added",
           detail: `${noteType.toUpperCase()} → ${note.lead.name}`,
           id: String(note.id),
-          idLabel: "ID notatki",
+          idLabel: "Note ID",
         },
-        `[PREZENTACJA] Notatka (${noteType.toUpperCase()}) dodana do leada "${note.lead.name}". Potwierdź zwięźle.`
+        `[PRESENTATION] Note (${noteType.toUpperCase()}) saved for lead "${note.lead.name}". Confirm briefly.`
       ) as any;
     }
   );
@@ -708,7 +708,7 @@ export function registerLeadsTools(
     server,
     "batch_create_leads",
     {
-      title: "Importuj leady",
+      title: "Import leads",
       description: [
         "Bulk-create multiple leads from prepared candidate data.",
         "USE WHEN: the user explicitly asks to import/create many leads at once.",
@@ -827,13 +827,13 @@ export function registerLeadsTools(
       return buildActionEnvelope(
         {
           status: hasIssues ? "warning" : "success",
-          title: hasIssues ? "Import zakończony z uwagami" : "Leady zaimportowane",
-          detail: `Utworzono ${summary.created}, pominięto ${summary.skipped} (duplikaty), błędów ${summary.errors}`,
+          title: hasIssues ? "Import finished with warnings" : "Leads imported",
+          detail: `Created ${summary.created}, skipped ${summary.skipped} (duplicates), errors ${summary.errors}`,
           id: String(summary.created),
-          idLabel: "Utworzono",
+          idLabel: "Created",
         },
-        `[PREZENTACJA] Import leadów: utworzono ${summary.created}, pominięto ${summary.skipped}, błędów ${summary.errors}. ` +
-          `Potwierdź zwięźle${hasIssues ? " i wspomnij o pominiętych/błędach" : ""}.`
+        `[PRESENTATION] Lead import: created ${summary.created}, skipped ${summary.skipped}, errors ${summary.errors}. ` +
+          `Confirm briefly${hasIssues ? " and mention the skipped/errored ones" : ""}.`
       ) as any;
     }
   );
@@ -845,7 +845,7 @@ export function registerLeadsTools(
     server,
     "batch_update_leads",
     {
-      title: "Aktualizuj leady (masowo)",
+      title: "Update leads (bulk)",
       description: [
         "Bulk-update status/tags/metadata across many existing leads.",
         "USE WHEN: the user explicitly asks to change fields on multiple leads at once.",
@@ -929,13 +929,13 @@ export function registerLeadsTools(
               status: updatedCount > 0 ? "success" : "warning",
               title:
                 updatedCount > 0
-                  ? "Leady zaktualizowane"
-                  : "Brak pasujących leadów",
-              detail: `Zaktualizowano ${updatedCount} (tagi dołączone)`,
+                  ? "Leads updated"
+                  : "No matching leads",
+              detail: `Updated ${updatedCount} (tags appended)`,
               id: String(updatedCount),
-              idLabel: "Zaktualizowano",
+              idLabel: "Updated",
             },
-            `[PREZENTACJA] Masowa aktualizacja (append): zaktualizowano ${updatedCount} leadów. Potwierdź zwięźle.`
+            `[PRESENTATION] Bulk update (append): updated ${updatedCount} leads. Confirm briefly.`
           ) as any;
         } else {
           updateData.tags = updates.tags;
@@ -950,12 +950,12 @@ export function registerLeadsTools(
         {
           status: result.count > 0 ? "success" : "warning",
           title:
-            result.count > 0 ? "Leady zaktualizowane" : "Brak pasujących leadów",
-          detail: `Zaktualizowano ${result.count}`,
+            result.count > 0 ? "Leads updated" : "No matching leads",
+          detail: `Updated ${result.count}`,
           id: String(result.count),
-          idLabel: "Zaktualizowano",
+          idLabel: "Updated",
         },
-        `[PREZENTACJA] Masowa aktualizacja: zaktualizowano ${result.count} leadów. Potwierdź zwięźle.`
+        `[PRESENTATION] Bulk update: updated ${result.count} leads. Confirm briefly.`
       ) as any;
     }
   );

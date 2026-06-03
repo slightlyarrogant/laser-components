@@ -323,7 +323,7 @@ export function registerKnowledgeTools(
     server,
     "list_resources",
     {
-      title: "Zasoby wiedzy",
+      title: "Knowledge resources",
       description: [
         "List knowledge/workflow resources (compact previews) to discover slugs.",
         "USE WHEN: the user asks what knowledge/workflow resources exist, or you need",
@@ -364,7 +364,7 @@ export function registerKnowledgeTools(
 
       const widget = okList(
         payload.resources,
-        "Zasoby wiedzy",
+        "Knowledge resources",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["slug", "title", "category", "version", "isActive"]
@@ -466,7 +466,7 @@ export function registerKnowledgeTools(
     server,
     "save_learning",
     {
-      title: "Zapisz wniosek",
+      title: "Save learning",
       description: [
         "Capture a reusable correction / insight / confirmation as a pending learning.",
         "USE WHEN: the user corrects the connector, confirms an unusual approach, or",
@@ -521,22 +521,22 @@ export function registerKnowledgeTools(
         return buildActionEnvelope(
           {
             status: "warning",
-            title: "Wniosek niezapisany",
+            title: "Learning not saved",
             detail: result.message,
           },
-          `[PREZENTACJA] Wniosek NIE został zapisany (nieznany resource_slug). Poinformuj użytkownika.`
+          `[PRESENTATION] The learning was NOT saved (unknown resource_slug). Inform the user.`
         ) as any;
       }
 
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Wniosek zapisany",
+          title: "Learning saved",
           detail: `${result.event_type} — impact: ${result.impact}`,
           id: String(result.event_id),
-          idLabel: "ID wniosku",
+          idLabel: "Learning ID",
         },
-        `[PREZENTACJA] Wniosek (${result.event_type}, impact ${result.impact}) zapisany (ID ${result.event_id}), oczekuje na przegląd. Potwierdź zwięźle.`
+        `[PRESENTATION] Learning (${result.event_type}, impact ${result.impact}) saved (ID ${result.event_id}), pending review. Confirm briefly.`
       ) as any;
     }
   );
@@ -548,7 +548,7 @@ export function registerKnowledgeTools(
     server,
     "update_resource",
     {
-      title: "Aktualizuj zasób",
+      title: "Update resource",
       description: [
         "Replace a knowledge resource body, archiving the prior version.",
         "USE WHEN: the user explicitly asks to update/replace a knowledge resource.",
@@ -584,12 +584,12 @@ export function registerKnowledgeTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Zasób zaktualizowany",
-          detail: `${result.slug} → wersja ${result.newVersion}`,
+          title: "Resource updated",
+          detail: `${result.slug} → version ${result.newVersion}`,
           id: result.slug,
           idLabel: "Slug",
         },
-        `[PREZENTACJA] Zasób "${result.slug}" zaktualizowany do wersji ${result.newVersion}. Potwierdź zwięźle.`
+        `[PRESENTATION] Resource "${result.slug}" updated to version ${result.newVersion}. Confirm briefly.`
       ) as any;
     }
   );
@@ -601,7 +601,7 @@ export function registerKnowledgeTools(
     server,
     "create_resource",
     {
-      title: "Utwórz zasób",
+      title: "Create resource",
       description: [
         "Create a new knowledge/workflow resource.",
         "USE WHEN: the user explicitly asks to create a new knowledge/workflow resource.",
@@ -644,24 +644,24 @@ export function registerKnowledgeTools(
         return buildActionEnvelope(
           {
             status: "warning",
-            title: "Zasób już istnieje",
+            title: "Resource already exists",
             detail: result.message,
             id: result.slug,
             idLabel: "Slug",
           },
-          `[PREZENTACJA] Zasób o slug "${result.slug}" już istnieje — nic nie utworzono. Zasugeruj update_resource.`
+          `[PRESENTATION] A resource with slug "${result.slug}" already exists — nothing was created. Suggest update_resource.`
         ) as any;
       }
 
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Zasób utworzony",
-          detail: `${result.slug} (wersja ${result.version})`,
+          title: "Resource created",
+          detail: `${result.slug} (version ${result.version})`,
           id: result.slug,
           idLabel: "Slug",
         },
-        `[PREZENTACJA] Zasób "${result.slug}" utworzony. Potwierdź zwięźle.`
+        `[PRESENTATION] Resource "${result.slug}" created. Confirm briefly.`
       ) as any;
     }
   );
@@ -673,7 +673,7 @@ export function registerKnowledgeTools(
     server,
     "get_pending_learnings",
     {
-      title: "Oczekujące wnioski",
+      title: "Pending learnings",
       description: [
         "List captured learnings that have not yet been applied, ordered by impact.",
         "USE WHEN: the user asks to review pending captured learnings or decide what",
@@ -709,7 +709,7 @@ export function registerKnowledgeTools(
 
       const widget = okList(
         payload.events,
-        "Oczekujące wnioski",
+        "Pending learnings",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "event_type", "impact", "observation", "resource_slug"]

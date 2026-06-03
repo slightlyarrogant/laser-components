@@ -34,7 +34,7 @@ export function registerApplicationsTools(
     server,
     "get_applications",
     {
-      title: "Aplikacje",
+      title: "Applications",
       description: [
         "List known industrial applications (with lead/mapping counts), optionally",
         "filtered by status.",
@@ -93,7 +93,7 @@ export function registerApplicationsTools(
 
       const widget = okList(
         rows,
-        "Aplikacje",
+        "Applications",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "name", "status", "leads", "products"]
@@ -112,7 +112,7 @@ export function registerApplicationsTools(
     server,
     "create_application",
     {
-      title: "Utwórz aplikację",
+      title: "Create application",
       description: [
         "Create a new application record.",
         "USE WHEN: the user explicitly asks to create an application. WRITE ACTION —",
@@ -162,12 +162,12 @@ export function registerApplicationsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Aplikacja utworzona",
+          title: "Application created",
           detail: `${application.name} (status: ${application.status})`,
           id: String(application.id),
-          idLabel: "ID aplikacji",
+          idLabel: "Application ID",
         },
-        `[PREZENTACJA] Aplikacja "${application.name}" (ID ${application.id}) utworzona. Potwierdź zwięźle.`
+        `[PRESENTATION] Application "${application.name}" (ID ${application.id}) created. Confirm briefly.`
       ) as any;
     }
   );
@@ -179,7 +179,7 @@ export function registerApplicationsTools(
     server,
     "get_product_applications",
     {
-      title: "Mapowania produkt↔aplikacja",
+      title: "Product↔application mappings",
       description: [
         "List product↔application mappings, filtered by product and/or application.",
         "USE WHEN: the user asks which products are mapped to an application or which",
@@ -248,7 +248,7 @@ export function registerApplicationsTools(
 
       const widget = okList(
         rows,
-        "Mapowania produkt↔aplikacja",
+        "Product↔application mappings",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["productId", "product", "applicationId", "application", "applicationStatus"]
@@ -272,7 +272,7 @@ export function registerApplicationsTools(
     server,
     "create_product_application",
     {
-      title: "Mapuj produkt → aplikacja",
+      title: "Map product → application",
       description: [
         "Map/link a product to an application.",
         "USE WHEN: the user explicitly asks to map a product to an application.",
@@ -327,12 +327,12 @@ export function registerApplicationsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Mapowanie utworzone",
-          detail: `produkt ${productName} → aplikacja ${applicationName}`,
+          title: "Mapping created",
+          detail: `product ${productName} → application ${applicationName}`,
           id: `${a.productId}→${a.applicationId}`,
-          idLabel: "Produkt → Aplikacja",
+          idLabel: "Product → Application",
         },
-        `[PREZENTACJA] Mapowanie produkt "${productName}" → aplikacja "${applicationName}" utworzone. Potwierdź zwięźle.`
+        `[PRESENTATION] Mapping product "${productName}" → application "${applicationName}" created. Confirm briefly.`
       ) as any;
     }
   );
@@ -344,7 +344,7 @@ export function registerApplicationsTools(
     server,
     "get_regions",
     {
-      title: "Regiony",
+      title: "Regions",
       description: [
         "List regions (optionally with their countries and lead counts).",
         "USE WHEN: the user needs region/country IDs or asks about geographic coverage.",
@@ -423,7 +423,7 @@ export function registerApplicationsTools(
         ? ["regionId", "region", "countryId", "country", "code", "regionLeads"]
         : ["regionId", "region", "countries", "leads"];
 
-      const widget = okList(rows, "Regiony", config.PUBLIC_BASE_URL, DATASET_THRESHOLD, keyColumns);
+      const widget = okList(rows, "Regions", config.PUBLIC_BASE_URL, DATASET_THRESHOLD, keyColumns);
       if (!("structuredContent" in widget)) {
         return ok({ success: true, data: regions, count: regions.length });
       }
@@ -438,7 +438,7 @@ export function registerApplicationsTools(
     server,
     "advanced_search",
     {
-      title: "Wyszukiwanie zaawansowane",
+      title: "Advanced search",
       description: [
         "Search a single broad term across products, leads, and applications at once.",
         "USE WHEN: the user gives one broad phrase and wants matches across multiple",
@@ -574,13 +574,13 @@ export function registerApplicationsTools(
           id: ap.id,
           name: ap.name,
           detail: ap.status ?? null,
-          context: `${ap._count?.leads ?? 0} leadów / ${ap._count?.product_applications ?? 0} prod.`,
+          context: `${ap._count?.leads ?? 0} leads / ${ap._count?.product_applications ?? 0} prod.`,
         });
       }
 
       const widget = okList(
         rows,
-        `Wyszukiwanie — "${a.query}"`,
+        `Search — "${a.query}"`,
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["type", "id", "name", "detail", "context"]

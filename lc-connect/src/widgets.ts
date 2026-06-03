@@ -6,8 +6,26 @@ import {
   registerKpiWidget,
   registerMessagesWidget,
   registerMapWidget,
+  type WidgetConfig,
 } from "@cfi/mcp-widgets";
 import { config } from "./config.js";
+
+// ---------------------------------------------------------------------------
+// LC widget config (passed to EVERY registerXxxWidget).
+//
+// We no longer vendor a hand-patched English fork; instead the OFFICIAL
+// @cfi/mcp-widgets@0.2.0 reads this config (injected as window.__CFG__ into the
+// served widget HTML) at render time:
+//   - locale 'en'  -> all library chrome is English (Search / ⬇ CSV / Total /
+//     Europe-World scope / No data / etc.), replacing what the fork baked in.
+//   - theme        -> amber accent (matches our deck) + deep-navy bars.
+// Background/surface left default (light). Our own tool titles/labels are DATA
+// and layer on top of this English chrome.
+// ---------------------------------------------------------------------------
+const WIDGET_CONFIG: WidgetConfig = {
+  locale: "en",
+  theme: { accent: "#e8a33d", barColor: "#1f3a5f" },
+};
 
 // ---------------------------------------------------------------------------
 // Shared @cfi/mcp-widgets registration for LC Connect.
@@ -32,10 +50,10 @@ export function registerSharedWidgets(server: McpServer): void {
   registered.add(server);
 
   const baseUrl = config.PUBLIC_BASE_URL;
-  registerAnalyticsWidget(server, baseUrl);
-  registerDatasetWidget(server, baseUrl);
-  registerActionWidget(server, baseUrl);
-  registerKpiWidget(server, baseUrl);
-  registerMessagesWidget(server, baseUrl);
-  registerMapWidget(server, baseUrl);
+  registerAnalyticsWidget(server, baseUrl, WIDGET_CONFIG);
+  registerDatasetWidget(server, baseUrl, WIDGET_CONFIG);
+  registerActionWidget(server, baseUrl, WIDGET_CONFIG);
+  registerKpiWidget(server, baseUrl, WIDGET_CONFIG);
+  registerMessagesWidget(server, baseUrl, WIDGET_CONFIG);
+  registerMapWidget(server, baseUrl, WIDGET_CONFIG);
 }

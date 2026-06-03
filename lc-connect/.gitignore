@@ -3,3 +3,13 @@ dist/
 .env
 server.log
 db/laser_components_full.sql
+
+# OAuth runtime state — secrets, never commit
+dynamic_clients.json
+refresh_tokens.json
+
+# Demo regenerable intermediates (rebuild via demo/*.mjs + build-deck.mjs)
+demo/envelopes/
+demo/widget-html/
+demo/presentation/_images.json
+demo/presentation/index.html

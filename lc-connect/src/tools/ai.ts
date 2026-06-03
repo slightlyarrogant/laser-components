@@ -207,11 +207,11 @@ function ok(data: unknown) {
 
 // Human-readable label per scoring factor enum value (used as the KPI tile label).
 const SCORING_FACTOR_LABELS: Record<string, string> = {
-  company_fit: "Dopasowanie firmy",
-  budget_potential: "Potencjał budżetu",
-  timeline: "Horyzont czasowy",
-  engagement: "Zaangażowanie",
-  technology_alignment: "Dopasowanie technologii",
+  company_fit: "Company fit",
+  budget_potential: "Budget potential",
+  timeline: "Timeline",
+  engagement: "Engagement",
+  technology_alignment: "Technology alignment",
 };
 
 /**
@@ -703,7 +703,7 @@ Product Description: ${product.description || "N/A"}`;
     server,
     "generate_lead_score",
     {
-      title: "Scoring leada",
+      title: "Lead scoring",
       description: [
         "AI scoring/prioritization of a known lead with reasoning and next steps.",
         "USE WHEN: the user asks to score, prioritize, or explain sales fit for a",
@@ -818,7 +818,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
         format: s.score != null ? "int" : "text",
       }));
       const overallTile: KpiItem = {
-        label: "Wynik ogólny",
+        label: "Overall score",
         value: overall != null ? overall : "—",
         format: overall != null ? "int" : "text",
         accent: true,
@@ -826,19 +826,19 @@ Also provide an overall weighted score and recommendation for next steps.`;
       };
 
       const meta: KpiMeta = {
-        title: `Scoring leada — ${lead.name}`,
+        title: `Lead scoring — ${lead.name}`,
         kpis: [overallTile, ...factorTiles],
         notes: [aiAnalysis],
       };
 
       const steer =
-        `[PREZENTACJA] Scoring leada "${lead.name}" (ID ${a.leadId}). ` +
+        `[PRESENTATION] Lead scoring "${lead.name}" (ID ${a.leadId}). ` +
         (overall != null
-          ? `Wynik ogólny: ${overall}/100. `
-          : `Wyniku ogólnego nie udało się sparsować z analizy. `) +
-        `Kafelki KPI (jeden na czynnik + ogólny) SĄ odpowiedzią — nie powtarzaj liczb w tabeli. ` +
-        `Rekomendacja: przedstaw zwięźle kluczowe wnioski i następne kroki z analizy AI poniżej.\n\n` +
-        `--- Analiza AI ---\n${aiAnalysis}`;
+          ? `Overall score: ${overall}/100. `
+          : `The overall score could not be parsed from the analysis. `) +
+        `The KPI tiles (one per factor + overall) ARE the answer — do not repeat the numbers in a table. ` +
+        `Recommendation: present the key takeaways and next steps from the AI analysis below briefly.\n\n` +
+        `--- AI analysis ---\n${aiAnalysis}`;
 
       const env = buildKpiEnvelope(meta, steer);
       // Keep the original structured payload available to the model.
@@ -864,14 +864,14 @@ Also provide an overall weighted score and recommendation for next steps.`;
     server,
     "export_data",
     {
-      title: "Eksport danych",
+      title: "Export data",
       description: [
         "Export leads, products, applications, or a database summary as CSV/JSON text.",
         "USE WHEN: the user explicitly asks to export one of these datasets. Read-only",
         "local DB operation (no AI).",
         "DO NOT USE WHEN: the user only needs an answer/analysis -> prefer",
         "generate_insights or a narrower list tool.",
-        "RETURNS: a confirmation card ('Eksport gotowy — N rekordów (format)'); the",
+        "RETURNS: a confirmation card ('Export ready — N records (format)'); the",
         "serialized export string + metadata ride in structuredContent.data",
         "({ success, dataType, format, filename, recordCount, data }).",
         "GOTCHAS: large exports can overflow chat — prefer summaries/samples; 'excel'",
@@ -1000,13 +1000,13 @@ Also provide an overall weighted score and recommendation for next steps.`;
       const env = buildActionEnvelope(
         {
           status: "success",
-          title: "Eksport gotowy",
-          detail: `${data.length} rekordów (${format})`,
+          title: "Export ready",
+          detail: `${data.length} records (${format})`,
           id: `${filename}.${format}`,
-          idLabel: "Plik",
+          idLabel: "File",
         },
-        `[PREZENTACJA] Eksport ${a.dataType} gotowy: ${data.length} rekordów w formacie ${format}. ` +
-          `Karta potwierdzenia JEST odpowiedzią — potwierdź zwięźle. Pełne dane są w structuredContent.data.`
+        `[PRESENTATION] Export of ${a.dataType} ready: ${data.length} records in ${format} format. ` +
+          `The confirmation card IS the answer — confirm briefly. The full data is in structuredContent.data.`
       );
       (env.structuredContent as Record<string, unknown>).data = {
         success: true,
@@ -1196,7 +1196,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
     server,
     "get_activity_feed",
     {
-      title: "Aktywność",
+      title: "Activity",
       description: [
         "Recent CRM activity timeline (lead creations + notes), newest first.",
         "USE WHEN: the user asks what recently changed or wants a recent activity feed.",
@@ -1292,7 +1292,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
 
       const widget = okList(
         rows,
-        "Aktywność",
+        "Activity",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["timestamp", "type", "lead", "description"]

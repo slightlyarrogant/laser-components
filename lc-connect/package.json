@@ -14,7 +14,7 @@
     "seed-knowledge": "tsx scripts/seed-knowledge.ts"
   },
   "dependencies": {
-    "@cfi/mcp-widgets": "file:vendor/cfi-mcp-widgets-0.1.4.tgz",
+    "@cfi/mcp-widgets": "file:vendor/cfi-mcp-widgets-0.2.0.tgz",
     "@hono/node-server": "^1.13.0",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.29.0",

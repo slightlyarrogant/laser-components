@@ -43,7 +43,7 @@ export function registerProductsTools(
     server,
     "get_products",
     {
-      title: "Produkty",
+      title: "Products",
       description: [
         "List/filter the product catalog with pagination, optionally by category,",
         "subcategory, application, or free-text search.",
@@ -176,7 +176,7 @@ export function registerProductsTools(
       // decides on the row count vs DATASET_THRESHOLD. The widget rows are a
       // FLAT projection (nested subcategory/category surfaced as scalar
       // columns) so the type-aware table renders cleanly; the curated key
-      // columns lead, with the full set available via the "Wszystkie" view.
+      // columns lead, with the full set available via the "All" view.
       const rows = products.map((p: any) => ({
         id: p.id,
         name: p.name,
@@ -192,7 +192,7 @@ export function registerProductsTools(
 
       const widget = okList(
         rows,
-        "Produkty",
+        "Products",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "name", "sku", "price", "subcategory", "category"]
@@ -211,7 +211,7 @@ export function registerProductsTools(
     server,
     "search_products",
     {
-      title: "Szukaj produktów",
+      title: "Search products",
       description: [
         "Fuzzy product lookup by a free-text phrase across name, description, and",
         "subcategory name.",
@@ -270,7 +270,7 @@ export function registerProductsTools(
 
       const widget = okList(
         rows,
-        `Produkty — "${query}"`,
+        `Products — "${query}"`,
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
         ["id", "name", "sku", "price", "subcategory", "category"]
@@ -289,7 +289,7 @@ export function registerProductsTools(
     server,
     "create_product",
     {
-      title: "Utwórz produkt",
+      title: "Create product",
       description: [
         "Create a product catalog record.",
         "USE WHEN: the user explicitly asks to create a product. WRITE ACTION —",
@@ -353,12 +353,12 @@ export function registerProductsTools(
         return buildActionEnvelope(
           {
             status: "success",
-            title: "Produkt utworzony",
+            title: "Product created",
             detail: `${newProduct.name}${ctx ? ` (${ctx})` : ""}`,
             id: String(newProduct.id),
-            idLabel: "ID produktu",
+            idLabel: "Product ID",
           },
-          `[PREZENTACJA] Produkt "${newProduct.name}" (ID ${newProduct.id}) utworzony. Potwierdź zwięźle.`
+          `[PRESENTATION] Product "${newProduct.name}" (ID ${newProduct.id}) created. Confirm briefly.`
         ) as any;
       } catch (error: any) {
         if (error.code === "P2002") {
@@ -378,7 +378,7 @@ export function registerProductsTools(
     server,
     "delete_product",
     {
-      title: "Usuń produkt",
+      title: "Delete product",
       description: [
         "Permanently delete a product record by ID.",
         "USE WHEN: the user explicitly asks to delete a product by ID. DESTRUCTIVE —",
@@ -426,12 +426,12 @@ export function registerProductsTools(
       return buildActionEnvelope(
         {
           status: "success",
-          title: "Usunięto produkt",
+          title: "Product deleted",
           detail: product.name,
           id: String(a.id),
-          idLabel: "ID produktu",
+          idLabel: "Product ID",
         },
-        `[PREZENTACJA] Produkt "${product.name}" (ID ${a.id}) usunięty. Potwierdź zwięźle.`
+        `[PRESENTATION] Product "${product.name}" (ID ${a.id}) deleted. Confirm briefly.`
       ) as any;
     }
   );
@@ -443,7 +443,7 @@ export function registerProductsTools(
     server,
     "get_categories",
     {
-      title: "Kategorie",
+      title: "Categories",
       description: [
         "List product categories (and optionally their subcategories with product counts).",
         "USE WHEN: the user needs category/subcategory IDs or wants to understand the",
@@ -526,7 +526,7 @@ export function registerProductsTools(
         ? ["categoryId", "category", "subcategoryId", "subcategory", "productCount"]
         : ["categoryId", "category", "subcategoryCount"];
 
-      const widget = okList(rows, "Kategorie", config.PUBLIC_BASE_URL, DATASET_THRESHOLD, keyColumns);
+      const widget = okList(rows, "Categories", config.PUBLIC_BASE_URL, DATASET_THRESHOLD, keyColumns);
       if (!("structuredContent" in widget)) {
         return ok({ success: true, data: categories, count: categories.length });
       }

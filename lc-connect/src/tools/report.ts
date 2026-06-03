@@ -44,7 +44,7 @@ export function registerReportTools(
     server,
     "report_issue",
     {
-      title: "Zgłoś problem",
+      title: "Report an issue",
       description: [
         "Send a bug / data problem / connector issue report about LC Connect itself",
         "to the administrator via WhatsApp.",
@@ -121,12 +121,12 @@ export function registerReportTools(
         return buildActionEnvelope(
           {
             status: "success",
-            title: "Zgłoszenie wysłane",
+            title: "Issue sent",
             detail: `${title} — ${severity.toUpperCase()} / ${category}`,
             id: timestamp,
-            idLabel: "Czas",
+            idLabel: "Time",
           },
-          `[PREZENTACJA] Zgłoszenie "${title}" wysłane do administratora. Potwierdź zwięźle.`
+          `[PRESENTATION] Issue "${title}" sent to the administrator. Confirm briefly.`
         ) as any;
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
@@ -135,10 +135,10 @@ export function registerReportTools(
         return buildActionEnvelope(
           {
             status: "warning",
-            title: "Zgłoszenie zapisane, dostarczenie nieudane",
-            detail: `Powiadomienie WhatsApp nie dotarło: ${errorMsg}`,
+            title: "Issue recorded, delivery failed",
+            detail: `WhatsApp notification did not get through: ${errorMsg}`,
           },
-          `[PREZENTACJA] Zgłoszenie zapisane, ale powiadomienie WhatsApp nie dotarło. Poinformuj o tym użytkownika.`
+          `[PRESENTATION] Issue recorded, but the WhatsApp notification did not get through. Inform the user of this.`
         ) as any;
       }
     }

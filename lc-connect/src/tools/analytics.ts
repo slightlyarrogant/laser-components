@@ -40,7 +40,7 @@ export function registerAnalyticsTools(
     server,
     "leads_analytics",
     {
-      title: "Leady wg sektora",
+      title: "Leads by sector",
       description: [
         "Read-only analytics dashboard: sales leads grouped by industry sector,",
         "rendered as an INTERACTIVE inline widget (sortable/searchable table + a",
@@ -61,9 +61,9 @@ export function registerAnalyticsTools(
           .int()
           .positive()
           .optional()
-          .default(25)
+          .default(12)
           .describe(
-            "Maximum number of sector rows to show in the table (default 25, sorted by lead count desc)."
+            "Maximum number of industry rows/bars to show (default 12, sorted by lead count desc)."
           ),
       },
       annotations: {
@@ -81,7 +81,8 @@ export function registerAnalyticsTools(
     async (args: { topN?: number }) => {
       void getTenantSub();
 
-      const topN = args.topN ?? 25;
+      // Cap labels/rows to a sensible top N (default 12 for the bar breakdown).
+      const topN = args.topN ?? 12;
 
       // --- Aggregations (all via Prisma) -----------------------------------
       const [
@@ -123,45 +124,68 @@ export function registerAnalyticsTools(
       const sectorRows = bySector
         .map((r) => ({
           Nazwa:
-            (r.industry ?? "").trim() === "" ? "Nieznany" : (r.industry as string),
+            (r.industry ?? "").trim() === "" ? "Unknown" : (r.industry as string),
           Leady: r._count._all,
         }))
         .sort((a, b) => b.Leady - a.Leady);
       const cappedRows = sectorRows.slice(0, topN);
 
-      const view: AnalyticsView = {
-        id: "sektory",
-        label: "Sektory",
+      // Shared column spec for both views (frozen first column "Nazwa").
+      const tableCols = [
+        { key: "Nazwa", label: "Sector", fmt: "text" as const },
+        {
+          key: "Leady",
+          label: "Leads",
+          fmt: "int" as const,
+          total: totalLeads,
+        },
+      ];
+
+      // View 1 — bar breakdown "By industry". chart.fmt:'int' so the bar value
+      // labels render as plain integers (lead COUNTS), not currency. Same capped
+      // rows + tableCols ride along so the bar view also has its underlying data.
+      const barView: AnalyticsView = {
+        id: "industry",
+        label: "By industry",
+        kind: "bar",
+        rows: cappedRows,
+        chart: {
+          labels: cappedRows.map((r) => r.Nazwa),
+          values: cappedRows.map((r) => r.Leady),
+          fmt: "int",
+        },
+        tableCols,
+      };
+
+      // View 2 — the sortable/searchable table.
+      const tableView: AnalyticsView = {
+        id: "table",
+        label: "Table",
         kind: "table",
         rows: cappedRows,
-        tableCols: [
-          { key: "Nazwa", label: "Sektor", fmt: "text" },
-          { key: "Leady", label: "Leady", fmt: "int", total: totalLeads },
-        ],
+        tableCols,
       };
 
       const meta: AnalyticsMeta = {
-        title: "Leady wg sektora",
+        title: "Leads by sector",
         kpiStrip: [
-          { label: "Leady (suma)", value: totalLeads, kind: "int" },
-          { label: "Aktywne", value: activeLeads, kind: "int" },
-          { label: "Konwersja %", value: conversionPct, kind: "int" },
-          { label: "Pokrycie prod. %", value: coveragePct, kind: "int" },
+          { label: "Leads (total)", value: totalLeads, kind: "int" },
+          { label: "Active", value: activeLeads, kind: "int" },
+          { label: "Conversion %", value: conversionPct, kind: "int" },
+          { label: "Product coverage %", value: coveragePct, kind: "int" },
         ],
-        tableCols: [
-          { key: "Nazwa", label: "Sektor", fmt: "text" },
-          { key: "Leady", label: "Leady", fmt: "int", total: totalLeads },
-        ],
-        views: [view],
-        csvStem: "leady-wg-sektora",
-        counts: { sektory: sectorRows.length },
+        tableCols,
+        views: [barView, tableView],
+        csvStem: "leads-by-sector",
+        counts: { industry: sectorRows.length, table: sectorRows.length },
       };
 
       const steer =
-        `[PREZENTACJA] Leady wg sektora: ${totalLeads} leadów łącznie, ${activeLeads} aktywnych, ` +
-        `konwersja ${conversionPct}%, pokrycie produktowe ${coveragePct}%. ` +
-        `Widget JEST odpowiedzią — NIE wypisuj wierszy w tekście, nie twórz tabel ani list. ` +
-        `Podsumuj tylko nagłówkowe KPI; szczegóły sektorów są w widgecie.`;
+        `[PRESENTATION] Leads by sector: ${totalLeads} leads in total, ${activeLeads} active, ` +
+        `conversion ${conversionPct}%, product coverage ${coveragePct}%. ` +
+        `The widget shows a "By industry" bar breakdown (lead counts per industry) plus a sortable "Table" view, ` +
+        `with the KPI strip on top. The widget IS the answer — do NOT list rows in text, do not build tables or lists. ` +
+        `Summarize only the headline KPIs; the per-sector detail is in the widget.`;
 
       // Cast to `any`: the ext-apps ToolCallback return type expects an index
       // signature that WidgetEnvelope omits — Vendo's analytics tools cast the
@@ -185,7 +209,7 @@ export function registerAnalyticsTools(
     server,
     "leads_by_country",
     {
-      title: "Leady wg kraju",
+      title: "Leads by country",
       description: [
         "Read-only choropleth MAP of sales leads counted per country, rendered as",
         "an INTERACTIVE inline widget (a coloured world/Europe map with a legend,",
@@ -264,9 +288,9 @@ export function registerAnalyticsTools(
       const codedCountries = Object.keys(values).length;
 
       const meta: MapMeta = {
-        title: "Leady wg kraju",
+        title: "Leads by country",
         scope,
-        unit: "leady",
+        unit: "leads",
         values,
         names,
         palette: "blues",
@@ -274,13 +298,13 @@ export function registerAnalyticsTools(
 
       const note =
         uncoded > 0
-          ? ` ${uncoded} z ${totalLeads} leadów bez przypisanego kraju — nieujęte na mapie.`
+          ? ` ${uncoded} of ${totalLeads} leads have no assigned country — not shown on the map.`
           : "";
       const steer =
-        `[PREZENTACJA] Mapa leadów wg kraju (zakres: ${scope === "europe" ? "Europa" : "Świat"}) ` +
-        `jest w widgecie: ${codedLeads} leadów w ${codedCountries} krajach. ` +
-        `Widget JEST odpowiedzią — NIE wypisuj listy krajów w tekście. ` +
-        `Skomentuj najwyżej 1-2 zdaniami największe kraje i liczbę leadów bez kraju.${note}`;
+        `[PRESENTATION] Map of leads by country (scope: ${scope === "europe" ? "Europe" : "World"}) ` +
+        `is in the widget: ${codedLeads} leads across ${codedCountries} countries. ` +
+        `The widget IS the answer — do NOT list countries in text. ` +
+        `Comment in at most 1-2 sentences on the largest countries and the number of leads without a country.${note}`;
 
       // Cast to `any`: ext-apps ToolCallback expects an index signature that
       // WidgetEnvelope omits; the runtime shape is exact. Mirrors leads_analytics.
