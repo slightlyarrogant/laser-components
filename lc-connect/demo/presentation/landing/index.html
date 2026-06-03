@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>LC Connect — Laser Components in plain English</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0c1a2b; --bg2:#081320; --surface:#13273e; --surface2:#102132;
+    --border:#24405f; --border-soft:#1c344e;
+    --accent:#e8a33d; --accent-soft:#f2c177; --navy:#1f3a5f;
+    --text:#f5f1e6; --muted:#9fb4cb; --faint:#6c829c;
+    --serif: Georgia,'Times New Roman','Noto Serif',serif;
+    --sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+    --mono:'SF Mono','JetBrains Mono','Fira Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);color:var(--text);background:var(--bg2);line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .accent{color:var(--accent)}
+  .serif{font-family:var(--serif)}
+  .eyebrow{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:9px}
+  .eyebrow .dot{width:9px;height:9px;border-radius:9px;background:var(--accent)}
+  .beam{position:absolute;height:3px;background:linear-gradient(90deg,transparent,rgba(232,163,61,.28),transparent);pointer-events:none}
+  .btn{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#1a1205;font-weight:700;font-size:16px;padding:14px 26px;border-radius:999px;transition:.15s;border:1px solid var(--accent)}
+  .btn:hover{background:var(--accent-soft);transform:translateY(-1px)}
+  .btn.ghost{background:transparent;color:var(--text);border-color:var(--border)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent-soft);background:rgba(232,163,61,.06)}
+
+  /* top bar */
+  .nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(8,19,32,.72);border-bottom:1px solid var(--border-soft)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{font-family:var(--serif);font-weight:700;font-size:22px;letter-spacing:-.4px;display:flex;align-items:baseline;gap:8px}
+  .nav .links{display:flex;gap:26px;font-size:14px;color:var(--muted)}
+  .nav .links a:hover{color:var(--text)}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;background:radial-gradient(1100px 620px at 74% 10%, var(--surface) 0%, var(--bg) 46%, var(--bg2) 100%);padding:96px 0 84px}
+  .hero .beam.a{top:60px;left:-160px;width:1000px;transform:rotate(7deg)}
+  .hero .beam.b{bottom:30px;right:-120px;width:760px;transform:rotate(7deg);opacity:.6}
+  .hero h1{font-family:var(--serif);font-size:clamp(40px,6vw,72px);line-height:1.04;letter-spacing:-1px;margin:18px 0 0}
+  .rule{height:3px;width:130px;margin:26px 0 0;border-radius:3px;background:linear-gradient(90deg,var(--accent) 20%,var(--accent-soft));box-shadow:0 0 18px rgba(232,163,61,.5)}
+  .hero .lead{margin-top:26px;font-size:clamp(18px,2.2vw,23px);color:var(--muted);max-width:760px}
+  .hero .lead b{color:var(--text)}
+  .hero .cta{margin-top:38px;display:flex;gap:16px;flex-wrap:wrap}
+  .stage-tag{margin-top:54px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--faint)}
+
+  section{padding:78px 0}
+  .sec-head .eyebrow{margin-bottom:14px}
+  .sec-head h2{font-family:var(--serif);font-size:clamp(30px,4vw,46px);line-height:1.1;letter-spacing:-.5px}
+  .sec-head p{margin-top:14px;color:var(--muted);font-size:18px;max-width:720px}
+
+  /* idea grid */
+  .grid4{margin-top:46px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .vcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px}
+  .vcard .ico{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .vcard h3{font-size:20px;margin:12px 0 8px}
+  .vcard p{color:var(--muted);font-size:15px}
+
+  /* video */
+  .video-sec{background:linear-gradient(180deg,var(--bg2),var(--bg) 60%,var(--bg2))}
+  .player{margin-top:40px;border-radius:18px;overflow:hidden;border:1px solid var(--border);box-shadow:0 40px 100px rgba(0,0,0,.55);background:#000}
+  .player video{width:100%;display:block}
+  .chips{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .chip{font-size:13px;color:var(--accent-soft);background:rgba(232,163,61,.1);border:1px solid rgba(232,163,61,.32);border-radius:999px;padding:6px 14px}
+
+  /* capabilities */
+  .caps{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:center;margin-top:46px}
+  .caps.flip{grid-template-columns:1fr 1.05fr}
+  .shot{border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:0 24px 60px rgba(0,0,0,.45);background:var(--surface)}
+  .shot .bar{height:34px;background:#0f2138;display:flex;align-items:center;gap:7px;padding:0 14px;border-bottom:1px solid var(--border)}
+  .shot .bar i{width:11px;height:11px;border-radius:11px;display:inline-block}
+  .shot img{width:100%;display:block}
+  .caps h3{font-family:var(--serif);font-size:30px;line-height:1.12}
+  .caps p{margin-top:14px;color:var(--muted);font-size:17px}
+  .caps ul{margin-top:18px;list-style:none;display:flex;flex-direction:column;gap:10px}
+  .caps li{display:flex;gap:12px;color:var(--text);font-size:16px}
+  .caps li .m{color:var(--accent)}
+
+  /* install / credentials */
+  .install{background:radial-gradient(900px 520px at 24% 0%, var(--surface) 0%, var(--bg) 50%, var(--bg2) 100%)}
+  .steps{margin-top:44px;display:grid;grid-template-columns:1.15fr 1fr;gap:34px;align-items:start}
+  .stepcol .step{display:flex;gap:16px;padding:18px 0;border-top:1px solid var(--border-soft)}
+  .stepcol .step:first-child{border-top:0}
+  .stepcol .n{font-family:var(--serif);font-size:24px;color:var(--accent);min-width:34px}
+  .stepcol .step h4{font-size:18px}
+  .stepcol .step p{color:var(--muted);font-size:15px;margin-top:4px}
+  .cred{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:30px;box-shadow:0 24px 60px rgba(0,0,0,.4)}
+  .cred .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .cred .ch .t{font-family:var(--serif);font-size:22px}
+  .cred .ch .pill{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--accent-soft);background:rgba(232,163,61,.12);border:1px solid rgba(232,163,61,.4);border-radius:999px;padding:5px 12px}
+  .field{background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:12px;padding:13px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .field .k{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .field .v{font-family:var(--mono);font-size:16px;color:var(--text);word-break:break-all}
+  .copy{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.15s;white-space:nowrap}
+  .copy:hover{border-color:var(--accent);color:var(--accent)}
+  .copy.done{border-color:#2ea043;color:#5fd07b}
+  .note{margin-top:18px;padding:14px 18px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:14px;line-height:1.5}
+  .note b{color:var(--text)}
+
+  /* footer */
+  footer{padding:64px 0 50px;border-top:1px solid var(--border-soft);background:var(--bg2)}
+  .foot-grid{display:flex;justify-content:space-between;align-items:flex-start;gap:30px;flex-wrap:wrap}
+  footer h3{font-family:var(--serif);font-size:30px;max-width:520px;line-height:1.12}
+  footer .sub{color:var(--muted);margin-top:12px;max-width:520px}
+  footer .meta{font-size:13px;color:var(--faint);text-transform:uppercase;letter-spacing:2px;text-align:right}
+  .platforms{margin-top:22px;display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+  .platforms span{display:flex;align-items:center;gap:8px}
+  .platforms .pd{width:8px;height:8px;border-radius:8px;background:var(--accent)}
+
+  @media(max-width:880px){
+    .grid4{grid-template-columns:repeat(2,1fr)}
+    .caps,.caps.flip,.steps{grid-template-columns:1fr}
+    .caps.flip .shot{order:-1}
+    .nav .links{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="nav"><div class="wrap">
+  <div class="brand"><span class="accent">LC</span><span>Connect</span></div>
+  <div class="links">
+    <a href="#idea">The idea</a><a href="#demo">Demo</a><a href="#capabilities">Capabilities</a><a href="#install">Get started</a>
+  </div>
+  <a class="btn" href="#demo" style="font-size:14px;padding:10px 20px">Watch the demo</a>
+</div></div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="beam a"></div><div class="beam b"></div>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Laser Components · AI Connector · Discovery</span>
+    <h1>Your laser-components lead database,<br><span class="accent">answered in plain English.</span></h1>
+    <div class="rule"></div>
+    <p class="lead">LC Connect turns your live lead data into something you can simply <b>talk to</b> — inside ChatGPT or Claude. Find leads, enrich them, and explore the pipeline in seconds. No dashboards to learn, no exports to wrangle.</p>
+    <div class="cta">
+      <a class="btn" href="#demo">▶ Watch the 2-minute demo</a>
+      <a class="btn ghost" href="#install">Get the demo access →</a>
+    </div>
+    <div class="stage-tag">Discovery phase · prepared for evaluation</div>
+  </div>
+</header>
+
+<!-- THE IDEA -->
+<section id="idea">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="dot"></span>01 · The idea</span>
+      <h2>Ask your lead database like you'd ask a colleague.</h2>
+      <p>Every answer is real, structured data drawn live from your records — returned as interactive cards, not walls of text.</p>
+    </div>
+    <div class="grid4">
+      <div class="vcard"><div class="ico">Plain English in</div><h3>Natural questions</h3><p>"Which sectors have the most leads?" "Show me the companies in defense electronics." No query language.</p></div>
+      <div class="vcard"><div class="ico">Live data out</div><h3>Always your real data</h3><p>Backed by live records — never stale snapshots or guesses. If it isn't in the data, it says so.</p></div>
+      <div class="vcard"><div class="ico">Rich, not raw</div><h3>Interactive cards</h3><p>Sortable tables, maps, KPI tiles and charts you can act on directly — structured, copyable, exportable.</p></div>
+      <div class="vcard"><div class="ico">Where you work</div><h3>ChatGPT &amp; Claude</h3><p>Plugs into the assistants your team already uses. Nothing new to install or open.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO VIDEO -->
+<section id="demo" class="video-sec">
+  <div class="wrap" style="text-align:center">
+    <div class="sec-head" style="display:inline-block;text-align:left">
+      <span class="eyebrow"><span class="dot"></span>02 · See it in action</span>
+      <h2>From a question to a connected app — in one short film.</h2>
+    </div>
+    <div class="player">
+      <video controls preload="metadata" poster="/demo/assets/poster.jpg">
+        <source src="/demo/film.mp4" type="video/mp4">
+        Your browser doesn't support embedded video — <a href="/demo/film.mp4">download the film</a>.
+      </video>
+    </div>
+    <div class="chips">
+      <span class="chip">Leads by industry</span><span class="chip">Drill into a sector</span>
+      <span class="chip">Company context</span><span class="chip">European map</span><span class="chip">2-minute install</span>
+    </div>
+  </div>
+</section>
+
+<!-- CAPABILITIES -->
+<section id="capabilities">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="dot"></span>03 · What you can do</span>
+      <h2>The whole pipeline, on tap.</h2>
+    </div>
+    <div class="caps">
+      <div class="shot"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><img src="/demo/assets/analytics.png" alt="Leads by sector dashboard"></div>
+      <div>
+        <h3>See demand by sector at a glance</h3>
+        <p>Ask for a breakdown and get a live, interactive dashboard — leads split by industry, with headline KPIs on top.</p>
+        <ul><li><span class="m">›</span> Sortable, searchable table in place</li><li><span class="m">›</span> Total, active, conversion, coverage</li><li><span class="m">›</span> One-click CSV for your own reporting</li></ul>
+      </div>
+    </div>
+    <div class="caps flip" style="margin-top:64px">
+      <div>
+        <h3>Drill into a sector, then a company</h3>
+        <p>"Show me the companies in defense electronics" returns the actual leads — structured rows you can open, sort and export.</p>
+        <ul><li><span class="m">›</span> Filter by industry, country or status</li><li><span class="m">›</span> Real records, not a generated table</li><li><span class="m">›</span> Full context on any single lead</li></ul>
+      </div>
+      <div class="shot"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><img src="/demo/assets/dataset.png" alt="Lead list"></div>
+    </div>
+    <div class="caps" style="margin-top:64px">
+      <div class="shot"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><img src="/demo/assets/map.png" alt="Leads by country map"></div>
+      <div>
+        <h3>See where your leads are</h3>
+        <p>Every lead placed on the map, so concentration jumps out without reading a single row — toggle Europe and World.</p>
+        <ul><li><span class="m">›</span> Live choropleth by country</li><li><span class="m">›</span> Spot clusters instantly</li><li><span class="m">›</span> Zoom and explore freely</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL / CREDENTIALS -->
+<section id="install" class="install">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="dot"></span>04 · Get started</span>
+      <h2>Connect the demo in two minutes.</h2>
+      <p>The video walks through it end to end. Here are the exact details — you enter the sign-in once, on the connector's screen, the first time you connect.</p>
+    </div>
+    <div class="steps">
+      <div class="stepcol">
+        <div class="step"><div class="n">1</div><div><h4>Turn on Developer mode</h4><p>Profile (bottom-left) → Settings → Apps → Advanced settings → switch Developer mode on.</p></div></div>
+        <div class="step"><div class="n">2</div><div><h4>Create the app</h4><p>Click Create app, then paste the name and connector address from the card.</p></div></div>
+        <div class="step"><div class="n">3</div><div><h4>Sign in once</h4><p>Click Create — the sign-in screen opens. Enter the demo email and password. You're connected.</p></div></div>
+      </div>
+      <div class="cred">
+        <div class="ch"><span class="t">Demo access</span><span class="pill">Sample data</span></div>
+        <div class="field"><div><div class="k">App name</div><div class="v" id="v-name">LC Connect</div></div><button class="copy" data-c="v-name">Copy</button></div>
+        <div class="field"><div><div class="k">MCP Server URL</div><div class="v" id="v-url">https://lasercomponents.ngrok.app/mcp</div></div><button class="copy" data-c="v-url">Copy</button></div>
+        <div class="field"><div><div class="k">Email</div><div class="v" id="v-email">test@lasercomponents.local</div></div><button class="copy" data-c="v-email">Copy</button></div>
+        <div class="field"><div><div class="k">Password</div><div class="v" id="v-pass">Test1234!</div></div><button class="copy" data-c="v-pass">Copy</button></div>
+        <div class="note"><b>One-time</b> — these sign-in details are only entered when first connecting the app.</div>
+        <div class="note" style="margin-top:10px"><b>On an organisation ChatGPT plan?</b> The connector is provided by your company — ask your IT department to enable it. The steps above are for an individual plan.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <h3>Lead discovery &amp; enrichment, in plain English.</h3>
+      <p class="sub">LC Connect is where leads are found and enriched. Once a lead is qualified, it flows into Salesforce for the sales process.</p>
+      <div class="platforms">
+        <span><span class="pd"></span>Open Model Context Protocol</span>
+        <span><span class="pd"></span>Works in ChatGPT</span>
+        <span><span class="pd"></span>Works in Claude</span>
+      </div>
+    </div>
+    <div class="meta">
+      LC Connect<br>Laser Components<br>Discovery · {YEAR}
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function(b){
+    b.addEventListener('click',function(){
+      var el=document.getElementById(b.dataset.c);
+      var t=el?el.textContent:'';
+      navigator.clipboard&&navigator.clipboard.writeText(t).then(function(){
+        var o=b.textContent;b.textContent='Copied';b.classList.add('done');
+        setTimeout(function(){b.textContent=o;b.classList.remove('done')},1400);
+      }).catch(function(){});
+    });
+  });
+  document.body.innerHTML=document.body.innerHTML.replace('{YEAR}', new Date().getFullYear());
+</script>
+</body>
+</html>

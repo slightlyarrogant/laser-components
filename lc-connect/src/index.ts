@@ -1,6 +1,10 @@
 import "node:process";
+import { createReadStream, statSync } from "node:fs";
+import { Readable } from "node:stream";
+import { fileURLToPath } from "node:url";
+import { dirname, join, normalize, extname } from "node:path";
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
@@ -227,6 +231,83 @@ app.get("/datasets/:name{[a-zA-Z0-9_-]+\\.csv}", (c) => {
   if (!res) return c.text("Dataset not found or expired", 404);
   return res;
 });
+
+// ---------------------------------------------------------------------------
+// Customer landing page — the discovery-phase presentation (video + install
+// credentials), served from the SAME origin as the connector at /demo so it
+// shares the existing tunnel. Static files only; no bearer auth. Range support
+// so the embedded film streams/seeks. Distinct paths — does not touch /mcp.
+// ---------------------------------------------------------------------------
+
+const LANDING_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "demo",
+  "presentation",
+  "landing"
+);
+const LANDING_MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".mp4": "video/mp4",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+};
+
+function serveLanding(c: Context) {
+  const sub = c.req.path.replace(/^\/demo\/?/, "") || "index.html";
+  const full = normalize(join(LANDING_DIR, sub));
+  if (full !== LANDING_DIR && !full.startsWith(LANDING_DIR + "/")) {
+    return c.text("forbidden", 403);
+  }
+  let size: number;
+  try {
+    const st = statSync(full);
+    if (!st.isFile()) return c.text("not found", 404);
+    size = st.size;
+  } catch {
+    return c.text("not found", 404);
+  }
+  const type = LANDING_MIME[extname(full).toLowerCase()] ?? "application/octet-stream";
+  const range = c.req.header("range");
+  if (range) {
+    const m = /bytes=(\d*)-(\d*)/.exec(range);
+    let start = m && m[1] ? parseInt(m[1], 10) : 0;
+    let end = m && m[2] ? parseInt(m[2], 10) : size - 1;
+    if (Number.isNaN(start) || start < 0) start = 0;
+    if (Number.isNaN(end) || end >= size) end = size - 1;
+    if (start > end) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+    }
+    const body = Readable.toWeb(createReadStream(full, { start, end })) as ReadableStream;
+    return new Response(body, {
+      status: 206,
+      headers: {
+        "Content-Type": type,
+        "Content-Range": `bytes ${start}-${end}/${size}`,
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(end - start + 1),
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
+  const body = Readable.toWeb(createReadStream(full)) as ReadableStream;
+  return new Response(body, {
+    headers: {
+      "Content-Type": type,
+      "Content-Length": String(size),
+      "Accept-Ranges": "bytes",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}
+
+app.get("/demo", serveLanding);
+app.get("/demo/*", serveLanding);
 
 // ---------------------------------------------------------------------------
 // MCP endpoint — stateless, one fresh transport + server per request.
