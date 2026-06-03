@@ -15,6 +15,7 @@ import { registerReportTools } from "./report.js";
 import { registerAiTools } from "./ai.js";
 import { registerKnowledgeTools } from "./knowledge.js";
 import { registerAnalyticsTools } from "./analytics.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
  * registerAllTools — registers the LC Connect tool set on a fresh McpServer.
@@ -96,6 +97,7 @@ export function registerAllTools(
         "RETURNS: a KPI card (interactive tiles for products / applications / leads /",
         "mappings) — the card IS the answer; the model also receives the same integer",
         "counts in structuredContent. Present them briefly.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {},
       annotations: {

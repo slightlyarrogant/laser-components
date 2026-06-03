@@ -12,6 +12,7 @@ import {
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
  * AI / market-intelligence domain.
@@ -867,6 +868,9 @@ Also provide an overall weighted score and recommendation for next steps.`;
       title: "Export data",
       description: [
         "Export leads, products, applications, or a database summary as CSV/JSON text.",
+        "USE ONLY WHEN the user explicitly asks to EXPORT, DOWNLOAD, or get a CSV/file of",
+        "data. Do NOT use this to browse, search, or display leads — for that use",
+        "search_leads (it renders a widget).",
         "USE WHEN: the user explicitly asks to export one of these datasets. Read-only",
         "local DB operation (no AI).",
         "DO NOT USE WHEN: the user only needs an answer/analysis -> prefer",
@@ -1208,6 +1212,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
         "(sortable/searchable table + CSV export). The card IS the answer.",
         "GOTCHAS: dateFrom/dateTo are ISO dates; the feed mixes lead-created and",
         "note-added events split evenly up to `limit`.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z.number().optional().default(50).describe("Maximum number of activities to return. Defaults to 50."),

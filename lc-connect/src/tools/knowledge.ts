@@ -6,6 +6,7 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
 // inline JSON (mirrors the threshold used by get_products/get_leads).
@@ -335,6 +336,7 @@ export function registerKnowledgeTools(
         "export). The card IS the answer — do not re-list rows.",
         "GOTCHAS: active_only defaults to true; pass false to include archived",
         "resources.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         category: z

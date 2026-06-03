@@ -12,6 +12,7 @@ import {
   type MapScope,
 } from "@cfi/mcp-widgets";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
  * Analytics card — `leads_analytics`.
@@ -54,6 +55,7 @@ export function registerAnalyticsTools(
         "RETURNS: an interactive widget (the widget IS the answer). The model only",
         "sees slim totals + counts — present them briefly and do NOT enumerate rows.",
         "Read-only — no confirmation needed.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         topN: z
@@ -224,6 +226,7 @@ export function registerAnalyticsTools(
         "slim summary (total leads, how many countries carry data, top countries,",
         "and how many leads have no country). Do NOT enumerate every country in",
         "prose — point at the map. Read-only — no confirmation needed.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         scope: z

@@ -5,6 +5,7 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
 // inline JSON (mirrors the threshold used by get_products/get_leads).
@@ -45,6 +46,7 @@ export function registerApplicationsTools(
         "(> threshold) as an interactive DATASET widget (sortable/searchable table + CSV",
         "export). The card IS the answer — do not re-list rows.",
         "GOTCHAS: status must be exactly 'ACTIVE' or 'INACTIVE'.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z.number().optional().default(10).describe("Maximum number of applications to return."),
@@ -190,6 +192,7 @@ export function registerApplicationsTools(
         "result (> threshold) as an interactive DATASET widget (sortable/searchable table",
         "+ CSV export). The card IS the answer — do not re-list rows.",
         "GOTCHAS: resolve productId/applicationId first with search_products/get_applications.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         productId: z.number().optional().describe("Filter by product ID."),
@@ -354,6 +357,7 @@ export function registerApplicationsTools(
         "(> threshold rows) as an interactive DATASET widget (one row per country with",
         "its region + region lead count, or per region when countries are excluded). The",
         "card IS the answer — do not re-list rows.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z.number().optional().default(20).describe("Maximum number of regions to return."),
@@ -450,6 +454,7 @@ export function registerApplicationsTools(
         "the table by type). The card IS the answer. A tiny combined result (<= threshold",
         "rows) is returned inline as { success, query, types, results{...}, counts }.",
         "GOTCHAS: pass `types` to narrow the search; defaults to all three.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         query: z.string().describe("Broad search term to match across the selected entity types."),

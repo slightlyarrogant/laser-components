@@ -12,6 +12,7 @@ import {
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
 const DATASET_THRESHOLD = 10;
@@ -48,6 +49,9 @@ export function registerLeadsTools(
       title: "Leads",
       description: [
         "List/filter sales leads (with product/application/region/country context).",
+        "Returns raw lead records as data (no widget). For any user-facing 'show/list/",
+        "find leads' request, use search_leads instead, which renders the interactive",
+        "list widget.",
         "USE WHEN: the user asks to list, review, filter, or inspect leads by status,",
         "product, or application.",
         "DO NOT USE WHEN: the user has a company/person/tag phrase -> use search_leads;",
@@ -58,6 +62,7 @@ export function registerLeadsTools(
         "GOTCHAS: resolve productId/applicationId with search_products/get_applications",
         "first; status must be one of NEW/CONTACTED/QUALIFIED/LOST/WON. Summarize large",
         "result sets analytically.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z.number().optional().default(10).describe("Maximum number of leads to return."),
@@ -403,6 +408,12 @@ export function registerLeadsTools(
       title: "Search leads",
       description: [
         "Fuzzy lead lookup by a company/person phrase and/or required tags.",
+        "USE WHEN: the user wants to SEE, LIST, FIND, or BROWSE leads/companies in a",
+        "sector/industry/country or by any filter — this is the primary tool for showing",
+        "a set of leads.",
+        "PREFER THIS over get_leads for any human-facing request: get_leads returns raw",
+        "records with no widget; search_leads renders the interactive table the user",
+        "actually sees.",
         "USE WHEN: the user gives a company/person/tag phrase and wants matching lead",
         "records or IDs.",
         "DO NOT USE WHEN: the user wants all leads with structured filters -> use",
@@ -411,6 +422,7 @@ export function registerLeadsTools(
         "LARGE result (> threshold) as an interactive DATASET widget (sortable/searchable",
         "table + CSV export). The card IS the answer — do not re-list rows.",
         "GOTCHAS: tags use hasEvery (a lead must carry ALL provided tags).",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         query: z

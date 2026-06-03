@@ -5,6 +5,7 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
  * Product catalog domain tools (CRUD, search, taxonomy, data-quality).
@@ -58,6 +59,7 @@ export function registerProductsTools(
         "GOTCHAS: categoryId/subcategoryId/applicationId must be resolved first (get_categories,",
         "get_applications) — never guess IDs. Summarize large result sets with counts and top",
         "items rather than dumping every row.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z
@@ -224,6 +226,7 @@ export function registerProductsTools(
         "table + CSV export). The card IS the answer — do not re-list rows.",
         "GOTCHAS: use the returned product IDs before calling create_lead or",
         "create_product_application; never guess IDs.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         query: z
@@ -454,6 +457,7 @@ export function registerProductsTools(
         "with its product count, or per category when subcategories are excluded). The",
         "card IS the answer — do not re-list rows.",
         "GOTCHAS: call this before create_product, which requires a subcategoryId.",
+        PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
         limit: z.number().optional().default(20).describe("Maximum number of categories to return."),
