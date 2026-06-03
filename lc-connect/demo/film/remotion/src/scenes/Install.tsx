@@ -5,12 +5,12 @@ import { BrowserFrame } from "../components/BrowserFrame";
 import { Caption } from "../components/Caption";
 import { Chrome } from "../components/Brand";
 
-// Cues synced to install.mp4 (15s @30fps = 450f): settings → apps → create app
-// → fill the form → Create.
+// Cues synced to install.mp4 (25s @30fps = 750f): profile → Settings → Apps →
+// Advanced settings → Developer mode → Create app → form → Create → OAuth sign-in.
 const CUES = [
-  { from: 4, dur: 70, audio: "audio/06_inst_a.mp3", kicker: "Two minutes", text: "Installing it is quick." },
-  { from: 78, dur: 142, audio: "audio/07_inst_b.mp3", kicker: "In ChatGPT", text: "Settings → Apps → Create app." },
-  { from: 228, dur: 175, audio: "audio/08_inst_c.mp3", kicker: "One form", text: "Name, paste the connector URL, click Create — connected." },
+  { from: 4, dur: 350, audio: "audio/06_inst_dev.mp3", kicker: "Step 1", text: "Profile → Settings → Apps → Advanced — switch on Developer mode." },
+  { from: 360, dur: 175, audio: "audio/07_inst_create.mp3", kicker: "Step 2", text: "Create app — name it, paste the connector URL." },
+  { from: 540, dur: 210, audio: "audio/08_inst_oauth.mp3", kicker: "Step 3", text: "Click Create, then sign in with the demo credentials — connected." },
 ];
 
 export const Install: React.FC = () => (

@@ -13,7 +13,7 @@ export const Outro: React.FC = () => {
 
   return (
     <Stage>
-      <Audio src={staticFile("audio/09_outro.mp3")} />
+      <Audio src={staticFile("audio/10_outro.mp3")} />
       <div
         style={{
           position: "absolute",

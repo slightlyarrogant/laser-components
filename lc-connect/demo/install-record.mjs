@@ -1,14 +1,11 @@
-// Record the REAL ChatGPT connector-install flow for the demo film.
+// Record the REAL ChatGPT connector-install flow for the demo film, end to end.
+// Every step waits for its target element before acting (deterministic order,
+// no auto-wait bloat):
+//   profile card -> Settings -> Apps -> Advanced settings -> Developer mode (on)
+//   -> Create app -> fill form (Name + MCP URL + checkbox) -> Create
+//   -> the connector's OAuth "Sign in" screen (shown, NOT logged in).
 //
-// Flow (mapped from the live UI): profile menu -> Settings -> Apps -> Create app
-// -> fill the form (Name + MCP Server URL + the security checkbox) -> Create.
-// LC Connect is already installed, so this demonstrates "how easy it is" — we
-// fill the one form with the real connector URL and submit; the OAuth login that
-// follows is the user's step (the script never types credentials).
-//
-//   node demo/install-record.mjs            # records demo/video-install/*.webm
-//
-// Reuses the persistent logged-in profile from chatgpt-record.mjs.
+//   node demo/install-record.mjs        # records demo/video-install/*.webm
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,8 +16,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROFILE_DIR = path.join(__dirname, '.chatgpt-profile');
 const VIDEO_DIR = path.join(__dirname, 'video-install');
 const VIEW = { width: 1440, height: 900 };
-const MCP_URL = 'https://lasercomponents.ngrok.app/mcp';
+const BASE = 'https://lasercomponents.ngrok.app';
+const MCP_URL = `${BASE}/mcp`;
 const NAME = 'LC Connect';
+const TO = 12000;
+
+async function authorizeUrl() {
+  const r = await fetch(`${BASE}/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ redirect_uris: ['https://chatgpt.com/connector_platform_oauth_redirect'], client_name: 'ChatGPT' }),
+  });
+  const { client_id } = await r.json();
+  const u = new URL(`${BASE}/authorize`);
+  u.searchParams.set('response_type', 'code');
+  u.searchParams.set('client_id', client_id);
+  u.searchParams.set('redirect_uri', 'https://chatgpt.com/connector_platform_oauth_redirect');
+  u.searchParams.set('state', 'demo');
+  u.searchParams.set('scope', 'lc:read lc:write');
+  return u.toString();
+}
 
 const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
   headless: false, channel: 'chrome', viewport: VIEW,
@@ -29,57 +43,83 @@ const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {
 });
 const page = ctx.pages()[0] || (await ctx.newPage());
 await page.setViewportSize(VIEW).catch(() => {});
-page.setDefaultTimeout(8000); // cap auto-waits so a missed element can't hang 30s
 const dlg = () => page.locator('[role="dialog"]').last();
+const pause = (ms) => page.waitForTimeout(ms);
+
+// Click a locator only once it is visible; pace with a short hold first.
+async function show(locator, hold = 700) {
+  await locator.waitFor({ state: 'visible', timeout: TO });
+  await locator.hover().catch(() => {});
+  await pause(hold);
+}
 
 async function main() {
   fs.mkdirSync(VIDEO_DIR, { recursive: true });
-  await page.goto('https://chatgpt.com/', { waitUntil: 'domcontentloaded' }).catch(() => {});
-  await page.waitForTimeout(2500);
+  const oauth = await authorizeUrl();
 
-  // Open profile menu -> Settings.
-  await page.locator('div[aria-label*="profile menu" i], #accounts-profile-button').first().click({ force: true, timeout: 6000 }).catch(() => {});
-  await page.waitForTimeout(700);
-  await page.getByRole('menuitem', { name: /^Settings$/i }).first().click({ timeout: 6000 }).catch(() => {});
-  await dlg().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(700);
+  await page.goto('https://chatgpt.com/', { waitUntil: 'domcontentloaded' });
+  await pause(2500);
 
-  // Apps tab.
-  await dlg().getByText(/^Apps$/i).first().click({ timeout: 6000 }).catch(() => {});
-  await dlg().getByRole('button', { name: /Create app/i }).first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(700);
+  // 1) Profile card (a <div>, hence force) -> Settings.
+  const profile = page.locator('div[aria-label*="profile menu" i], #accounts-profile-button').first();
+  await show(profile, 900);
+  await profile.click({ force: true });
+  const settings = page.getByRole('menuitem', { name: /^Settings$/i }).first();
+  await show(settings, 800);
+  await settings.click();
 
-  // Create app -> the New App form.
-  await dlg().getByRole('button', { name: /Create app/i }).first().click({ timeout: 6000 }).catch(() => {});
-  await dlg().getByPlaceholder(/^Name$/i).first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(800);
+  // 2) Apps tab.
+  await dlg().waitFor({ state: 'visible', timeout: TO });
+  const apps = dlg().getByText(/^Apps$/i).first();
+  await show(apps, 900);
+  await apps.click();
 
-  // Fill Name (slow, human cadence).
-  const nameInput = dlg().getByPlaceholder(/^Name$/i).first();
-  await nameInput.click().catch(() => {});
-  await page.keyboard.type(NAME, { delay: 70 });
-  await page.waitForTimeout(700);
+  // 3) Advanced settings -> Developer mode (off, then on, to show enabling it).
+  const adv = dlg().getByText(/Advanced settings/i).first();
+  await show(adv, 1000);
+  await adv.click();
+  // Show the Developer mode toggle (already on) with the cursor on it — narration
+  // explains "turn Developer mode on". (Toggling it off/on destabilises the modal,
+  // so we present it rather than flip it.)
+  const devSwitch = dlg().locator('button[role="switch"]').first();
+  await show(devSwitch, 2600);
 
-  // Fill MCP Server URL.
+  // Back to the Apps panel, where "Create app" opens the form reliably.
+  const back = dlg().getByRole('button', { name: /^Back$/i }).first();
+  await show(back, 900);
+  await back.click();
+
+  // 4) Create app (from the Apps panel).
+  const createApp = dlg().getByRole('button', { name: /^Create app$/i }).first();
+  await show(createApp, 900);
+  await createApp.click();
+
+  // 5) Fill the one form. Name = first text input (placeholder varies:
+  // "Name" / "Custom Tool"); URL = the example.com/sse field.
+  const nameInput = dlg().getByPlaceholder(/^Custom Tool$|^Name$/i).first();
+  await show(nameInput, 800);
+  await nameInput.click();
+  await page.keyboard.type(NAME, { delay: 80 });
+  await pause(600);
   const urlInput = dlg().getByPlaceholder(/example\.com\/sse/i).first();
-  await urlInput.click().catch(async () => {
-    await dlg().getByText(/MCP Server URL/i).first().click().catch(() => {});
-  });
+  await urlInput.click();
   await page.keyboard.type(MCP_URL, { delay: 45 });
-  await page.waitForTimeout(900);
-
-  // Tick the "I understand and want to continue" checkbox.
+  await pause(700);
   const box = dlg().locator('input[type="checkbox"]').first();
-  if (await box.count()) { await box.click().catch(() => {}); }
-  await page.waitForTimeout(1200);
+  if (await box.count()) await box.click().catch(() => {});
+  await pause(1100);
 
-  // Hold on the completed form so the recording reads clearly.
-  await dlg().getByRole('button', { name: /^Create$/i }).first().scrollIntoViewIfNeeded().catch(() => {});
-  await page.waitForTimeout(1800);
+  // 6) Create.
+  const create = dlg().getByRole('button', { name: /^Create$/i }).first();
+  await show(create, 1200);
+  await create.click({ timeout: 5000 }).catch(() => {});
+  await pause(2600);
 
-  // Click Create and capture the result (returns to the Apps list = connected).
-  await dlg().getByRole('button', { name: /^Create$/i }).first().click({ timeout: 4000 }).catch(() => {});
-  await page.waitForTimeout(4000);
+  // 7) The genuine OAuth "Sign in" screen — shown, not filled.
+  await page.goto(oauth, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  await pause(1100);
+  await page.locator('#email').hover().catch(() => {});
+  await pause(4200);
 
   await ctx.close();
   const vids = fs.existsSync(VIDEO_DIR)

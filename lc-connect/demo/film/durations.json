@@ -1,47 +1,52 @@
 {
   "01_title": {
     "scene": "title",
-    "dur": 6.870204,
+    "dur": 7.131429,
     "text": "LC Connect. Your laser-components lead database, answered in plain English, right inside ChatGPT."
   },
   "02_demo_bar": {
     "scene": "demo",
-    "dur": 6.164898,
+    "dur": 5.511837,
     "text": "Just ask. Here's the big picture: every lead, broken down by industry, as a live chart."
   },
   "03_demo_list": {
     "scene": "demo",
-    "dur": 8.777143,
+    "dur": 8.306939,
     "text": "Drill into a sector, like defense electronics, and it returns the actual companies. Real, structured data, not a wall of text."
   },
   "04_demo_co": {
     "scene": "demo",
-    "dur": 3.84,
+    "dur": 4.022857,
     "text": "Ask about a single company, and it pulls together everything on file."
   },
   "05_demo_map": {
     "scene": "demo",
-    "dur": 3.239184,
+    "dur": 3.160816,
     "text": "And see exactly where your leads are, across Europe."
   },
-  "06_inst_a": {
+  "06_inst_dev": {
     "scene": "install",
-    "dur": 2.220408,
-    "text": "Installing it takes about two minutes."
+    "dur": 11.702857,
+    "text": "Setting it up takes a couple of minutes. First, switch on Developer mode. Open the profile menu at the bottom left, go to Settings, then Apps, then Advanced settings, and turn Developer mode on."
   },
-  "07_inst_b": {
+  "07_inst_create": {
     "scene": "install",
-    "dur": 4.675918,
-    "text": "In ChatGPT, open Settings, go to Apps, and create a new app."
+    "dur": 5.746939,
+    "text": "Only now does Create app appear. Click it, give the app a name, and paste the connector's address."
   },
-  "08_inst_c": {
+  "08_inst_oauth": {
     "scene": "install",
-    "dur": 5.668571,
-    "text": "Give it a name, paste the connector's address, and click Create. That's it, you're connected."
+    "dur": 7.288163,
+    "text": "Click Create, and ChatGPT opens the sign-in screen. Enter the credentials provided for this demo, and you're connected."
   },
-  "09_outro": {
+  "09_note_org": {
+    "scene": "note",
+    "dur": 11.31102,
+    "text": "One note: these steps are for an individual ChatGPT plan. On an organisation plan, the connector is provided by the company, so just ask your I.T. department to set it up for you."
+  },
+  "10_outro": {
     "scene": "outro",
-    "dur": 5.041633,
+    "dur": 5.511837,
     "text": "LC Connect. Find and enrich your leads, in plain English. Try it yourself."
   }
 }
