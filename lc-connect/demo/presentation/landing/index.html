@@ -100,6 +100,32 @@
   .copy.done{border-color:#2ea043;color:#5fd07b}
   .note{margin-top:18px;padding:14px 18px;border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:14px;line-height:1.5}
   .note b{color:var(--text)}
+  /* install: warning + platform picker */
+  .plat-warn{margin-top:40px;display:flex;gap:14px;padding:18px 22px;border:1px dashed var(--accent);border-left:5px solid var(--accent);border-radius:12px;background:rgba(232,163,61,.07);color:var(--text);font-size:15px;line-height:1.55}
+  .plat-warn .ico{font-size:20px;line-height:1.4;flex-shrink:0}
+  .plat-warn b{color:var(--accent-soft)}
+  .plat-pick{margin-top:26px}
+  .plat-pick .lbl{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .plat-seg{display:inline-flex;gap:8px;padding:5px;border:1px solid var(--border);border-radius:999px;background:var(--surface2)}
+  .plat-btn{background:transparent;color:var(--text);border:1px solid transparent;border-radius:999px;padding:9px 22px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--sans);transition:.15s}
+  .plat-btn:hover{color:var(--accent-soft)}
+  .plat-btn.active{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+  .plat-steps[hidden]{display:none}
+  .field .reminder{font-family:var(--sans);font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* use it — + menu mockup */
+  .use-menu{padding:18px;background:var(--surface2)}
+  .use-input{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:13px 16px}
+  .use-input .plus{width:30px;height:30px;flex-shrink:0;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:21px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .use-input .ph{color:var(--faint);font-size:15px}
+  .use-input .ph b{color:var(--text);font-weight:400}
+  .use-pop{margin-top:14px;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .use-item{display:flex;align-items:center;gap:13px;padding:11px 12px;border-radius:10px;font-size:15px;color:var(--text);border:1px solid transparent}
+  .use-item .gi{width:20px;flex-shrink:0;text-align:center;color:var(--muted);font-size:16px}
+  .use-item.is-active{background:rgba(232,163,61,.1);border-color:rgba(232,163,61,.4)}
+  .use-item.is-active .lc-mark{width:22px;height:22px;flex-shrink:0;border-radius:6px;background:var(--accent);color:#1a1205;font-family:var(--serif);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;letter-spacing:.5px}
+  .use-item.is-active .lbl{color:var(--accent-soft);font-weight:600}
+  .use-item .chev{margin-left:auto;color:var(--faint);font-size:13px}
 
   /* footer */
   footer{padding:64px 0 50px;border-top:1px solid var(--border-soft);background:var(--bg2)}
@@ -124,7 +150,7 @@
 <div class="nav"><div class="wrap">
   <div class="brand"><span class="accent">LC</span><span>Connect</span></div>
   <div class="links">
-    <a href="#idea">The idea</a><a href="#demo">Demo</a><a href="#capabilities">Capabilities</a><a href="#install">Get started</a>
+    <a href="#idea">The idea</a><a href="#demo">Demo</a><a href="#capabilities">Capabilities</a><a href="#install">Get started</a><a href="#use">Use it</a>
   </div>
   <a class="btn" href="#demo" style="font-size:14px;padding:10px 20px">Watch the demo</a>
 </div></div>
@@ -221,23 +247,84 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="eyebrow"><span class="dot"></span>04 · Get started</span>
-      <h2>Connect the demo in two minutes.</h2>
+      <h2>Connect in 2 minutes</h2>
       <p>The video walks through it end to end. Here are the exact details — you enter the sign-in once, on the connector's screen, the first time you connect.</p>
     </div>
+
+    <div class="plat-warn">
+      <span class="ico">⚠️</span>
+      <div>Read this first: the address below is <b>not a website</b>. Don't type it into your browser. It only works when you paste it inside the app, in the steps below. If you open it in a browser you'll see "unauthorized" — that's normal, nothing is broken.</div>
+    </div>
+
+    <div class="plat-pick">
+      <div class="lbl">Which app do you use?</div>
+      <div class="plat-seg">
+        <button class="plat-btn active" id="plat-chatgpt" data-plat="chatgpt">ChatGPT</button>
+        <button class="plat-btn" id="plat-claude" data-plat="claude">Claude</button>
+      </div>
+    </div>
+
     <div class="steps">
-      <div class="stepcol">
-        <div class="step"><div class="n">1</div><div><h4>Turn on Developer mode</h4><p>Profile (bottom-left) → Settings → Apps → Advanced settings → switch Developer mode on.</p></div></div>
-        <div class="step"><div class="n">2</div><div><h4>Create the app</h4><p>Click Create app, then paste the name and connector address from the card.</p></div></div>
-        <div class="step"><div class="n">3</div><div><h4>Sign in once</h4><p>Click Create — the sign-in screen opens. Enter the demo email and password. You're connected.</p></div></div>
+      <div>
+        <div class="stepcol plat-steps" data-steps="chatgpt">
+          <div class="step"><div class="n">1</div><div><h4>Open Settings</h4><p>In ChatGPT, click your name (bottom-left) → Settings.</p></div></div>
+          <div class="step"><div class="n">2</div><div><h4>Turn on Developer mode</h4><p>Open Apps → Advanced settings → turn on Developer mode.</p></div></div>
+          <div class="step"><div class="n">3</div><div><h4>Create the app</h4><p>Go back to Apps and click Create app.</p></div></div>
+          <div class="step"><div class="n">4</div><div><h4>Paste the details</h4><p>Copy the App name and Connector address from the card and paste them in.</p></div></div>
+          <div class="step"><div class="n">5</div><div><h4>Sign in once</h4><p>Click Create. A sign-in box appears — paste the Email and Password from the card. Done.</p></div></div>
+        </div>
+        <div class="stepcol plat-steps" data-steps="claude" hidden>
+          <div class="step"><div class="n">1</div><div><h4>Open Connectors</h4><p>In Claude, open Settings → Connectors.</p></div></div>
+          <div class="step"><div class="n">2</div><div><h4>Add a custom connector</h4><p>Click Add custom connector.</p></div></div>
+          <div class="step"><div class="n">3</div><div><h4>Paste the details</h4><p>Paste the App name and Connector address from the card.</p></div></div>
+          <div class="step"><div class="n">4</div><div><h4>Sign in once</h4><p>Click Add. A sign-in box appears — paste the Email and Password from the card. Done.</p></div></div>
+        </div>
+        <p class="note" style="font-style:italic;border:0;padding:14px 0 0;margin-top:6px">You enter the email and password only once, the first time.</p>
       </div>
       <div class="cred">
         <div class="ch"><span class="t">Demo access</span><span class="pill">Sample data</span></div>
         <div class="field"><div><div class="k">App name</div><div class="v" id="v-name">LC Connect</div></div><button class="copy" data-c="v-name">Copy</button></div>
-        <div class="field"><div><div class="k">MCP Server URL</div><div class="v" id="v-url">https://lasercomponents.ngrok.app/mcp</div></div><button class="copy" data-c="v-url">Copy</button></div>
+        <div class="field"><div style="min-width:0"><div class="k">Connector address</div><div class="v" id="v-url">https://lasercomponents.ngrok.app/mcp</div><div class="reminder">Paste into the app — not your browser.</div></div><button class="copy" data-c="v-url">Copy</button></div>
         <div class="field"><div><div class="k">Email</div><div class="v" id="v-email">test@lasercomponents.local</div></div><button class="copy" data-c="v-email">Copy</button></div>
         <div class="field"><div><div class="k">Password</div><div class="v" id="v-pass">Test1234!</div></div><button class="copy" data-c="v-pass">Copy</button></div>
         <div class="note"><b>One-time</b> — these sign-in details are only entered when first connecting the app.</div>
         <div class="note" style="margin-top:10px"><b>On an organisation ChatGPT plan?</b> The connector is provided by your company — ask your IT department to enable it. The steps above are for an individual plan.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USING IT -->
+<section id="use">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow"><span class="dot"></span>05 · Using it</span>
+      <h2>Ask your data anything</h2>
+      <p>Once connected, LC Connect lives inside the assistant you already use — nothing new to open.</p>
+    </div>
+    <div class="caps">
+      <div>
+        <div class="stepcol">
+          <div class="step"><div class="n">1</div><div><h4>Open the menu</h4><p>In the message box, click the <b>+</b> (plus) on the left.</p></div></div>
+          <div class="step"><div class="n">2</div><div><h4>Pick LC Connect</h4><p>Open <b>More</b>, then choose <b>LC Connect</b> from the list.</p></div></div>
+          <div class="step"><div class="n">3</div><div><h4>Ask in plain English</h4><p>e.g. <i>"Which sectors have the most leads?"</i> — and get a live, interactive answer drawn straight from your database.</p></div></div>
+        </div>
+        <div class="note" style="font-style:italic">In Claude it works the same way — LC Connect appears in the connectors menu; pick it and ask.</div>
+      </div>
+      <div class="shot">
+        <div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+        <div class="use-menu">
+          <div class="use-input">
+            <span class="plus">+</span>
+            <span class="ph"><b>Which sectors have the most leads?</b></span>
+          </div>
+          <div class="use-pop">
+            <div class="use-item"><span class="gi">🖼</span><span class="lbl">Upload photos &amp; files</span></div>
+            <div class="use-item"><span class="gi">🌐</span><span class="lbl">Web search</span></div>
+            <div class="use-item"><span class="gi">⋯</span><span class="lbl">More</span><span class="chev">›</span></div>
+            <div class="use-item is-active"><span class="lc-mark">LC</span><span class="lbl">LC Connect</span></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -262,6 +349,7 @@
 </footer>
 
 <script>
+  document.body.innerHTML=document.body.innerHTML.replace('{YEAR}', new Date().getFullYear());
   document.querySelectorAll('.copy').forEach(function(b){
     b.addEventListener('click',function(){
       var el=document.getElementById(b.dataset.c);
@@ -272,7 +360,13 @@
       }).catch(function(){});
     });
   });
-  document.body.innerHTML=document.body.innerHTML.replace('{YEAR}', new Date().getFullYear());
+  document.querySelectorAll('.plat-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var plat=btn.dataset.plat;
+      document.querySelectorAll('.plat-btn').forEach(function(b){b.classList.toggle('active',b===btn)});
+      document.querySelectorAll('.plat-steps').forEach(function(s){s.hidden=(s.dataset.steps!==plat)});
+    });
+  });
 </script>
 </body>
 </html>
