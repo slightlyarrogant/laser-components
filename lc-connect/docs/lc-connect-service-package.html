@@ -203,7 +203,7 @@
         <rect x="522" y="48" width="220" height="56" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
         <text x="632" y="68" text-anchor="middle" font-weight="600">AI assistant platforms</text>
         <text x="632" y="84" text-anchor="middle" fill="var(--muted)" font-size="11.5">Anthropic · OpenAI · Microsoft</text>
-        <text x="632" y="97" text-anchor="middle" fill="var(--muted)" font-size="11">your subscriptions</text>
+        <text x="632" y="97" text-anchor="middle" fill="var(--muted)" font-size="11">your subscriptions, paid directly to the provider</text>
         <rect x="522" y="120" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
         <text x="632" y="140" text-anchor="middle" font-weight="600">Market research API</text>
         <text x="632" y="156" text-anchor="middle" fill="var(--muted)" font-size="11.5">Perplexity · usage included in fee</text>
@@ -249,7 +249,7 @@
   <table class="sheet">
     <thead><tr><th>Requirement</th><th>Specification</th></tr></thead>
     <tbody>
-      <tr><td>Compute</td><td>One container: 1 vCPU, 1 GB RAM, 10 GB disk. Measured footprint about 60 MB at rest, under 700 MB at peak load far above expected usage</td></tr>
+      <tr><td>Compute</td><td>One container: 1 vCPU, 1 GB RAM, 10 GB disk, sufficient for up to 200 users. Measured footprint about 60 MB at rest, under 700 MB at peak load far above expected usage</td></tr>
       <tr><td>Database</td><td>PostgreSQL 15 or newer, about 100 MB today; managed service preferred</td></tr>
       <tr><td>Runtime</td><td>Docker image (Node.js 22 LTS inside); no other software on the host</td></tr>
       <tr><td>Network, inbound</td><td>One public HTTPS hostname reachable from the assistant platforms; TLS certificate (free via Let's Encrypt or the cloud provider)</td></tr>
@@ -266,7 +266,7 @@
   <table class="sheet">
     <thead><tr><th>Item</th><th>Who provides</th><th>Cost (estimate)</th><th>Notes</th></tr></thead>
     <tbody>
-      <tr><td>AI assistant seats</td><td>Laser Components</td><td class="num">EUR 25 to 30 per user / month</td><td>Claude Team or Enterprise, ChatGPT Team or Enterprise, or Microsoft 365 Copilot. On organisation plans an administrator enables the connector once for everyone</td></tr>
+      <tr><td>AI assistant subscription</td><td>Laser Components, directly with the AI provider</td><td>Provider list price, typically EUR 25 to 30 per user / month</td><td>Claude Team or Enterprise, ChatGPT Team or Enterprise, or Microsoft 365 Copilot. Not part of AutoOffice fees and not resold: you bring your own assistant. On organisation plans an administrator enables the connector once for everyone</td></tr>
       <tr><td>LC Connect software</td><td>AutoOffice</td><td>Included in the service fee</td><td>Licence for the term of the agreement; full source in your repository; buy-out option in the agreement</td></tr>
       <tr><td>Market research API</td><td>AutoOffice</td><td>Included up to EUR 100 / month</td><td>Perplexity, used for multi-source web research on prospects and markets; usage above the cap agreed in advance</td></tr>
       <tr><td>Hosting</td><td>Laser Components (A) or AutoOffice (B)</td><td class="num">EUR 10 to 80 / month</td><td>See hosting options</td></tr>
@@ -276,7 +276,7 @@
     </tbody>
   </table>
   </div>
-  <div class="note">Nothing in the stack is proprietary to a vendor you cannot leave. The assistant platforms are your subscriptions; the connector speaks an open protocol and works with any of them; the source is in a repository you control.</div>
+  <div class="note"><b>Bring your own intelligence.</b> The AI assistant is your subscription with its provider and the only cost that scales with head count. AutoOffice charges a flat service fee, independent of the number of users: the standard deployment (one container) serves up to 200 users. Nothing in the stack is proprietary to a vendor you cannot leave; the connector speaks an open protocol and works with any of the assistants; the source is in a repository you control.</div>
 
   <h2><small>Part 3</small>Service level agreement · draft</h2>
   <p>Figures below are the proposed terms for discussion. Sections marked for legal review are standard clauses to be confirmed by both sides' advisers.</p>
@@ -335,7 +335,7 @@
   <table class="sheet">
     <thead><tr><th>Item</th><th>Amount</th><th>Includes</th></tr></thead>
     <tbody>
-      <tr><td>Monthly service fee</td><td class="num">EUR 1,800 / month</td><td>Operation, monitoring, backups, security patches, support as above, <b>15 hours per month</b> of development and change work, and <b>market research API usage up to EUR 100 per month</b></td></tr>
+      <tr><td>Monthly service fee</td><td class="num">EUR 1,800 / month</td><td>Flat, independent of the number of users (up to 200 on the standard deployment). Covers operation, monitoring, backups, security patches, support as above, <b>15 hours per month</b> of development and change work, and <b>market research API usage up to EUR 100 per month</b></td></tr>
       <tr><td>Additional work</td><td class="num">EUR 85 / hour</td><td>Only for scoped projects outside routine maintenance and development, agreed in writing before work starts. Never applied to bug fixes or routine changes</td></tr>
       <tr><td>Setup and migration</td><td class="num">EUR 3,500 once</td><td>Deployment into the chosen environment, identity-provider integration, data processing agreement, runbooks, handover. To be confirmed once the hosting option is chosen</td></tr>
       <tr><td>Hosting (option B)</td><td>At cost</td><td>Passed through from the hosting provider without margin</td></tr>
@@ -343,6 +343,7 @@
   </table>
   </div>
   <ul class="plain">
+    <li>No per-user fees. AI assistant subscriptions are contracted and paid by Laser Components directly with the assistant provider; AutoOffice bills nothing for them.</li>
     <li>Included hours are for the month in which they accrue; up to 5 unused hours carry over to the following month. The monthly allowance can be raised by agreement.</li>
     <li>Fees are invoiced monthly in advance. Invoices from AutoOffice (Poland) to Laser Components (Germany) are a reverse-charge B2B supply.</li>
     <li>Fees are reviewed annually and may rise by 5 % or the consumer price index, whichever is higher.</li>
