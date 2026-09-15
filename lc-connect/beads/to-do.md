@@ -46,6 +46,12 @@ Verdict: connector core = current standard (Hono + McpServer + OAuth 2.1 DCR/PKC
 - [ ] Own R2 bucket/prefix for LC backups (today: local + NAS only)
 - [ ] Region taxonomy per client (France / Western Europe / Africa+emerging / Asia) — needs customer input, after geography backfill
 
+## After deployment to the customer's environment (re-test there; different hosting = different wiring)
+- [ ] `report_issue` delivery: hermes bridge :3092 expects `{chatId, message}` (fixed) and answers `{success:true}` (check fixed); last live test 2026-09-15 still returned "delivery failed" — untested root cause, deliberately parked (Bogdan: not deployed yet, don't spend time now). In the new environment the bridge will not be on localhost: decide the channel (bridge over VPN / Pushover / email) and re-test end to end
+- [ ] Watchdog + backup timers re-created for the new host; Pushover keys; NAS off-site copy replaced by the provider's storage
+- [ ] Identity-provider (Entra ID) sign-in once the customer answers; then the public login flow in the watchdog switches to a service account or a synthetic check
+- [ ] Full SLA verification checklist before go-live: register → sign-in → token → tools/list → whoami → get_leads → widget render (light/dark) → report_issue → audit row → backup restore drill
+
 ## Phase 1 — this week
 - [x] OAuth state → Postgres tables (codes, clients, refresh tokens)
 - [ ] Enforce PKCE (reject missing code_challenge) once both clients confirmed sending it
