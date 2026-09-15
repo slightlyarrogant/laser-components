@@ -1,0 +1,229 @@
+<title>LC Connect Blueprint</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --ink: #14213a;
+    --muted: #5b6478;
+    --rule: #d9dde5;
+    --rule-strong: #b9c0cd;
+    --accent: #c9861f;
+    --accent-ink: #8a5a0e;
+    --accent-soft: #fbf1e0;
+    --ok: #2f7d4f;
+    --ok-soft: #e6f3ea;
+    --wait: #8a5a0e;
+    --wait-soft: #fbf1e0;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8;
+      --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e;
+      --accent-soft: #2c2619; --ok: #7fcf9c; --ok-soft: #1c2d24; --wait: #f1c26e; --wait-soft: #2c2619;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8;
+    --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e;
+    --accent-soft: #2c2619; --ok: #7fcf9c; --ok-soft: #1c2d24; --wait: #f1c26e; --wait-soft: #2c2619;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px; line-height: 1.55;
+    padding-inline: clamp(16px, 5vw, 48px); padding-block: 40px 80px;
+  }
+  .page { max-width: 72ch; margin: 0 auto; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(30px, 4.5vw, 42px); font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 22px; font-weight: 600; line-height: 1.2; margin-top: 56px; padding-top: 16px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 16px; font-weight: 600; margin-top: 24px; }
+  p { margin: 12px 0 0; max-width: 66ch; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  header .eyebrow { margin-bottom: 14px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .lede { font-size: 18px; margin-top: 20px; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.92em; }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.9em; background: var(--accent-soft); color: var(--accent-ink); padding: 1px 5px; border-radius: 3px; }
+
+  /* datasheet tables */
+  .sheet { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 15px; }
+  .sheet th, .sheet td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+  .sheet th { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 500; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+  .sheet td:first-child { font-weight: 500; white-space: nowrap; width: 11.5em; }
+  .sheet.roles td:first-child { width: 9em; }
+  .sheet .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .sheet .num.total { color: var(--accent-ink); font-weight: 500; }
+  .tablewrap { overflow-x: auto; }
+  .role { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.06em; padding: 2px 7px; border: 1px solid var(--rule-strong); border-radius: 3px; }
+
+  /* status pills */
+  .pill { display: inline-block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.wait { background: var(--wait-soft); color: var(--wait); }
+
+  /* figure */
+  figure { margin: 20px 0 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  /* asks */
+  ol.asks { list-style: none; padding: 0; margin: 16px 0 0; counter-reset: ask; display: grid; gap: 0; }
+  ol.asks li { counter-increment: ask; display: grid; grid-template-columns: 2.6em 1fr; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  ol.asks li::before { content: counter(ask, decimal-leading-zero); font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 20px; line-height: 1.2; color: var(--accent); font-weight: 500; }
+  ol.asks li b { display: block; font-weight: 600; }
+  ol.asks li span { display: block; margin-top: 3px; color: var(--muted); font-size: 15px; }
+
+  ul.plain { margin: 12px 0 0; padding-left: 1.1em; }
+  ul.plain li { margin-top: 6px; }
+  ul.plain li + li { margin-top: 8px; }
+
+  .note { margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--surface); font-size: 15px; }
+  footer { margin-top: 64px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 24px; }
+  a { color: var(--accent-ink); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 520px) {
+    .sheet td:first-child { white-space: normal; width: auto; }
+    h2 { margin-top: 44px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Technical brief · Prepared for Laser Components</div>
+    <h1>LC Connect: how it is built and where it is going</h1>
+    <p class="lede">Your lead intelligence base, reachable from the AI assistants your team already uses. This brief describes the system as it runs today, the safeguards around it, and the five inputs we need from you to finish the rollout.</p>
+    <div class="meta">
+      <div>Status <b>Live</b></div>
+      <div>State as of <b class="mono">2026-09-16</b></div>
+      <div>Operated by <b>AutoOffice</b></div>
+    </div>
+  </header>
+
+  <h2>What it is</h2>
+  <p>LC Connect is a connector that plugs your lead intelligence base into Claude and ChatGPT. People ask questions in plain language; the assistant answers from your own data (leads, products, applications, notes, market knowledge) and shows results as interactive cards: tables, charts, maps. New leads and notes can be added from the same conversation.</p>
+  <p>Closing business stays in your existing tools. LC Connect is for finding, enriching and organising leads.</p>
+
+  <h2>How it works</h2>
+  <figure>
+    <svg viewBox="0 0 720 180" role="img" aria-labelledby="dp-title">
+      <title id="dp-title">Data path: assistant to LC Connect server to the Laser Components lead database, with sign-in between assistant and server</title>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--rule-strong)"></path>
+        </marker>
+      </defs>
+      <g font-family="IBM Plex Sans, Arial, sans-serif" font-size="14" fill="var(--ink)">
+        <rect x="8" y="46" width="190" height="64" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="103" y="73" text-anchor="middle" font-weight="600">Claude · ChatGPT</text>
+        <text x="103" y="93" text-anchor="middle" fill="var(--muted)" font-size="12.5">your team's assistants</text>
+
+        <rect x="265" y="46" width="190" height="64" rx="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"></rect>
+        <text x="360" y="73" text-anchor="middle" font-weight="600">LC Connect server</text>
+        <text x="360" y="93" text-anchor="middle" fill="var(--muted)" font-size="12.5">45 tools · roles · audit trail</text>
+
+        <rect x="522" y="46" width="190" height="64" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="617" y="73" text-anchor="middle" font-weight="600">Lead database</text>
+        <text x="617" y="93" text-anchor="middle" fill="var(--muted)" font-size="12.5">PostgreSQL · Laser Components</text>
+
+        <line x1="198" y1="70" x2="263" y2="70" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#arr)"></line>
+        <text x="230" y="60" text-anchor="middle" fill="var(--muted)" font-size="11.5">HTTPS</text>
+        <line x1="455" y1="78" x2="520" y2="78" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#arr)"></line>
+
+        <path d="M103 110 V150 H360 V112" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arr)"></path>
+        <text x="231" y="166" text-anchor="middle" fill="var(--accent-ink)" font-size="12" font-family="IBM Plex Mono, monospace">sign-in · OAuth 2.1 + PKCE · one account per person</text>
+      </g>
+    </svg>
+    <figcaption>The assistant never talks to the database directly. Every request carries the signed-in user's identity, and the server decides what that user may read or change.</figcaption>
+  </figure>
+  <ul class="plain">
+    <li><b>One account per person.</b> Each user signs in once with their own email and password; the assistant then acts as that person. Nothing is shared between users' sessions.</li>
+    <li><b>Standards-based.</b> The connector implements the Model Context Protocol, the open standard both Claude and ChatGPT use for connectors, and OAuth 2.1 with PKCE for sign-in, the same mechanisms as other enterprise connectors.</li>
+    <li><b>Rich results.</b> 45 tools cover leads, products, applications, regions, analytics, market intelligence, the knowledge base and reporting. Larger result sets come with a downloadable CSV.</li>
+  </ul>
+
+  <h2>Users, roles and regions</h2>
+  <div class="tablewrap">
+  <table class="sheet roles">
+    <thead><tr><th>Role</th><th>Can do</th></tr></thead>
+    <tbody>
+      <tr><td><span class="role">ADMIN</span></td><td>Everything, including managing users, deleting records and bulk updates, and reading the audit log.</td></tr>
+      <tr><td><span class="role">RESEARCHER</span></td><td>Everything a salesperson can, plus maintaining the product catalogue and the knowledge base, and reading the audit log.</td></tr>
+      <tr><td><span class="role">SALES</span></td><td>Read everything. Create leads and notes. Edit leads they own, created, or that fall within their region competency.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul class="plain">
+    <li><b>Ownership.</b> Every lead has an owner. Leads you create are yours; an admin or the current owner can reassign them.</li>
+    <li><b>Region competency.</b> A user can be limited to one or more regions, for example Europe or Middle East. A user with no region set has global competency. Competency governs editing of unowned leads. Reading is open to the whole team by design: this is an internal tool for one company.</li>
+    <li><b>Managing users</b> is done in chat by an admin (<code>manage_users</code>: create, change role, set regions, deactivate). Deactivated accounts cannot sign in, and their existing sessions stop within a minute.</li>
+    <li><b>Regions today:</b> North America, Europe, Asia, South America, Middle East, Oceania. Your own team structure, for example France / Western Europe / Africa &amp; emerging markets / Asia, maps onto this once you confirm it.</li>
+  </ul>
+
+  <h2>Security and operations</h2>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Area</th><th>In place</th></tr></thead>
+    <tbody>
+      <tr><td>Sign-in</td><td>OAuth 2.1 with PKCE, per-user accounts, bcrypt-hashed passwords, sessions valid 4 hours with silent refresh, rate limiting on the login endpoints.</td></tr>
+      <tr><td>Authorisation</td><td>Role and ownership rules enforced on every write. Destructive actions restricted to ADMIN.</td></tr>
+      <tr><td>Audit trail</td><td>Every create, update, delete, assignment, bulk operation and user-management action is recorded with who, when and before/after values, including refused attempts. Admins and researchers query it in chat (<code>get_audit_log</code>).</td></tr>
+      <tr><td>Transport</td><td>HTTPS end to end. No data is served without a valid session.</td></tr>
+      <tr><td>Backups</td><td>Nightly database backup, kept 30 days, stored on-site and off-site.</td></tr>
+      <tr><td>Monitoring</td><td>An automated check signs in through the public address every 5 minutes and exercises the full login and query path. On failure it restarts the affected component and alerts the operator. Structured logs are kept for diagnosis.</td></tr>
+      <tr><td>Hosting</td><td>Dedicated server with backup power, operated by AutoOffice.</td></tr>
+      <tr><td>External AI</td><td>Market-intelligence tools call an external research model (Perplexity) with the lead's public company name and website only. Notes and internal data never leave the system.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Your data today</h2>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Item</th><th class="num">Count</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Leads</td><td class="num total">396</td><td></td></tr>
+      <tr><td>Products</td><td class="num">245</td><td></td></tr>
+      <tr><td>Applications</td><td class="num">7</td><td></td></tr>
+      <tr><td>Leads with country and region</td><td class="num">150</td><td>Europe 90 · South America 30 · Oceania 14 · Middle East 11 · North America 3 · Asia 2</td></tr>
+      <tr><td>Leads without geography</td><td class="num">246</td><td>218 on generic web domains, 28 without a website</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">Geography drives region competency, so completing it matters. The 246 remaining leads were researched country by country and sit in contiguous blocks, so they can be confirmed in bulk, one confirmation per country, rather than one by one.</div>
+
+  <h2>What we need from you</h2>
+  <ol class="asks">
+    <li><div><b>Which identity provider you use</b><span>Microsoft Entra ID, Google Workspace or Okta. We connect LC Connect to it so your team signs in with their corporate login, with your MFA and automatic offboarding.</span></div></li>
+    <li><div><b>Your region structure</b><span>Which teams exist and which countries each covers, for example France; Western Europe; Africa &amp; emerging markets; Asia. We map it onto the region table.</span></div></li>
+    <li><div><b>The initial user list</b><span>Names, emails and roles for the first users.</span></div></li>
+    <li><div><b>Geography confirmation for the 246 leads</b><span>A country per block is enough.</span></div></li>
+    <li><div><b>One placement decision</b><span>Turkey currently sits under Middle East (emerging markets). Tell us if you prefer Europe.</span></div></li>
+  </ol>
+
+  <h2>Landing in the next days</h2>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Item</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Structured logging with per-user tracing for faster support</td><td><span class="pill ok">Done</span></td></tr>
+      <tr><td>Dark-mode and mobile-ready result cards</td><td><span class="pill ok">Done</span></td></tr>
+      <tr><td>Sign-in through your identity provider</td><td><span class="pill wait">Awaiting item 01</span></td></tr>
+      <tr><td>Region taxonomy and user onboarding</td><td><span class="pill wait">Awaiting items 02, 03</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <footer>
+    <div>LC Connect · AutoOffice</div>
+    <div>Connector address <span class="mono">lasercomponents.ngrok.app/mcp</span></div>
+    <div>September 2026</div>
+  </footer>
+</div>

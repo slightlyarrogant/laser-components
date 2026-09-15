@@ -1,0 +1,393 @@
+<title>LC Connect Service Package</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #ffffff; --lane: #eef1f5; --ink: #14213a; --muted: #5b6478;
+    --rule: #d9dde5; --rule-strong: #b9c0cd; --accent: #c9861f; --accent-ink: #8a5a0e; --accent-soft: #fbf1e0;
+    --ok: #2f7d4f; --ok-soft: #e6f3ea; --wait: #8a5a0e; --wait-soft: #fbf1e0; --sev: #a33a2b; --sev-soft: #f8e7e3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a26; --surface: #1b2232; --lane: #1f2839; --ink: #e6eaf2; --muted: #9aa4b8;
+      --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619;
+      --ok: #7fcf9c; --ok-soft: #1c2d24; --wait: #f1c26e; --wait-soft: #2c2619; --sev: #f0907f; --sev-soft: #3a2320;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a26; --surface: #1b2232; --lane: #1f2839; --ink: #e6eaf2; --muted: #9aa4b8;
+    --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619;
+    --ok: #7fcf9c; --ok-soft: #1c2d24; --wait: #f1c26e; --wait-soft: #2c2619; --sev: #f0907f; --sev-soft: #3a2320;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.55; padding-inline: clamp(16px, 5vw, 48px); padding-block: 40px 80px; }
+  .page { max-width: 78ch; margin: 0 auto; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(30px, 4.5vw, 42px); font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; font-weight: 600; line-height: 1.2; margin-top: 64px; padding-top: 16px; border-top: 2px solid var(--ink); }
+  h2 small { display: block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
+  h3 { font-size: 17px; font-weight: 600; margin-top: 30px; }
+  p { margin: 12px 0 0; max-width: 68ch; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  header .eyebrow { margin-bottom: 14px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .lede { font-size: 18px; margin-top: 20px; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.92em; }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.9em; background: var(--accent-soft); color: var(--accent-ink); padding: 1px 5px; border-radius: 3px; }
+  .draft { display: inline-block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--accent); color: var(--accent-ink); border-radius: 3px; }
+  .sheet { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 15px; }
+  .sheet th, .sheet td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+  .sheet th { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 500; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+  .sheet td:first-child { font-weight: 500; width: 13em; }
+  .sheet.w10 td:first-child { width: 10em; }
+  .sheet .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  .pill { display: inline-block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.wait { background: var(--wait-soft); color: var(--wait); } .pill.sev { background: var(--sev-soft); color: var(--sev); }
+  figure { margin: 20px 0 0; } figure svg { width: 100%; height: auto; display: block; } figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; max-width: 68ch; }
+  ul.plain { margin: 12px 0 0; padding-left: 1.1em; } ul.plain li { margin-top: 7px; }
+  .note { margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--surface); font-size: 15px; max-width: 70ch; }
+  .clauses { counter-reset: cl; margin-top: 8px; }
+  .clauses h3 { counter-increment: cl; }
+  .clauses h3::before { content: counter(cl) ". "; font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--accent); font-weight: 500; }
+  footer { margin-top: 64px; padding-top: 14px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 24px; }
+  a { color: var(--accent-ink); } a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 560px) { .sheet td:first-child { width: auto; } h2 { margin-top: 48px; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Deployment and service brief · Prepared for Laser Components by AutoOffice</div>
+    <h1>LC Connect: architecture, deployment and service terms</h1>
+    <p class="lede">What you asked for ahead of the next call: how the solution is put together and how information flows, which environments and third parties are involved and what it takes to run it, and a draft of the service agreement so operational expectations are aligned from the start.</p>
+    <div class="meta">
+      <div><span class="draft">Draft for discussion</span></div>
+      <div>Version <b class="mono">2026-09-16</b></div>
+      <div>Provider <b>AutoOffice</b></div>
+      <div>Customer <b>Laser Components</b></div>
+    </div>
+  </header>
+
+  <h2><small>Part 1</small>Solution architecture</h2>
+  <p>LC Connect is a small service that sits between the AI assistants your team uses and your own lead database. The assistant never touches the database; every request goes through the connector, which knows who is asking and what they are allowed to do.</p>
+  <figure>
+    <svg viewBox="0 0 760 310" role="img" aria-labelledby="ctx-title">
+      <title id="ctx-title">Context diagram: Laser Components team uses AI assistants, which call the LC Connect connector over HTTPS; the connector verifies identity with the identity provider, reads and writes the lead database, sends public company names to the market research API, and is operated by AutoOffice.</title>
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--rule-strong)"></path></marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"></path></marker>
+      </defs>
+      <g font-family="IBM Plex Sans, Arial, sans-serif" font-size="13.5" fill="var(--ink)">
+        <!-- identity provider -->
+        <rect x="430" y="14" width="200" height="52" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="530" y="36" text-anchor="middle" font-weight="600">Identity provider</text>
+        <text x="530" y="54" text-anchor="middle" fill="var(--muted)" font-size="12">Microsoft Entra ID (proposed) · your tenant</text>
+
+        <!-- team -->
+        <rect x="10" y="118" width="160" height="64" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="90" y="145" text-anchor="middle" font-weight="600">Laser Components team</text>
+        <text x="90" y="165" text-anchor="middle" fill="var(--muted)" font-size="12">sales · research · admin</text>
+
+        <!-- assistants -->
+        <rect x="215" y="118" width="170" height="64" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="300" y="145" text-anchor="middle" font-weight="600">AI assistant</text>
+        <text x="300" y="165" text-anchor="middle" fill="var(--muted)" font-size="12">Claude · ChatGPT · Copilot</text>
+
+        <!-- LC Connect -->
+        <rect x="430" y="96" width="200" height="108" rx="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"></rect>
+        <text x="530" y="118" text-anchor="middle" font-weight="600">LC Connect</text>
+        <rect x="444" y="128" width="172" height="30" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="530" y="148" text-anchor="middle" font-size="12.5">Connector · roles · audit trail</text>
+        <rect x="444" y="164" width="172" height="30" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="530" y="184" text-anchor="middle" font-size="12.5">Lead database · PostgreSQL</text>
+
+        <!-- operator -->
+        <rect x="660" y="112" width="92" height="76" rx="4" fill="var(--surface)" stroke="var(--rule-strong)" stroke-dasharray="4 3"></rect>
+        <text x="706" y="140" text-anchor="middle" font-weight="600">AutoOffice</text>
+        <text x="706" y="158" text-anchor="middle" fill="var(--muted)" font-size="11.5">monitoring</text>
+        <text x="706" y="173" text-anchor="middle" fill="var(--muted)" font-size="11.5">updates · support</text>
+
+        <!-- research API -->
+        <rect x="430" y="240" width="200" height="52" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="530" y="262" text-anchor="middle" font-weight="600">Market research API</text>
+        <text x="530" y="280" text-anchor="middle" fill="var(--muted)" font-size="12">Perplexity · multi-source web research</text>
+
+        <!-- arrows -->
+        <line x1="170" y1="150" x2="213" y2="150" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#a1)" marker-start="url(#a1)"></line>
+        <text x="192" y="140" text-anchor="middle" fill="var(--muted)" font-size="11">questions</text>
+        <line x1="385" y1="150" x2="428" y2="150" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#a2)" marker-start="url(#a2)"></line>
+        <text x="406" y="140" text-anchor="middle" fill="var(--accent-ink)" font-size="11">HTTPS</text>
+        <line x1="530" y1="96" x2="530" y2="68" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#a1)"></line>
+        <text x="545" y="86" fill="var(--muted)" font-size="11">sign-in, per user</text>
+        <line x1="530" y1="204" x2="530" y2="238" stroke="var(--rule-strong)" stroke-width="1.5" marker-end="url(#a1)"></line>
+        <text x="545" y="226" fill="var(--muted)" font-size="11">company name + website only</text>
+        <line x1="658" y1="150" x2="632" y2="150" stroke="var(--rule-strong)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a1)"></line>
+      </g>
+    </svg>
+    <figcaption>Every request from an assistant carries the signed-in user's identity. Issue reports raised inside the assistant reach the operator directly through the connector's built-in reporting tool.</figcaption>
+  </figure>
+
+  <h3>Information flows</h3>
+  <div class="tablewrap">
+  <table class="sheet w10">
+    <thead><tr><th>Flow</th><th>From → to</th><th>Content</th><th>Protection</th></tr></thead>
+    <tbody>
+      <tr><td>Sign-in</td><td>User → connector → identity provider</td><td>Corporate identity; the connector receives name, email and group membership</td><td>OAuth 2.1 with PKCE; sessions 4 h with silent refresh; your MFA and offboarding apply</td></tr>
+      <tr><td>Questions and answers</td><td>Assistant ↔ connector</td><td>The user's request, and the data needed to answer it (leads, products, notes, analytics)</td><td>HTTPS; every call authorised per user and role; every write recorded in the audit trail</td></tr>
+      <tr><td>Lead data</td><td>Connector ↔ lead database</td><td>Leads, products, applications, notes, knowledge base, audit trail</td><td>Private network only; nightly encrypted backup, 30-day retention</td></tr>
+      <tr><td>Market research</td><td>Connector → research API</td><td>Public company name and website of the lead being researched</td><td>No notes, contacts or internal data leave the system; usage capped</td></tr>
+      <tr><td>Issue reports</td><td>User → connector → operator</td><td>Title, description, category as typed by the user</td><td>Delivered to the operator's support channel; time-stamped in the audit trail</td></tr>
+      <tr><td>Operations</td><td>Operator → connector</td><td>Updates from the source repository; health checks every 5 minutes</td><td>Deployments from the repository you control; no direct database access in normal operation</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2><small>Part 2</small>Deployment and prerequisites</h2>
+  <p>There are three environments and three parties. Production can live in your own cloud tenant or on a server AutoOffice manages for you; the two options are drawn side by side and only one is chosen.</p>
+  <figure>
+    <svg viewBox="0 0 760 400" role="img" aria-labelledby="dep-title">
+      <title id="dep-title">Deployment diagram in three lanes: Laser Components (users, identity provider, production option A in your Azure tenant), AutoOffice (staging, development, monitoring, production option B on a managed EU server), third-party services (assistant platforms, market research API, hosting provider, source repository).</title>
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--rule-strong)"></path></marker></defs>
+      <g font-family="IBM Plex Sans, Arial, sans-serif" font-size="13" fill="var(--ink)">
+        <!-- lanes -->
+        <rect x="6" y="6" width="244" height="388" rx="4" fill="var(--lane)"></rect>
+        <rect x="258" y="6" width="244" height="388" rx="4" fill="var(--lane)"></rect>
+        <rect x="510" y="6" width="244" height="388" rx="4" fill="var(--lane)"></rect>
+        <text x="128" y="30" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" letter-spacing="1" fill="var(--muted)">LASER COMPONENTS</text>
+        <text x="380" y="30" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" letter-spacing="1" fill="var(--muted)">AUTOOFFICE</text>
+        <text x="632" y="30" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" letter-spacing="1" fill="var(--muted)">THIRD-PARTY SERVICES</text>
+
+        <!-- LC lane -->
+        <rect x="18" y="48" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="128" y="68" text-anchor="middle" font-weight="600">Users' devices</text>
+        <text x="128" y="84" text-anchor="middle" fill="var(--muted)" font-size="11.5">browser or assistant app</text>
+        <rect x="18" y="108" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="128" y="128" text-anchor="middle" font-weight="600">Identity provider</text>
+        <text x="128" y="144" text-anchor="middle" fill="var(--muted)" font-size="11.5">Entra ID · existing</text>
+        <rect x="18" y="176" width="220" height="150" rx="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"></rect>
+        <text x="128" y="198" text-anchor="middle" font-weight="600">Production · option A</text>
+        <text x="128" y="214" text-anchor="middle" fill="var(--muted)" font-size="11.5">your Azure tenant</text>
+        <rect x="32" y="226" width="192" height="40" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="128" y="243" text-anchor="middle" font-size="12">LC Connect container</text>
+        <text x="128" y="258" text-anchor="middle" fill="var(--muted)" font-size="11">1 vCPU · 1 GB · Container Apps</text>
+        <rect x="32" y="274" width="192" height="40" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="128" y="291" text-anchor="middle" font-size="12">PostgreSQL 15+</text>
+        <text x="128" y="306" text-anchor="middle" fill="var(--muted)" font-size="11">managed · nightly backup</text>
+        <text x="128" y="352" text-anchor="middle" fill="var(--muted)" font-size="11.5">data never leaves your tenant</text>
+        <text x="128" y="368" text-anchor="middle" fill="var(--muted)" font-size="11.5">operator has deploy access only</text>
+
+        <!-- AutoOffice lane -->
+        <rect x="270" y="48" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="380" y="68" text-anchor="middle" font-weight="600">Staging and development</text>
+        <text x="380" y="84" text-anchor="middle" fill="var(--muted)" font-size="11.5">changes proven here first</text>
+        <rect x="270" y="108" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="380" y="128" text-anchor="middle" font-weight="600">Monitoring</text>
+        <text x="380" y="144" text-anchor="middle" fill="var(--muted)" font-size="11.5">full sign-in check every 5 min · alerts</text>
+        <rect x="270" y="176" width="220" height="150" rx="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="5 3"></rect>
+        <text x="380" y="198" text-anchor="middle" font-weight="600">Production · option B</text>
+        <text x="380" y="214" text-anchor="middle" fill="var(--muted)" font-size="11.5">AutoOffice-managed server, EU</text>
+        <rect x="284" y="226" width="192" height="40" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="380" y="243" text-anchor="middle" font-size="12">LC Connect container</text>
+        <text x="380" y="258" text-anchor="middle" fill="var(--muted)" font-size="11">1 vCPU · 1 GB · Docker</text>
+        <rect x="284" y="274" width="192" height="40" rx="3" fill="var(--lane)" stroke="var(--rule)"></rect>
+        <text x="380" y="291" text-anchor="middle" font-size="12">PostgreSQL 15+</text>
+        <text x="380" y="306" text-anchor="middle" fill="var(--muted)" font-size="11">nightly backup, off-site copy</text>
+        <text x="380" y="352" text-anchor="middle" fill="var(--muted)" font-size="11.5">data processing agreement applies</text>
+        <text x="380" y="368" text-anchor="middle" fill="var(--muted)" font-size="11.5">one option is chosen, not both</text>
+
+        <!-- third-party lane -->
+        <rect x="522" y="48" width="220" height="56" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="632" y="68" text-anchor="middle" font-weight="600">AI assistant platforms</text>
+        <text x="632" y="84" text-anchor="middle" fill="var(--muted)" font-size="11.5">Anthropic · OpenAI · Microsoft</text>
+        <text x="632" y="97" text-anchor="middle" fill="var(--muted)" font-size="11">your subscriptions</text>
+        <rect x="522" y="120" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="632" y="140" text-anchor="middle" font-weight="600">Market research API</text>
+        <text x="632" y="156" text-anchor="middle" fill="var(--muted)" font-size="11.5">Perplexity · usage included in fee</text>
+        <rect x="522" y="180" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="632" y="200" text-anchor="middle" font-weight="600">Hosting provider</text>
+        <text x="632" y="216" text-anchor="middle" fill="var(--muted)" font-size="11.5">Azure (option A) or OVH / Hetzner (option B)</text>
+        <rect x="522" y="240" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="632" y="260" text-anchor="middle" font-weight="600">Source repository</text>
+        <text x="632" y="276" text-anchor="middle" fill="var(--muted)" font-size="11.5">your GitHub or Azure DevOps · full source</text>
+        <rect x="522" y="300" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--rule-strong)"></rect>
+        <text x="632" y="320" text-anchor="middle" font-weight="600">Domain and certificate</text>
+        <text x="632" y="336" text-anchor="middle" fill="var(--muted)" font-size="11.5">e.g. connect.lasercomponents.com · free TLS</text>
+
+        <!-- arrows -->
+        <line x1="238" y1="70" x2="520" y2="70" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+        <line x1="522" y1="90" x2="240" y2="184" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+        <line x1="522" y1="96" x2="492" y2="184" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+        <line x1="128" y1="152" x2="128" y2="174" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+        <line x1="380" y1="152" x2="380" y2="174" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+        <line x1="270" y1="130" x2="240" y2="130" stroke="var(--rule-strong)" stroke-width="1.3" marker-end="url(#a3)"></line>
+      </g>
+    </svg>
+    <figcaption>Option A keeps the data inside your tenant and reduces AutoOffice to deploy and support access; option B is faster to start and needs nothing from your IT beyond an identity-provider registration. Staging, development and monitoring stay with AutoOffice in both cases.</figcaption>
+  </figure>
+
+  <h3>Hosting options compared</h3>
+  <div class="tablewrap">
+  <table class="sheet w10">
+    <thead><tr><th>Aspect</th><th>Option A · your Azure tenant</th><th>Option B · AutoOffice-managed EU server</th></tr></thead>
+    <tbody>
+      <tr><td>Data location</td><td>Your subscription, your region</td><td>EU data centre (OVH or Hetzner), AutoOffice account</td></tr>
+      <tr><td>Your IT effort</td><td>Create a resource group, a Container Apps environment and a managed PostgreSQL; grant AutoOffice deploy rights; register the app in Entra ID</td><td>Register the app in Entra ID; optionally delegate a DNS name</td></tr>
+      <tr><td>Data protection</td><td>AutoOffice acts as processor only for support access</td><td>AutoOffice is processor for hosting; data processing agreement attached</td></tr>
+      <tr><td>Running cost (estimate)</td><td class="num">EUR 50 to 80 / month, billed by Microsoft to you</td><td class="num">EUR 10 to 30 / month, passed through at cost</td></tr>
+      <tr><td>Time to production</td><td>About one week after access is granted</td><td>About two working days</td></tr>
+      <tr><td>Recommendation</td><td>Preferred if your IT can provide the resources</td><td>Preferred to start quickly; can migrate to A later without change to the software</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Infrastructure requirements</h3>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Requirement</th><th>Specification</th></tr></thead>
+    <tbody>
+      <tr><td>Compute</td><td>One container: 1 vCPU, 1 GB RAM, 10 GB disk. Measured footprint about 60 MB at rest, under 700 MB at peak load far above expected usage</td></tr>
+      <tr><td>Database</td><td>PostgreSQL 15 or newer, about 100 MB today; managed service preferred</td></tr>
+      <tr><td>Runtime</td><td>Docker image (Node.js 22 LTS inside); no other software on the host</td></tr>
+      <tr><td>Network, inbound</td><td>One public HTTPS hostname reachable from the assistant platforms; TLS certificate (free via Let's Encrypt or the cloud provider)</td></tr>
+      <tr><td>Network, outbound</td><td>HTTPS to the market research API and to the identity provider; nothing else</td></tr>
+      <tr><td>Identity</td><td>An app registration in your identity provider (Entra ID: one enterprise application, sign-in scope only)</td></tr>
+      <tr><td>Backups</td><td>Nightly database dump, 30-day retention; provided by the managed database (A) or by AutoOffice (B)</td></tr>
+      <tr><td>Monitoring</td><td>Provided by AutoOffice from its own environment; needs only the public hostname</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Licences, subscriptions and dependencies</h3>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Item</th><th>Who provides</th><th>Cost (estimate)</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>AI assistant seats</td><td>Laser Components</td><td class="num">EUR 25 to 30 per user / month</td><td>Claude Team or Enterprise, ChatGPT Team or Enterprise, or Microsoft 365 Copilot. On organisation plans an administrator enables the connector once for everyone</td></tr>
+      <tr><td>LC Connect software</td><td>AutoOffice</td><td>Included in the service fee</td><td>Licence for the term of the agreement; full source in your repository; buy-out option in the agreement</td></tr>
+      <tr><td>Market research API</td><td>AutoOffice</td><td>Included up to EUR 100 / month</td><td>Perplexity, used for multi-source web research on prospects and markets; usage above the cap agreed in advance</td></tr>
+      <tr><td>Hosting</td><td>Laser Components (A) or AutoOffice (B)</td><td class="num">EUR 10 to 80 / month</td><td>See hosting options</td></tr>
+      <tr><td>Identity provider</td><td>Laser Components</td><td>Existing</td><td>No additional licence for a sign-in-only app registration</td></tr>
+      <tr><td>Domain and certificate</td><td>Laser Components</td><td>Existing domain; certificate free</td><td>A subdomain such as connect.lasercomponents.com</td></tr>
+      <tr><td>Open-source components</td><td>—</td><td>No fees</td><td>PostgreSQL, Node.js, Model Context Protocol SDK, all under permissive licences</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">Nothing in the stack is proprietary to a vendor you cannot leave. The assistant platforms are your subscriptions; the connector speaks an open protocol and works with any of them; the source is in a repository you control.</div>
+
+  <h2><small>Part 3</small>Service level agreement · draft</h2>
+  <p>Figures below are the proposed terms for discussion. Sections marked for legal review are standard clauses to be confirmed by both sides' advisers.</p>
+  <div class="clauses">
+
+  <h3>Parties and scope</h3>
+  <p>AutoOffice (provider) operates and maintains LC Connect for Laser Components (customer). The service covers the connector software, its deployment, monitoring, maintenance, support, and the development capacity described below. It does not cover the assistant platforms, the customer's network and devices, or the identity provider, which remain the customer's own services.</p>
+
+  <h3>Responsibilities</h3>
+  <div class="tablewrap">
+  <table class="sheet w10">
+    <thead><tr><th>Area</th><th>AutoOffice</th><th>Laser Components</th></tr></thead>
+    <tbody>
+      <tr><td>Software</td><td>Development, updates, security patches, compatibility with assistant platform changes</td><td>Timely acceptance of updates on staging</td></tr>
+      <tr><td>Operation</td><td>Deployment, monitoring, backups (option B), incident response, monthly uptime report</td><td>Hosting resources and access (option A), network and DNS</td></tr>
+      <tr><td>Identity and users</td><td>Integration with the identity provider; role and region model</td><td>Identity provider, user lifecycle, assignment of roles and regions, first-line help to own users</td></tr>
+      <tr><td>Data</td><td>Processing strictly as instructed; audit trail; export on request</td><td>Data ownership and accuracy; lawful basis for lead data; assistant subscriptions and their terms</td></tr>
+      <tr><td>Communication</td><td>Named contact; support channel; 48 h notice of maintenance</td><td>Named contact; reporting issues through the agreed channel; notice of infrastructure changes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Availability</h3>
+  <ul class="plain">
+    <li><b>Target: 99.5 % per calendar month</b> for the connector, measured by the provider's automated check, which signs in and runs a query through the public address every 5 minutes.</li>
+    <li>Excluded from the measurement: announced maintenance, outages of the assistant platforms, the identity provider, the customer's network or hosting resources (option A), and force majeure.</li>
+    <li>Automated recovery runs around the clock: a failed check restarts the affected component immediately and alerts the provider.</li>
+  </ul>
+
+  <h3>Support and incident handling</h3>
+  <ul class="plain">
+    <li><b>Channels.</b> The built-in reporting tool inside the assistant (<code>report_issue</code>), which reaches the provider's support channel directly, and email. Reports through the built-in tool carry the user, time and context automatically and are the preferred route.</li>
+    <li><b>Support hours.</b> Monday to Friday, 09:00 to 17:00 CET, excluding weekends and public holidays in Poland and Germany. Response times below count in these hours.</li>
+  </ul>
+  <div class="tablewrap">
+  <table class="sheet w10">
+    <thead><tr><th>Severity</th><th>Definition</th><th>Reaction</th><th>Resolution</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill sev">S1 · outage</span></td><td>Service unavailable for all users</td><td>Automated restart at once; human response within 4 support hours</td><td>Restoration target within one working day</td></tr>
+      <tr><td><span class="pill wait">S2 · defect</span></td><td>A function returns wrong results or fails for some users</td><td>Within 24 hours on working days when reported through the built-in tool</td><td>Fixed the same day where possible; otherwise a patch or workaround is applied and the full fix is scheduled</td></tr>
+      <tr><td><span class="pill ok">S3 · minor</span></td><td>Cosmetic or low-impact issue</td><td>Within 5 working days</td><td>Bundled into the next maintenance release</td></tr>
+      <tr><td><span class="pill ok">S4 · change</span></td><td>New feature or improvement request</td><td>Collected for the monthly review call</td><td>Delivered from the included development hours</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Maintenance and releases</h3>
+  <ul class="plain">
+    <li>Maintenance window: one evening per week (proposed Tuesday 20:00 to 22:00 CET), used only when needed, announced at least 48 hours ahead. Time inside the window is excluded from availability.</li>
+    <li>Every change is proven on staging before production. Releases are tagged in the customer's repository with release notes.</li>
+    <li>Changes to the assistant platforms' protocol or policies are followed within the included hours.</li>
+  </ul>
+
+  <h3>Fees</h3>
+  <div class="tablewrap">
+  <table class="sheet">
+    <thead><tr><th>Item</th><th>Amount</th><th>Includes</th></tr></thead>
+    <tbody>
+      <tr><td>Monthly service fee</td><td class="num">EUR 1,800 / month</td><td>Operation, monitoring, backups, security patches, support as above, <b>15 hours per month</b> of development and change work, and <b>market research API usage up to EUR 100 per month</b></td></tr>
+      <tr><td>Additional work</td><td class="num">EUR 85 / hour</td><td>Only for scoped projects outside routine maintenance and development, agreed in writing before work starts. Never applied to bug fixes or routine changes</td></tr>
+      <tr><td>Setup and migration</td><td class="num">EUR 3,500 once</td><td>Deployment into the chosen environment, identity-provider integration, data processing agreement, runbooks, handover. To be confirmed once the hosting option is chosen</td></tr>
+      <tr><td>Hosting (option B)</td><td>At cost</td><td>Passed through from the hosting provider without margin</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul class="plain">
+    <li>Included hours are for the month in which they accrue; up to 5 unused hours carry over to the following month. The monthly allowance can be raised by agreement.</li>
+    <li>Fees are invoiced monthly in advance. Invoices from AutoOffice (Poland) to Laser Components (Germany) are a reverse-charge B2B supply.</li>
+    <li>Fees are reviewed annually and may rise by 5 % or the consumer price index, whichever is higher.</li>
+  </ul>
+
+  <h3>Software licence</h3>
+  <ul class="plain">
+    <li>For the term of the agreement, Laser Components holds a non-exclusive licence to use LC Connect for its own business, with full source code in a repository it controls, and may let a third party operate it on its behalf.</li>
+    <li><b>Buy-out option.</b> At any time, or on termination, Laser Components may acquire a perpetual licence to its connector for a one-off fee equal to <b>six monthly service fees</b>, after which no further licence fees apply. Operation and support can continue under this agreement or be taken over by another provider.</li>
+    <li>AutoOffice retains ownership of the underlying framework and shared components and the right to use them for other customers. Laser Components' data, configuration and knowledge base are and remain Laser Components' property.</li>
+  </ul>
+
+  <h3>Data protection</h3>
+  <ul class="plain">
+    <li>Laser Components is the controller of the lead data; AutoOffice is a processor and acts only on documented instructions. A data processing agreement (Auftragsverarbeitungsvertrag) is attached as an annex and lists the sub-processors: the hosting provider, and Perplexity, which receives public company names and websites only.</li>
+    <li>The assistant platforms are the customer's own processors under the customer's subscriptions.</li>
+    <li>Personal data is stored in the EU. On termination, data is exported to the customer and deleted from the provider's systems within 30 days, backups included after their retention period.</li>
+  </ul>
+
+  <h3>Security</h3>
+  <ul class="plain">
+    <li>Sign-in via the customer's identity provider; role-based authorisation on every operation; audit trail of every write, including refused attempts.</li>
+    <li>Encrypted transport; secrets held outside the source code; dependencies checked for known vulnerabilities on every release.</li>
+    <li>Security incidents affecting customer data are reported to the customer's named contact without undue delay and within 24 hours of confirmation.</li>
+  </ul>
+
+  <h3>Reporting and governance</h3>
+  <ul class="plain">
+    <li>Monthly: uptime figure from the monitoring record, incidents and their resolution, hours used, and the change log.</li>
+    <li>Monthly review call (30 to 60 minutes) to prioritise change requests and plan the next month's development hours.</li>
+  </ul>
+
+  <h3>Term and exit</h3>
+  <ul class="plain">
+    <li>Initial term 12 months, then renewing for 12-month periods; termination with 3 months' notice to the end of a term.</li>
+    <li>On exit: the source code is already in the customer's repository; a complete database export is provided; AutoOffice supports the transition to the customer or a new provider for 30 days within the final month's included hours.</li>
+  </ul>
+
+  <h3>Liability <span class="pill wait">legal review</span></h3>
+  <p>Each party's liability under this agreement is limited to the fees paid in the preceding 12 months, except for wilful misconduct, gross negligence, and breaches of data protection obligations, where statutory rules apply. Standard wording to be aligned by both parties' advisers.</p>
+
+  </div>
+
+  <footer>
+    <div>AutoOffice · LC Connect</div>
+    <div>Draft for discussion · September 2026</div>
+  </footer>
+</div>
