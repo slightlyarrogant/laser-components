@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
+import { config } from "../config.js";
 
 /**
  * report_issue — forwards a bug/data/connector issue to the administrator via
@@ -12,8 +13,12 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
  *   WHATSAPP_RECIPIENT  — target JID/lid
  */
 
-const WHATSAPP_URL = process.env.WHATSAPP_URL || "http://localhost:8092";
-const WHATSAPP_RECIPIENT = process.env.WHATSAPP_RECIPIENT || "256422885490913@lid";
+// Read through the validated config rather than process.env so the bridge URL
+// is URL-checked at boot and has a single documented default (the live bridge
+// listens on 3092; the old 8092 default pointed at a dead port).
+const WHATSAPP_URL = config.WHATSAPP_URL;
+const WHATSAPP_RECIPIENT = config.WHATSAPP_RECIPIENT;
+const WHATSAPP_TIMEOUT_MS = 30_000;
 
 const SEVERITY_EMOJI: Record<string, string> = {
   low: "🟡",
@@ -46,7 +51,7 @@ export function registerReportTools(
     {
       title: "Report an issue",
       description: [
-        "Send a bug / data problem / connector issue report about LC Connect itself",
+        "report_issue — send a bug / data problem / connector issue report about LC Connect itself",
         "to the administrator via WhatsApp.",
         "USE WHEN: the user explicitly asks to report a bug, a data problem, or a",
         "connector/tool failure to the admin; an LC Connect tool returned wrong data",
@@ -60,11 +65,17 @@ export function registerReportTools(
         "cannot redirect it.",
       ].join("\n"),
       inputSchema: {
-        title: z.string().describe("Short title summarizing the issue (required)."),
+        title: z
+          .string()
+          .min(1)
+          .max(200)
+          .describe("Short title summarizing the issue (required, max 200 characters)."),
         description: z
           .string()
+          .min(1)
+          .max(4000)
           .describe(
-            "Detailed description of the issue, including steps to reproduce if applicable (required)."
+            "Detailed description of the issue, including steps to reproduce if applicable (required, max 4000 characters)."
           ),
         severity: z
           .enum(["low", "medium", "high", "critical"])
@@ -110,6 +121,7 @@ export function registerReportTools(
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ to: WHATSAPP_RECIPIENT, text: message }),
+          signal: AbortSignal.timeout(WHATSAPP_TIMEOUT_MS),
         });
 
         const result = (await response.json()) as { ok: boolean; error?: string };
@@ -129,16 +141,17 @@ export function registerReportTools(
           `[PRESENTATION] Issue "${title}" sent to the administrator. Confirm briefly.`
         ) as any;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        // Delivery failed — a warning card, not success. The issue is still
-        // recorded; the model should say delivery failed but it was noted.
+        // Delivery failed — a warning card, not success. The raw error stays in
+        // the server log: it can carry the bridge URL, upstream hostnames and
+        // stack detail, none of which belongs in a model-visible string.
+        console.error("[report_issue] WhatsApp delivery failed:", err);
         return buildActionEnvelope(
           {
             status: "warning",
             title: "Issue recorded, delivery failed",
-            detail: `WhatsApp notification did not get through: ${errorMsg}`,
+            detail: "Delivery failed, please retry.",
           },
-          `[PRESENTATION] Issue recorded, but the WhatsApp notification did not get through. Inform the user of this.`
+          `[PRESENTATION] Issue recorded, but the notification did not get through. Tell the user delivery failed and to please retry — do not speculate about the cause.`
         ) as any;
       }
     }

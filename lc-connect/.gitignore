@@ -5,6 +5,7 @@ server.log
 db/laser_components_full.sql
 
 # OAuth runtime state — secrets, never commit
+state/
 dynamic_clients.json
 refresh_tokens.json
 
@@ -30,3 +31,6 @@ demo/film/audio/
 # Demo access sheet — contains demo credentials; keep local, do not publish
 demo/presentation/access-sheet.html
 demo/presentation/lc-connect-demo-access.pdf
+
+# local credential sheet (never commit)
+demo/ACCESS.local.md

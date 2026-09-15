@@ -5,6 +5,8 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { getCurrentUser } from "../core/current-user.js";
+import { requireRole } from "../core/access.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
@@ -46,7 +48,7 @@ export function registerProductsTools(
     {
       title: "Products",
       description: [
-        "List/filter the product catalog with pagination, optionally by category,",
+        "get_products — list/filter the product catalog with pagination, optionally by category,",
         "subcategory, application, or free-text search.",
         "USE WHEN: the user wants to browse/list/filter products by known IDs or a",
         "text fragment, paginate through the catalog, or pull product rows for analysis.",
@@ -116,8 +118,6 @@ export function registerProductsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const limit = enforceLimit(a.limit);
       const offset = a.offset || 0;
       const categoryId = a.categoryId;
@@ -215,7 +215,7 @@ export function registerProductsTools(
     {
       title: "Search products",
       description: [
-        "Fuzzy product lookup by a free-text phrase across name, description, and",
+        "search_products — fuzzy product lookup by a free-text phrase across name, description, and",
         "subcategory name.",
         "USE WHEN: the user gives a product/category/subcategory phrase and wants",
         "matching catalog items (e.g. to resolve a product ID).",
@@ -245,8 +245,6 @@ export function registerProductsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const query = a.query;
       const products = await prisma.product.findMany({
         where: {
@@ -294,7 +292,7 @@ export function registerProductsTools(
     {
       title: "Create product",
       description: [
-        "Create a product catalog record.",
+        "create_product — create a product catalog record.",
         "USE WHEN: the user explicitly asks to create a product. WRITE ACTION —",
         "confirm intent first.",
         "DO NOT USE WHEN: the user is asking whether a product exists -> use",
@@ -302,6 +300,7 @@ export function registerProductsTools(
         "RETURNS: an ACTION confirmation card on success (the created product's id +",
         "name); the model should confirm briefly. Subcategory+category context is in",
         "structuredContent.",
+        "ROLES: requires ADMIN or RESEARCHER — the catalog is shared company data, so a\n        SALES user must ask a researcher or an admin to add the product.",
         "GOTCHAS: name and subcategoryId are required; resolve subcategoryId with",
         "get_categories. Fails (P2002) if a product with the same name already exists",
         "in that subcategory.",
@@ -330,7 +329,8 @@ export function registerProductsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
 
       if (!a.name || !a.subcategoryId) {
         throw new Error("Product name and subcategoryId are required");
@@ -383,13 +383,14 @@ export function registerProductsTools(
     {
       title: "Delete product",
       description: [
-        "Permanently delete a product record by ID.",
+        "delete_product — permanently delete a product record by ID.",
         "USE WHEN: the user explicitly asks to delete a product by ID. DESTRUCTIVE —",
         "confirm intent first.",
         "DO NOT USE WHEN: the user asks to archive, hide, or clean duplicate data",
         "without explicit deletion.",
         "RETURNS: an ACTION confirmation card on success (the deleted product's id +",
         "name); the model should confirm briefly.",
+        "ROLES: requires ADMIN — deleting a catalog record touches every user's leads.",
         "GOTCHAS: deletion is refused if the product has any leads or application",
         "mappings; inspect get_products/get_product_applications and remove those",
         "associations first.",
@@ -409,7 +410,8 @@ export function registerProductsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN");
 
       if (!a.id) throw new Error("Product ID is required");
       const product = await prisma.product.findUnique({
@@ -448,7 +450,7 @@ export function registerProductsTools(
     {
       title: "Categories",
       description: [
-        "List product categories (and optionally their subcategories with product counts).",
+        "get_categories — list product categories (and optionally their subcategories with product counts).",
         "USE WHEN: the user needs category/subcategory IDs or wants to understand the",
         "product taxonomy.",
         "DO NOT USE WHEN: the user wants product rows -> use get_products/search_products.",
@@ -479,8 +481,6 @@ export function registerProductsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const limit = a.limit || 20;
       const includeSubcategories = a.includeSubcategories !== false;
 
@@ -544,7 +544,7 @@ export function registerProductsTools(
   server.tool(
     "find_category_like_products",
     [
-      "Find product rows that look like category/landing pages rather than real",
+      "find_category_like_products — find product rows that look like category/landing pages rather than real",
       "SKU/product records (data-quality cleanup candidates).",
       "USE WHEN: the user asks for cleanup candidates or rows that may be mis-scraped",
       "category pages.",
@@ -559,8 +559,6 @@ export function registerProductsTools(
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
-      void getTenantSub();
-
       const limit = a.limit || 20;
       const suspiciousProducts = await prisma.product.findMany({
         where: {

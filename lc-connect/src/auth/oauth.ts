@@ -1,6 +1,7 @@
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { createRequire } from "node:module";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
@@ -20,6 +21,8 @@ interface AuthCode {
   email: string;
   clientId: string;
   redirectUri: string;
+  /** PKCE S256 challenge, when the client sent one at /authorize. */
+  codeChallenge?: string;
   expiresAt: number;
 }
 
@@ -29,7 +32,8 @@ function issueAuthCode(
   sub: string,
   email: string,
   clientId: string,
-  redirectUri: string
+  redirectUri: string,
+  codeChallenge?: string
 ): string {
   const code = randomUUID();
   authCodes.set(code, {
@@ -37,6 +41,7 @@ function issueAuthCode(
     email,
     clientId,
     redirectUri,
+    ...(codeChallenge ? { codeChallenge } : {}),
     expiresAt: Date.now() + config.AUTH_CODE_TTL_SECONDS * 1000,
   });
   return code;
@@ -69,8 +74,12 @@ interface RefreshToken {
 }
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// State lives under config.STATE_DIR (created at boot). An explicit
+// REFRESH_TOKENS_PATH env still wins, so existing deploys that pin a path keep
+// working; the default no longer depends on process.cwd() — resolving against
+// cwd is what silently dropped the whole registry when the repo was re-cloned.
 const REFRESH_TOKENS_PATH = path.resolve(
-  process.env.REFRESH_TOKENS_PATH ?? path.join(process.cwd(), "refresh_tokens.json")
+  process.env.REFRESH_TOKENS_PATH ?? path.join(config.STATE_DIR, "refresh_tokens.json")
 );
 
 const refreshTokens = new Map<string, RefreshToken>();
@@ -91,15 +100,25 @@ function loadRefreshTokens(): void {
   }
 }
 
+// Persisted off the request path: the token grant does not wait for the disk
+// write. Writes are serialised through a single promise chain so two concurrent
+// grants cannot interleave and truncate the file.
+let refreshWriteChain: Promise<void> = Promise.resolve();
+
 function saveRefreshTokens(): void {
-  try {
-    const now = Date.now();
-    const active = [...refreshTokens.entries()].filter(([, e]) => e.expiresAt > now);
-    fs.writeFileSync(REFRESH_TOKENS_PATH, JSON.stringify(active), "utf8");
-    fs.chmodSync(REFRESH_TOKENS_PATH, 0o600);
-  } catch {
-    console.error("[oauth] Failed to persist refresh tokens to", REFRESH_TOKENS_PATH);
-  }
+  refreshWriteChain = refreshWriteChain.then(async () => {
+    try {
+      const now = Date.now();
+      const active = [...refreshTokens.entries()].filter(([, e]) => e.expiresAt > now);
+      await fsp.writeFile(REFRESH_TOKENS_PATH, JSON.stringify(active), {
+        encoding: "utf8",
+        mode: 0o600,
+      });
+      await fsp.chmod(REFRESH_TOKENS_PATH, 0o600);
+    } catch {
+      console.error("[oauth] Failed to persist refresh tokens to", REFRESH_TOKENS_PATH);
+    }
+  });
 }
 
 loadRefreshTokens();
@@ -118,9 +137,10 @@ function issueRefreshToken(sub: string, email: string, clientId: string): string
 
 function consumeRefreshToken(token: string): RefreshToken | undefined {
   const entry = refreshTokens.get(token);
+  if (!entry) return undefined; // unknown token — nothing changed, no write
   refreshTokens.delete(token); // single-use rotation
   saveRefreshTokens();
-  if (!entry || Date.now() > entry.expiresAt) return undefined;
+  if (Date.now() > entry.expiresAt) return undefined;
   return entry;
 }
 
@@ -141,27 +161,72 @@ setInterval(() => {
 // ---------------------------------------------------------------------------
 
 const DYNAMIC_CLIENTS_PATH = path.resolve(
-  process.env.DYNAMIC_CLIENTS_PATH ?? path.join(process.cwd(), "dynamic_clients.json")
+  process.env.DYNAMIC_CLIENTS_PATH ?? path.join(config.STATE_DIR, "dynamic_clients.json")
 );
 
-function loadDynamicClients(): Set<string> {
+interface RegisteredClient {
+  /** Exact redirect URIs supplied at registration — the /authorize allow-list. */
+  redirectUris: string[];
+  createdAt: number;
+}
+
+const dynamicClients = new Map<string, RegisteredClient>();
+
+/** An absolute http(s) URL — the only redirect target shape we register. */
+export function isAbsoluteHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0) return false;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function loadDynamicClients(): void {
   try {
     const raw = fs.readFileSync(DYNAMIC_CLIENTS_PATH, "utf8");
-    return new Set(JSON.parse(raw) as string[]);
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return;
+    for (const item of parsed) {
+      // Legacy on-disk format: a bare array of client_id strings, with no
+      // redirect URIs recorded. Such a client keeps an empty allow-list, so
+      // /authorize rejects it until the connector re-registers — which is
+      // exactly the protection this change adds.
+      if (typeof item === "string") {
+        dynamicClients.set(item, { redirectUris: [], createdAt: 0 });
+        continue;
+      }
+      if (Array.isArray(item) && typeof item[0] === "string") {
+        const meta = item[1] as Partial<RegisteredClient> | undefined;
+        dynamicClients.set(item[0], {
+          redirectUris: Array.isArray(meta?.redirectUris)
+            ? meta.redirectUris.filter(isAbsoluteHttpUrl)
+            : [],
+          createdAt: typeof meta?.createdAt === "number" ? meta.createdAt : 0,
+        });
+      }
+    }
   } catch {
-    return new Set<string>();
+    // missing or corrupt file is fine on first run
   }
 }
 
-function saveDynamicClients(set: Set<string>): void {
+function saveDynamicClients(): void {
   try {
-    fs.writeFileSync(DYNAMIC_CLIENTS_PATH, JSON.stringify([...set]), "utf8");
+    fs.writeFileSync(
+      DYNAMIC_CLIENTS_PATH,
+      JSON.stringify([...dynamicClients.entries()]),
+      { encoding: "utf8", mode: 0o600 }
+    );
+    fs.chmodSync(DYNAMIC_CLIENTS_PATH, 0o600);
   } catch {
     console.error("[oauth] Failed to persist dynamic clients to", DYNAMIC_CLIENTS_PATH);
   }
 }
 
-const dynamicClients = loadDynamicClients();
+loadDynamicClients();
 
 // LC accepts any registered client. Claude.ai registers dynamically via /register;
 // we do not maintain a static allow-list, so an unknown client_id that has gone
@@ -169,6 +234,43 @@ const dynamicClients = loadDynamicClients();
 // no static OAUTH_CLIENT_IDS env, so registration is the sole gate.)
 function isKnownClient(clientId: string): boolean {
   return dynamicClients.has(clientId);
+}
+
+/**
+ * Exact-match redirect_uri check. Without it, anyone who can call the
+ * unauthenticated /register can point a login at their own callback and
+ * harvest the authorization code of whoever signs in.
+ */
+function isRegisteredRedirectUri(clientId: string, redirectUri: string): boolean {
+  return dynamicClients.get(clientId)?.redirectUris.includes(redirectUri) ?? false;
+}
+
+// ---------------------------------------------------------------------------
+// PKCE (RFC 7636, S256 only)
+// ---------------------------------------------------------------------------
+
+// Phase 0 accepts a flow without PKCE (a saved connector may not send one) but
+// warns once per client so Phase 1 can flip this to a hard rejection knowing
+// who would break.
+const pkceWarnedClients = new Set<string>();
+
+function warnMissingPkce(clientId: string): void {
+  if (pkceWarnedClients.has(clientId)) return;
+  if (pkceWarnedClients.size > 1000) pkceWarnedClients.clear();
+  pkceWarnedClients.add(clientId);
+  console.warn(
+    `[oauth] client ${clientId} authorized without PKCE (no code_challenge) — permitted for now, will be rejected in Phase 1`
+  );
+}
+
+/** base64url(sha256(verifier)) === challenge, compared in constant time. */
+function verifyPkceChallenge(verifier: string, challenge: string): boolean {
+  const computed = Buffer.from(
+    createHash("sha256").update(verifier, "ascii").digest("base64url")
+  );
+  const expected = Buffer.from(challenge);
+  if (computed.length !== expected.length) return false;
+  return timingSafeEqual(computed, expected);
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +294,7 @@ export async function signAccessToken(
   return new SignJWT({ userId, email })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuer(config.JWT_ISSUER)
+    .setAudience(config.JWT_AUDIENCE)
     .setSubject(sub)
     .setIssuedAt()
     .setExpirationTime(`${config.JWT_ACCESS_TOKEN_TTL_SECONDS}s`)
@@ -199,9 +302,14 @@ export async function signAccessToken(
 }
 
 export async function verifyAccessToken(token: string): Promise<AccessTokenPayload> {
-  // No issuer constraint on verify: tokens minted by the old jsonwebtoken-based
-  // server carried no `iss`, so requiring one would reject still-valid tokens.
-  const { payload } = await jwtVerify(token, jwtSecret);
+  // Issuer AND audience are both constrained: a signature-only check accepts
+  // any HS256 token minted with this secret for any other service that happens
+  // to share it. Tokens issued before this change carry no `aud` and are
+  // rejected — the connector re-authorizes once.
+  const { payload } = await jwtVerify(token, jwtSecret, {
+    issuer: config.JWT_ISSUER,
+    audience: config.JWT_AUDIENCE,
+  });
   return payload as AccessTokenPayload;
 }
 
@@ -222,10 +330,18 @@ function loginFormHtml(params: {
   clientId: string;
   redirectUri: string;
   state: string;
+  codeChallenge?: string;
   error?: string;
 }): string {
   const errorHtml = params.error
     ? `<div class="error">${escapeHtml(params.error)}</div>`
+    : "";
+  // The PKCE challenge arrives on the GET and must survive the login POST so
+  // the issued code stays bound to it. S256 is the only method we accept, so
+  // the method field is a constant rather than client-echoed input.
+  const pkceHtml = params.codeChallenge
+    ? `<input type="hidden" name="code_challenge" value="${escapeHtml(params.codeChallenge)}">
+      <input type="hidden" name="code_challenge_method" value="S256">`
     : "";
   return `<!DOCTYPE html>
 <html lang="en">
@@ -259,6 +375,7 @@ function loginFormHtml(params: {
       <input type="hidden" name="client_id" value="${escapeHtml(params.clientId)}">
       <input type="hidden" name="redirect_uri" value="${escapeHtml(params.redirectUri)}">
       <input type="hidden" name="state" value="${escapeHtml(params.state)}">
+      ${pkceHtml}
       <label for="email">Email</label>
       <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
       <label for="password">Password</label>
@@ -300,21 +417,50 @@ oauthRouter.get("/.well-known/oauth-authorization-server", (c) => {
  * Accepts any client metadata and issues a new client_id.
  */
 oauthRouter.post("/register", async (c) => {
-  const clientId = randomUUID();
-  dynamicClients.add(clientId);
-  saveDynamicClients(dynamicClients);
   let body: Record<string, unknown> = {};
   try {
     body = (await c.req.json()) as Record<string, unknown>;
   } catch {
-    /* no body required */
+    /* handled by the redirect_uris check below */
   }
+
+  // redirect_uris is what /authorize matches against, so it is mandatory and
+  // must be absolute http(s). Previously it was echoed back but never stored,
+  // which left /authorize with nothing to validate against.
+  const rawUris = body.redirect_uris;
+  if (!Array.isArray(rawUris) || rawUris.length === 0) {
+    return c.json(
+      {
+        error: "invalid_redirect_uri",
+        error_description: "redirect_uris is required and must be a non-empty array",
+      },
+      400
+    );
+  }
+  const redirectUris = rawUris.filter(isAbsoluteHttpUrl);
+  if (redirectUris.length !== rawUris.length) {
+    return c.json(
+      {
+        error: "invalid_redirect_uri",
+        error_description: "every redirect_uri must be an absolute http(s) URL",
+      },
+      400
+    );
+  }
+
+  const clientId = randomUUID();
+  dynamicClients.set(clientId, { redirectUris, createdAt: Date.now() });
+  saveDynamicClients();
+  console.log(
+    `[oauth] registered client ${clientId} with redirect_uris ${redirectUris.join(" ")}`
+  );
+
   return c.json(
     {
       client_id: clientId,
       client_id_issued_at: Math.floor(Date.now() / 1000),
       client_secret_expires_at: 0,
-      redirect_uris: body.redirect_uris ?? ["https://claude.ai/api/mcp/auth_callback"],
+      redirect_uris: redirectUris,
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "none",
@@ -327,7 +473,8 @@ oauthRouter.post("/register", async (c) => {
  * GET /authorize — display the LC login form.
  */
 function handleAuthorizeGet(c: Context) {
-  const { client_id, redirect_uri, response_type, state } = c.req.query();
+  const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method } =
+    c.req.query();
 
   if (response_type !== "code") {
     return c.text("unsupported_response_type: only 'code' is supported", 400);
@@ -338,17 +485,63 @@ function handleAuthorizeGet(c: Context) {
   if (!redirect_uri) {
     return c.text("invalid_request: redirect_uri is required", 400);
   }
+  // Checked BEFORE the login form is rendered: an unvalidated redirect_uri
+  // turns this page into a credential-harvest / code-theft vector even if the
+  // user never submits it.
+  if (!isRegisteredRedirectUri(client_id, redirect_uri)) {
+    console.warn(
+      `[oauth] /authorize rejected: redirect_uri ${redirect_uri} is not registered for client ${client_id}`
+    );
+    return c.text(
+      "invalid_request: redirect_uri does not match a redirect URI registered for this client",
+      400
+    );
+  }
+  const pkceError = validatePkceRequest(code_challenge, code_challenge_method, client_id);
+  if (pkceError) return c.text(pkceError, 400);
 
   const authUrl = new URL("/authorize", config.PUBLIC_BASE_URL);
   authUrl.searchParams.set("client_id", client_id);
   authUrl.searchParams.set("redirect_uri", redirect_uri);
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("state", state ?? "");
+  if (code_challenge) {
+    authUrl.searchParams.set("code_challenge", code_challenge);
+    authUrl.searchParams.set("code_challenge_method", "S256");
+  }
   emitAuthRequest(authUrl.toString());
 
   return c.html(
-    loginFormHtml({ clientId: client_id, redirectUri: redirect_uri, state: state ?? "" })
+    loginFormHtml({
+      clientId: client_id,
+      redirectUri: redirect_uri,
+      state: state ?? "",
+      codeChallenge: code_challenge,
+    })
   );
+}
+
+/**
+ * Shared PKCE gate for GET and POST /authorize. Returns an error string when
+ * the request must be refused, or undefined when it may proceed (including the
+ * no-PKCE case, which only warns — Phase 1 turns that into a rejection).
+ */
+function validatePkceRequest(
+  codeChallenge: string | undefined,
+  codeChallengeMethod: string | undefined,
+  clientId: string
+): string | undefined {
+  if (!codeChallenge) {
+    warnMissingPkce(clientId);
+    return undefined;
+  }
+  if (codeChallengeMethod !== "S256") {
+    return "invalid_request: code_challenge_method must be S256";
+  }
+  if (!/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge)) {
+    return "invalid_request: code_challenge must be a base64url-encoded SHA-256 digest";
+  }
+  return undefined;
 }
 
 /**
@@ -363,7 +556,8 @@ async function handleAuthorizePost(c: Context) {
     return c.text("invalid_request: could not parse form body", 400);
   }
 
-  const { client_id, redirect_uri, state, email, password } = body;
+  const { client_id, redirect_uri, state, email, password, code_challenge, code_challenge_method } =
+    body;
 
   const fail = (msg: string, status: 400 | 401 = 401) =>
     c.html(
@@ -371,6 +565,7 @@ async function handleAuthorizePost(c: Context) {
         clientId: client_id ?? "",
         redirectUri: redirect_uri ?? "",
         state: state ?? "",
+        codeChallenge: code_challenge,
         error: msg,
       }),
       status
@@ -382,6 +577,19 @@ async function handleAuthorizePost(c: Context) {
   if (!redirect_uri) {
     return c.text("invalid_request: redirect_uri is required", 400);
   }
+  // Re-checked on the POST: the hidden field is attacker-controllable, so the
+  // GET-time check alone would not stop a forged form post.
+  if (!isRegisteredRedirectUri(client_id, redirect_uri)) {
+    console.warn(
+      `[oauth] POST /authorize rejected: redirect_uri ${redirect_uri} is not registered for client ${client_id}`
+    );
+    return c.text(
+      "invalid_request: redirect_uri does not match a redirect URI registered for this client",
+      400
+    );
+  }
+  const pkceError = validatePkceRequest(code_challenge, code_challenge_method, client_id);
+  if (pkceError) return c.text(pkceError, 400);
   if (!email || !password) {
     return fail("Email and password are required", 400);
   }
@@ -393,8 +601,12 @@ async function handleAuthorizePost(c: Context) {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return fail("Invalid email or password");
 
+    // A deactivated account is refused with the SAME message as a bad password:
+    // "this account exists but is switched off" is an enumeration oracle.
+    if (!user.isActive) return fail("Invalid email or password");
+
     const sub = String(user.id);
-    const code = issueAuthCode(sub, user.email, client_id, redirect_uri);
+    const code = issueAuthCode(sub, user.email, client_id, redirect_uri, code_challenge);
 
     const target = new URL(redirect_uri);
     target.searchParams.set("code", code);
@@ -435,7 +647,7 @@ async function handleTokenPost(c: Context) {
     }
   }
 
-  const { grant_type, code, redirect_uri, client_id, refresh_token } = params;
+  const { grant_type, code, redirect_uri, client_id, refresh_token, code_verifier } = params;
 
   if (!client_id || !isKnownClient(client_id)) {
     return c.json({ error: "unauthorized_client" }, 401);
@@ -474,6 +686,16 @@ async function handleTokenPost(c: Context) {
     return c.json({ error: "invalid_request", error_description: "code is required" }, 400);
   }
 
+  // RFC 6749 §4.1.3: redirect_uri was present in the authorization request, so
+  // it MUST be sent here and MUST match. It was previously optional, which let
+  // a stolen code be redeemed without knowing the original callback.
+  if (!redirect_uri) {
+    return c.json(
+      { error: "invalid_request", error_description: "redirect_uri is required" },
+      400
+    );
+  }
+
   const entry = consumeAuthCode(code);
   if (!entry) {
     return c.json({ error: "invalid_grant", error_description: "code is invalid or expired" }, 400);
@@ -481,8 +703,22 @@ async function handleTokenPost(c: Context) {
   if (entry.clientId !== client_id) {
     return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
   }
-  if (redirect_uri && entry.redirectUri !== redirect_uri) {
+  if (entry.redirectUri !== redirect_uri) {
     return c.json({ error: "invalid_grant", error_description: "redirect_uri mismatch" }, 400);
+  }
+  if (entry.codeChallenge) {
+    if (!code_verifier) {
+      return c.json(
+        { error: "invalid_request", error_description: "code_verifier is required" },
+        400
+      );
+    }
+    if (!verifyPkceChallenge(code_verifier, entry.codeChallenge)) {
+      return c.json(
+        { error: "invalid_grant", error_description: "code_verifier does not match code_challenge" },
+        400
+      );
+    }
   }
 
   const accessToken = await signAccessToken(entry.sub, Number(entry.sub), entry.email);

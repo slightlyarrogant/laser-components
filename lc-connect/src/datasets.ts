@@ -24,16 +24,29 @@ import {
 // is an opaque random handle with a TTL, identical to Vendo's model.
 // ---------------------------------------------------------------------------
 
-const TTL_MS = 4 * 60 * 60 * 1000; // 4 hours — generous, reading is free.
+// 30 minutes: the CSV button is clicked (or not) within seconds of the widget
+// rendering. A 4-hour window only widened the guessing window on an
+// unauthenticated route that serves lead PII.
+const TTL_MS = 30 * 60 * 1000;
+// Hard ceilings so the store cannot become the process's memory leak. Measured:
+// ~320 KB per 396-row get_leads result, so 50 entries is the practical cap long
+// before the byte cap bites on normal use.
+const MAX_ENTRIES = 50;
+const MAX_BYTES = 50 * 1024 * 1024;
 
 interface DatasetEntry {
   rows: DatasetRow[];
   title: string;
   columns: string[]; // CSV column order (curated key columns lead).
   expiresAt: number;
+  /** Rough retained size, measured once at insert (JSON length of the rows). */
+  bytes: number;
 }
 
+// Insertion-ordered, used as an LRU: a hit re-inserts the entry at the tail, so
+// the head is always the least-recently-used entry.
 const datasets = new Map<string, DatasetEntry>();
+let totalBytes = 0;
 
 // Privacy: keys matching this pattern are credentials/secrets that must NEVER
 // reach the widget, model, or CSV. Stripped centrally at the okList boundary so
@@ -69,9 +82,45 @@ export function stripSensitive(rows: unknown[]): unknown[] {
   });
 }
 
+function dropEntry(id: string): void {
+  const entry = datasets.get(id);
+  if (!entry) return;
+  datasets.delete(id);
+  totalBytes -= entry.bytes;
+  if (totalBytes < 0) totalBytes = 0;
+}
+
 function prune() {
   const now = Date.now();
-  for (const [id, e] of datasets) if (e.expiresAt < now) datasets.delete(id);
+  for (const [id, e] of datasets) if (e.expiresAt < now) dropEntry(id);
+}
+
+/**
+ * Evict least-recently-used entries until both caps hold. The most recent entry
+ * is never evicted by the byte cap — a single oversized result stays
+ * downloadable rather than 404-ing the button that was just rendered.
+ */
+function evictToCaps(): void {
+  while (
+    datasets.size > MAX_ENTRIES ||
+    (totalBytes > MAX_BYTES && datasets.size > 1)
+  ) {
+    const oldest = datasets.keys().next();
+    if (oldest.done) break;
+    dropEntry(oldest.value);
+  }
+}
+
+// TTL expiry used to happen only on write, so a quiet server held every dataset
+// from its last busy minute indefinitely.
+setInterval(prune, 60_000).unref?.();
+
+function estimateBytes(rows: unknown): number {
+  try {
+    return JSON.stringify(rows)?.length ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -86,13 +135,19 @@ export function storeDataset(
 ): string {
   prune();
   const safeRows = stripSensitive(rows) as DatasetRow[];
-  const id = randomUUID().replace(/-/g, "").slice(0, 12);
+  // Full 128-bit handle (32 hex chars). The old 12-hex handle was the only
+  // secret protecting an unauthenticated PII download.
+  const id = randomUUID().replace(/-/g, "");
+  const bytes = estimateBytes(safeRows);
   datasets.set(id, {
     rows: safeRows,
     title,
     columns,
     expiresAt: Date.now() + TTL_MS,
+    bytes,
   });
+  totalBytes += bytes;
+  evictToCaps();
   return id;
 }
 
@@ -100,9 +155,12 @@ export function getDataset(id: string): DatasetEntry | undefined {
   const e = datasets.get(id);
   if (!e) return undefined;
   if (e.expiresAt < Date.now()) {
-    datasets.delete(id);
+    dropEntry(id);
     return undefined;
   }
+  // Re-insert at the tail: this entry is now the most recently used.
+  datasets.delete(id);
+  datasets.set(id, e);
   return e;
 }
 
@@ -187,7 +245,10 @@ export function datasetCsvHandler(id: string): Response | null {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${safeTitle}.csv"`,
-      "Access-Control-Allow-Origin": "*",
+      // No ACAO: the browser downloads this directly from the widget's link, so
+      // nothing needs cross-origin *read* access to lead PII. No caching either
+      // — the handle expires but a proxy copy would not.
+      "Cache-Control": "no-store",
     },
   });
 }

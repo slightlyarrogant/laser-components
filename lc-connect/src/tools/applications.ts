@@ -5,6 +5,8 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { getCurrentUser } from "../core/current-user.js";
+import { requireRole } from "../core/access.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
@@ -37,7 +39,7 @@ export function registerApplicationsTools(
     {
       title: "Applications",
       description: [
-        "List known industrial applications (with lead/mapping counts), optionally",
+        "get_applications — list known industrial applications (with lead/mapping counts), optionally",
         "filtered by status.",
         "USE WHEN: the user asks to list/filter applications or needs application IDs.",
         "DO NOT USE WHEN: the user wants product↔application mappings -> use",
@@ -67,8 +69,6 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const limit = a.limit || 10;
       const whereConditions: any = {};
       if (a.status) whereConditions.status = a.status;
@@ -116,13 +116,14 @@ export function registerApplicationsTools(
     {
       title: "Create application",
       description: [
-        "Create a new application record.",
+        "create_application — create a new application record.",
         "USE WHEN: the user explicitly asks to create an application. WRITE ACTION —",
         "confirm intent first.",
         "DO NOT USE WHEN: the user is researching whether an application exists ->",
         "use get_applications first.",
         "RETURNS: an ACTION confirmation card on success (the created application's id +",
         "name); the model should confirm briefly.",
+        "ROLES: requires ADMIN or RESEARCHER — the application taxonomy is shared\n        company data.",
         "GOTCHAS: name is required; status defaults to 'ACTIVE' and must be a valid",
         "ApplicationStatus value.",
       ].join("\n"),
@@ -147,7 +148,8 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
 
       if (!a.name) throw new Error("Application name is required");
 
@@ -183,7 +185,7 @@ export function registerApplicationsTools(
     {
       title: "Product↔application mappings",
       description: [
-        "List product↔application mappings, filtered by product and/or application.",
+        "get_product_applications — list product↔application mappings, filtered by product and/or application.",
         "USE WHEN: the user asks which products are mapped to an application or which",
         "applications are mapped to a product.",
         "DO NOT USE WHEN: the user asks to create a mapping -> use",
@@ -211,8 +213,6 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const limit = a.limit || 20;
       const whereConditions: any = {};
       if (a.productId) whereConditions.productId = a.productId;
@@ -277,13 +277,14 @@ export function registerApplicationsTools(
     {
       title: "Map product → application",
       description: [
-        "Map/link a product to an application.",
+        "create_product_application — map/link a product to an application.",
         "USE WHEN: the user explicitly asks to map a product to an application.",
         "WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user asks to inspect existing mappings -> use",
         "get_product_applications.",
         "RETURNS: an ACTION confirmation card on success (product → application); the",
         "model should confirm briefly. Full mapping is in structuredContent.",
+        "ROLES: requires ADMIN or RESEARCHER — product↔application mappings are shared\n        company data.",
         "GOTCHAS: productId and applicationId are required; resolve both first and",
         "never guess IDs.",
       ].join("\n"),
@@ -308,7 +309,8 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
 
       if (!a.productId || !a.applicationId) {
         throw new Error("productId and applicationId are required");
@@ -349,7 +351,7 @@ export function registerApplicationsTools(
     {
       title: "Regions",
       description: [
-        "List regions (optionally with their countries and lead counts).",
+        "get_regions — list regions (optionally with their countries and lead counts).",
         "USE WHEN: the user needs region/country IDs or asks about geographic coverage.",
         "DO NOT USE WHEN: the user wants lead records by region -> use get_leads after",
         "resolving the region/country IDs here.",
@@ -379,8 +381,6 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       const limit = a.limit || 20;
       const includeCountries = a.includeCountries !== false;
 
@@ -444,7 +444,7 @@ export function registerApplicationsTools(
     {
       title: "Advanced search",
       description: [
-        "Search a single broad term across products, leads, and applications at once.",
+        "advanced_search — search a single broad term across products, leads, and applications at once.",
         "USE WHEN: the user gives one broad phrase and wants matches across multiple",
         "entity types.",
         "DO NOT USE WHEN: the user clearly targets one entity type -> use",
@@ -481,8 +481,6 @@ export function registerApplicationsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
-
       if (!a.query) throw new Error("Search query is required");
 
       const searchTypes = Array.isArray(a.types)

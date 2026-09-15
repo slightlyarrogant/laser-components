@@ -6,6 +6,8 @@ import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { getCurrentUser } from "../core/current-user.js";
+import { requireRole } from "../core/access.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
@@ -326,7 +328,7 @@ export function registerKnowledgeTools(
     {
       title: "Knowledge resources",
       description: [
-        "List knowledge/workflow resources (compact previews) to discover slugs.",
+        "list_resources — list knowledge/workflow resources (compact previews) to discover slugs.",
         "USE WHEN: the user asks what knowledge/workflow resources exist, or you need",
         "to discover a resource slug before reading it.",
         "DO NOT USE WHEN: you already know the slug and need full content -> use",
@@ -361,7 +363,6 @@ export function registerKnowledgeTools(
       },
     },
     async (a) => {
-      void getTenantSub();
       const payload = await listResources(a);
 
       const widget = okList(
@@ -382,7 +383,7 @@ export function registerKnowledgeTools(
   server.tool(
     "get_resource",
     [
-      "Read the full content of a known knowledge/workflow resource by slug.",
+      "get_resource — read the full content of a known knowledge/workflow resource by slug.",
       "USE WHEN: the user asks for the full content of a resource whose slug you know.",
       "DO NOT USE WHEN: you still need to find the right slug -> use list_resources",
       "or find_workflow_guidance.",
@@ -397,7 +398,6 @@ export function registerKnowledgeTools(
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
-      void getTenantSub();
       return getResource(a);
     }
   );
@@ -408,7 +408,7 @@ export function registerKnowledgeTools(
   server.tool(
     "find_workflow_guidance",
     [
-      "Find candidate workflow/knowledge guides for a task via keyword scoring.",
+      "find_workflow_guidance — find candidate workflow/knowledge guides for a task via keyword scoring.",
       "USE WHEN: the user asks how to perform a workflow, or you need connector",
       "guidance before a multi-step task and don't yet know the slug.",
       "DO NOT USE WHEN: the exact resource slug is already known -> use",
@@ -429,7 +429,6 @@ export function registerKnowledgeTools(
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
-      void getTenantSub();
       return findWorkflowGuidance(a);
     }
   );
@@ -440,7 +439,7 @@ export function registerKnowledgeTools(
   server.tool(
     "read_workflow_guide",
     [
-      "Load the full content of a workflow/resource guide by slug.",
+      "read_workflow_guide — load the full content of a workflow/resource guide by slug.",
       "USE WHEN: you (or find_workflow_guidance) identified a workflow/resource slug",
       "to load before executing a task.",
       "DO NOT USE WHEN: you are still discovering candidate guides -> use",
@@ -456,7 +455,6 @@ export function registerKnowledgeTools(
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
-      void getTenantSub();
       return getResource({ slug: a.workflow });
     }
   );
@@ -470,7 +468,7 @@ export function registerKnowledgeTools(
     {
       title: "Save learning",
       description: [
-        "Capture a reusable correction / insight / confirmation as a pending learning.",
+        "save_learning — capture a reusable correction / insight / confirmation as a pending learning.",
         "USE WHEN: the user corrects the connector, confirms an unusual approach, or",
         "shares reusable domain knowledge that should be reviewed later. WRITE ACTION —",
         "stores a learning event only.",
@@ -478,6 +476,7 @@ export function registerKnowledgeTools(
         "use update_resource after explicit confirmation; or for casual conversation.",
         "RETURNS: an ACTION confirmation card on success (event type + impact) — a",
         "warning card if resource_slug was given but does not exist (nothing saved).",
+        "ROLES: requires ADMIN or RESEARCHER — the knowledge base is shared company data.",
         "GOTCHAS: this does NOT auto-apply suggested_update; critical learnings remain",
         "pending review. event_type, observation, context, impact are required.",
       ].join("\n"),
@@ -515,7 +514,8 @@ export function registerKnowledgeTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
       const result = await saveLearning(a);
 
       // resource_slug supplied but unknown -> nothing was saved -> warning card.
@@ -552,13 +552,14 @@ export function registerKnowledgeTools(
     {
       title: "Update resource",
       description: [
-        "Replace a knowledge resource body, archiving the prior version.",
+        "update_resource — replace a knowledge resource body, archiving the prior version.",
         "USE WHEN: the user explicitly asks to update/replace a knowledge resource.",
         "WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user only provides a learning/correction for later review",
         "-> use save_learning.",
         "RETURNS: an ACTION confirmation card on success (slug + new version); the model",
         "should confirm briefly.",
+        "ROLES: requires ADMIN or RESEARCHER — the knowledge base is shared company data.",
         "GOTCHAS: content REPLACES the full resource body — fetch get_resource first if",
         "editing existing content. slug, content, and change_reason are required. Fails",
         "if the slug does not exist.",
@@ -581,7 +582,8 @@ export function registerKnowledgeTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
       const result = await updateResource(a);
       return buildActionEnvelope(
         {
@@ -605,7 +607,7 @@ export function registerKnowledgeTools(
     {
       title: "Create resource",
       description: [
-        "Create a new knowledge/workflow resource.",
+        "create_resource — create a new knowledge/workflow resource.",
         "USE WHEN: the user explicitly asks to create a new knowledge/workflow resource.",
         "WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user is only sharing a correction or note -> use",
@@ -613,6 +615,7 @@ export function registerKnowledgeTools(
         "RETURNS: an ACTION confirmation card on success (the new resource slug) — a",
         "warning card if a resource with that slug already exists (use update_resource",
         "instead).",
+        "ROLES: requires ADMIN or RESEARCHER — the knowledge base is shared company data.",
         "GOTCHAS: slug must be unique, lowercase, and stable; category must be one of",
         "knowledge|region|sales|product|scoring.",
       ].join("\n"),
@@ -638,7 +641,8 @@ export function registerKnowledgeTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
       const result = await createResource(a);
 
       // Slug already taken -> nothing created -> warning card.
@@ -677,7 +681,7 @@ export function registerKnowledgeTools(
     {
       title: "Pending learnings",
       description: [
-        "List captured learnings that have not yet been applied, ordered by impact.",
+        "get_pending_learnings — list captured learnings that have not yet been applied, ordered by impact.",
         "USE WHEN: the user asks to review pending captured learnings or decide what",
         "should be applied to resources.",
         "DO NOT USE WHEN: the user asks to apply a learning -> read the target resource",
@@ -706,7 +710,6 @@ export function registerKnowledgeTools(
       },
     },
     async (a) => {
-      void getTenantSub();
       const payload = await getPendingLearnings(a);
 
       const widget = okList(

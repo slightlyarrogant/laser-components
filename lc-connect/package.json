@@ -11,7 +11,11 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
     "seed-user": "tsx scripts/seed-test-user.ts",
-    "seed-knowledge": "tsx scripts/seed-knowledge.ts"
+    "seed-knowledge": "tsx scripts/seed-knowledge.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "smoke": "node --env-file=.env scripts/_smoke.mjs",
+    "add-user": "tsx --env-file=.env scripts/add-user.ts",
+    "set-password": "tsx --env-file=.env scripts/set-password.ts"
   },
   "dependencies": {
     "@cfi/mcp-widgets": "file:vendor/cfi-mcp-widgets-0.2.0.tgz",

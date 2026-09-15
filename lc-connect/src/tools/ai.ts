@@ -72,6 +72,9 @@ class PerplexityClient {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
+      // Without a deadline a hung upstream pins the request (and its MCP
+      // transport) open indefinitely.
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) {
@@ -262,7 +265,7 @@ export function registerAiTools(
   server.tool(
     "analyze_product_market",
     [
-      "AI market analysis (size, trends, applications, competitors) for a known product.",
+      "analyze_product_market — AI market analysis (size, trends, applications, competitors) for a known product.",
       "USE WHEN: the user asks for market size, trends, competitors, or strategic",
       "market analysis for a specific product. Calls a web-backed AI (Perplexity), so",
       "results may include external/live information.",
@@ -342,7 +345,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
   server.tool(
     "discover_applications",
     [
-      "AI discovery of industries/use cases a known product could serve.",
+      "discover_applications — AI discovery of industries/use cases a known product could serve.",
       "USE WHEN: the user asks what applications/industries/use cases a specific",
       "product could serve. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user only wants the applications already mapped to the",
@@ -412,7 +415,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
   server.tool(
     "enrich_lead",
     [
-      "AI enrichment of a known lead (company info, market position, tech stack, growth).",
+      "enrich_lead — AI enrichment of a known lead (company info, market position, tech stack, growth).",
       "USE WHEN: the user asks to research/enrich a specific lead with company,",
       "market, technology, or growth information. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user asks to persist changes to the CRM record -> use",
@@ -496,7 +499,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
   server.tool(
     "analyze_competition",
     [
-      "AI competitive analysis (competitors, positioning, SWOT) for a known product.",
+      "analyze_competition — AI competitive analysis (competitors, positioning, SWOT) for a known product.",
       "USE WHEN: the user asks for competitors, market positioning, SWOT, or",
       "alternative solutions for a specific product. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user only wants local product/application records -> use",
@@ -576,7 +579,7 @@ Product Description: ${product.description || "N/A"}`;
   server.tool(
     "generate_insights",
     [
-      "AI business insights drawn from summarized LC Connect data.",
+      "generate_insights — AI business insights drawn from summarized LC Connect data.",
       "USE WHEN: the user asks for analytical business insights such as market",
       "trends, customer patterns, product performance, or sales opportunities. Reads",
       "the DB for context, then calls a web-backed AI (Perplexity).",
@@ -706,7 +709,7 @@ Product Description: ${product.description || "N/A"}`;
     {
       title: "Lead scoring",
       description: [
-        "AI scoring/prioritization of a known lead with reasoning and next steps.",
+        "generate_lead_score — AI scoring/prioritization of a known lead with reasoning and next steps.",
         "USE WHEN: the user asks to score, prioritize, or explain sales fit for a",
         "specific lead. Calls a web-backed AI (Perplexity).",
         "DO NOT USE WHEN: the user asks to persist the score/status -> use update_lead",
@@ -867,7 +870,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
     {
       title: "Export data",
       description: [
-        "Export leads, products, applications, or a database summary as CSV/JSON text.",
+        "export_data — export leads, products, applications, or a database summary as CSV/JSON text.",
         "USE ONLY WHEN the user explicitly asks to EXPORT, DOWNLOAD, or get a CSV/file of",
         "data. Do NOT use this to browse, search, or display leads — for that use",
         "search_leads (it renders a widget).",
@@ -1030,7 +1033,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
   server.tool(
     "generate_report",
     [
-      "Generate a formatted lead / product / pipeline report from the DB.",
+      "generate_report — generate a formatted lead / product / pipeline report from the DB.",
       "USE WHEN: the user asks for a formatted lead summary, product performance, or",
       "sales pipeline report. Read-only; generates report content but does not save",
       "or send it (no AI).",
@@ -1202,7 +1205,7 @@ Also provide an overall weighted score and recommendation for next steps.`;
     {
       title: "Activity",
       description: [
-        "Recent CRM activity timeline (lead creations + notes), newest first.",
+        "get_activity_feed — recent CRM activity timeline (lead creations + notes), newest first.",
         "USE WHEN: the user asks what recently changed or wants a recent activity feed.",
         "Read-only local DB operation (no AI).",
         "DO NOT USE WHEN: the user asks to report an issue to the admin -> use",

@@ -19,6 +19,10 @@ export interface SessionLogEvent {
 const MAX_EVENTS = 500;
 const recentEvents: SessionLogEvent[] = [];
 export const logEmitter = new EventEmitter();
+// One listener per open /session-log/stream viewer. The default cap of 10
+// prints a spurious "possible EventEmitter memory leak" warning once a handful
+// of tabs are watching; 100 concurrent viewers is the real ceiling here.
+logEmitter.setMaxListeners(100);
 
 function emit(event: SessionLogEvent): void {
   if (recentEvents.length >= MAX_EVENTS) recentEvents.shift();

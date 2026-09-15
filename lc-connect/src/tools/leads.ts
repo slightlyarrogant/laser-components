@@ -12,6 +12,13 @@ import {
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import { getCurrentUser } from "../core/current-user.js";
+import {
+  canEditLead,
+  editRefusalMessage,
+  requireRole,
+  type LeadAccessFields,
+} from "../core/access.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
@@ -35,6 +42,61 @@ function ok(data: unknown) {
   };
 }
 
+/** Owner projection surfaced on every lead read. */
+const OWNER_SELECT = { select: { id: true, email: true, displayName: true } };
+
+/** Lead columns canEditLead() needs, plus the name for error messages. */
+const ACCESS_SELECT = {
+  id: true,
+  name: true,
+  ownerUserId: true,
+  createdByUserId: true,
+  regionId: true,
+  country: { select: { regionId: true } },
+};
+
+/**
+ * Region stamping for writes: an explicit regionId wins; otherwise the lead's
+ * country supplies it. Lead geography is what region competency is checked
+ * against, so filling it on create is what makes competencies bite at all.
+ */
+async function resolveRegionId(
+  countryId?: number | null,
+  regionId?: number | null
+): Promise<number | undefined> {
+  if (regionId != null) return regionId;
+  if (countryId == null) return undefined;
+  const country = await prisma.country.findUnique({
+    where: { id: countryId },
+    select: { regionId: true },
+  });
+  if (!country) throw new Error(`Country with ID ${countryId} not found`);
+  return country.regionId;
+}
+
+/** Resolves an explicit owner argument, rejecting unknown/inactive users. */
+async function resolveOwnerUserId(
+  ownerUserId: number | null | undefined,
+  fallbackId: number
+): Promise<number | null> {
+  if (ownerUserId === undefined) return fallbackId;
+  if (ownerUserId === null) return null;
+  const owner = await prisma.user.findUnique({
+    where: { id: ownerUserId },
+    select: { id: true, isActive: true },
+  });
+  if (!owner) throw new Error(`User with ID ${ownerUserId} not found`);
+  if (!owner.isActive) {
+    throw new Error(`User with ID ${ownerUserId} is deactivated and cannot own leads`);
+  }
+  return owner.id;
+}
+
+/** Flat owner label for widget rows. */
+function ownerLabel(l: any): string | null {
+  return l.ownerUser?.displayName ?? l.ownerUser?.email ?? null;
+}
+
 export function registerLeadsTools(
   server: McpServer,
   getTenantSub: () => string
@@ -48,7 +110,8 @@ export function registerLeadsTools(
     {
       title: "Leads",
       description: [
-        "List/filter sales leads (with product/application/region/country context).",
+        "get_leads — list/filter sales leads (product / application / region /",
+        "country / owner context).",
         "Returns raw lead records as data (no widget). For any user-facing 'show/list/",
         "find leads' request, use search_leads instead, which renders the interactive",
         "list widget.",
@@ -61,17 +124,39 @@ export function registerLeadsTools(
         "CSV export) — present that widget, do not re-list rows.",
         "GOTCHAS: resolve productId/applicationId with search_products/get_applications",
         "first; status must be one of NEW/CONTACTED/QUALIFIED/LOST/WON. Summarize large",
-        "result sets analytically.",
+        "result sets analytically. Visibility is OPEN — everyone sees every lead; use",
+        "mine=true or ownerUserId to narrow to a person's book.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
-        limit: z.number().optional().default(10).describe("Maximum number of leads to return."),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(1000)
+          .optional()
+          .default(10)
+          .describe("Maximum number of leads to return (max 1000)."),
         status: z
           .enum(LEAD_STATUS)
           .optional()
           .describe("Filter by lead status (LeadStatus enum)."),
         productId: z.number().optional().describe("Filter by associated product ID."),
         applicationId: z.number().optional().describe("Filter by associated application ID."),
+        mine: z
+          .boolean()
+          .optional()
+          .describe("Only leads you own or created ('my leads')."),
+        ownerUserId: z
+          .number()
+          .optional()
+          .describe("Only leads owned by this user ID (resolve with whoami/manage_users)."),
+        regionId: z
+          .number()
+          .optional()
+          .describe(
+            "Only leads in this region, matched on the lead's region or its country's region (IDs from get_regions)."
+          ),
       },
       annotations: {
         readOnlyHint: true,
@@ -85,7 +170,7 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
 
       const limit = a.limit || 10;
       const whereConditions: any = {};
@@ -102,6 +187,22 @@ export function registerLeadsTools(
       if (a.productId) whereConditions.productId = a.productId;
       if (a.applicationId) whereConditions.applicationId = a.applicationId;
 
+      // Ownership/geography filters are ANDed on top of the structured ones.
+      const and: any[] = [];
+      if (a.mine) {
+        and.push({ OR: [{ ownerUserId: me.id }, { createdByUserId: me.id }] });
+      }
+      if (a.ownerUserId != null) and.push({ ownerUserId: a.ownerUserId });
+      if (a.regionId != null) {
+        and.push({
+          OR: [
+            { regionId: a.regionId },
+            { country: { is: { regionId: a.regionId } } },
+          ],
+        });
+      }
+      if (and.length > 0) whereConditions.AND = and;
+
       const leads = await prisma.lead.findMany({
         where: whereConditions,
         take: limit,
@@ -111,6 +212,7 @@ export function registerLeadsTools(
           application: { select: { id: true, name: true } },
           region: { select: { id: true, name: true } },
           country: { select: { id: true, name: true } },
+          ownerUser: OWNER_SELECT,
         },
       });
       const payload = { success: true, data: leads, count: leads.length };
@@ -127,6 +229,8 @@ export function registerLeadsTools(
         application: l.application?.name ?? null,
         region: l.region?.name ?? null,
         country: l.country?.name ?? null,
+        owner: ownerLabel(l),
+        ownerUserId: l.ownerUserId ?? null,
         email: l.email ?? null,
         phone: l.phone ?? null,
         website: l.website ?? null,
@@ -138,7 +242,7 @@ export function registerLeadsTools(
         "Leads",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
-        ["id", "name", "status", "industry", "product", "country"]
+        ["id", "name", "status", "industry", "product", "country", "owner"]
       );
       if (!("structuredContent" in widget)) return ok(payload);
       return widget as any;
@@ -154,7 +258,7 @@ export function registerLeadsTools(
     {
       title: "Create lead",
       description: [
-        "Create a single lead/prospect.",
+        "create_lead — create a single lead/prospect, owned by you.",
         "USE WHEN: the user explicitly asks to create a lead. WRITE ACTION — confirm",
         "intent first.",
         "DO NOT USE WHEN: the user is still researching candidates or asking whether a",
@@ -164,6 +268,10 @@ export function registerLeadsTools(
         "name); the model should confirm briefly.",
         "GOTCHAS: name and productId are required; resolve productId with",
         "search_products/get_products. status defaults to NEW.",
+        "OWNERSHIP: the lead is stamped with you as creator AND owner unless you pass",
+        "ownerUserId. The owner (plus the creator and any ADMIN) is who may later edit",
+        "it. Passing countryId also stamps the lead's region, which is what region",
+        "competencies are checked against — always set it when you know the country.",
       ].join("\n"),
       inputSchema: {
         name: z.string().describe("Lead/company name (required)."),
@@ -180,6 +288,18 @@ export function registerLeadsTools(
         description: z.string().optional().describe("Lead description / notes."),
         website: z.string().optional().describe("Lead website URL."),
         applicationId: z.number().optional().describe("Associated application ID."),
+        countryId: z
+          .number()
+          .optional()
+          .describe("Country ID (get_regions). Also stamps the lead's region."),
+        regionId: z
+          .number()
+          .optional()
+          .describe("Region ID (get_regions). Defaults to the country's region."),
+        ownerUserId: z
+          .number()
+          .optional()
+          .describe("Owner user ID. Defaults to you."),
       },
       annotations: {
         readOnlyHint: false,
@@ -193,15 +313,22 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
 
       if (!a.name || !a.productId) throw new Error("name and productId are required");
+
+      const ownerUserId = await resolveOwnerUserId(a.ownerUserId, me.id);
+      const regionId = await resolveRegionId(a.countryId, a.regionId);
 
       const leadData: any = {
         name: a.name,
         productId: a.productId,
         status: a.status || "NEW",
+        createdByUserId: me.id,
+        ownerUserId,
       };
+      if (a.countryId !== undefined) leadData.countryId = a.countryId;
+      if (regionId !== undefined) leadData.regionId = regionId;
       if (a.email) leadData.email = a.email;
       if (a.phone) leadData.phone = a.phone;
       if (a.industry) leadData.industry = a.industry;
@@ -212,7 +339,7 @@ export function registerLeadsTools(
 
       const lead = await prisma.lead.create({
         data: leadData,
-        include: { product: true, application: true },
+        include: { product: true, application: true, ownerUser: OWNER_SELECT },
       });
 
       // Success -> ACTION confirmation widget (terminal). The human fields go to
@@ -222,7 +349,7 @@ export function registerLeadsTools(
         {
           status: "success",
           title: "Lead created",
-          detail: `${lead.name}${lead.product ? ` → ${lead.product.name}` : ""} (status: ${lead.status})`,
+          detail: `${lead.name}${lead.product ? ` → ${lead.product.name}` : ""} (status: ${lead.status}, owner: ${ownerLabel(lead) ?? "unassigned"})`,
           id: String(lead.id),
           idLabel: "Lead ID",
         },
@@ -240,7 +367,7 @@ export function registerLeadsTools(
     {
       title: "Update lead",
       description: [
-        "Update fields on an existing lead.",
+        "update_lead — change fields on an existing lead you may edit.",
         "USE WHEN: the user explicitly asks to change fields (status, contact info,",
         "metadata) on a known lead. WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user only wants to analyze a lead -> use get_leads; the",
@@ -250,6 +377,10 @@ export function registerLeadsTools(
         "structuredContent.",
         "GOTCHAS: id is required (look it up with search_leads if unknown); status must",
         "be a valid LeadStatus value. Fails (P2025) if the lead does not exist.",
+        "OWNERSHIP: you may edit a lead you own or created, an UNOWNED lead inside your",
+        "region competency (any unowned lead if you have no regions assigned), or —",
+        "as ADMIN — anything. Otherwise the call is refused and names the owner; use",
+        "assign_lead to take it over if you are allowed to.",
       ].join("\n"),
       inputSchema: {
         id: z.number().describe("Lead ID to update (required)."),
@@ -268,6 +399,14 @@ export function registerLeadsTools(
         annualRevenue: z.number().optional().describe("Annual revenue."),
         employeeCount: z.number().optional().describe("Employee count."),
         confidence: z.number().optional().describe("Confidence score."),
+        countryId: z
+          .number()
+          .optional()
+          .describe("New country ID (get_regions). Also restamps the region."),
+        regionId: z
+          .number()
+          .optional()
+          .describe("New region ID (get_regions)."),
       },
       annotations: {
         readOnlyHint: false,
@@ -281,9 +420,23 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
 
       if (!a.id) throw new Error("Lead ID is required");
+
+      // Ownership gate: load only the columns the rule needs.
+      const existing = await prisma.lead.findUnique({
+        where: { id: a.id },
+        select: ACCESS_SELECT,
+      });
+      if (!existing) throw new Error(`Lead with ID ${a.id} not found`);
+      const access: LeadAccessFields = {
+        ownerUserId: existing.ownerUserId,
+        createdByUserId: existing.createdByUserId,
+        regionId: existing.regionId,
+        countryRegionId: existing.country?.regionId ?? null,
+      };
+      if (!canEditLead(me, access)) throw new Error(editRefusalMessage(access));
 
       const updateData: any = {};
       if (a.name !== undefined) updateData.name = a.name;
@@ -298,6 +451,11 @@ export function registerLeadsTools(
       if (a.annualRevenue !== undefined) updateData.annualRevenue = a.annualRevenue;
       if (a.employeeCount !== undefined) updateData.employeeCount = a.employeeCount;
       if (a.confidence !== undefined) updateData.confidence = a.confidence;
+      if (a.countryId !== undefined) updateData.countryId = a.countryId;
+      if (a.countryId !== undefined || a.regionId !== undefined) {
+        const regionId = await resolveRegionId(a.countryId, a.regionId);
+        if (regionId !== undefined) updateData.regionId = regionId;
+      }
 
       try {
         const updatedLead = await prisma.lead.update({
@@ -345,7 +503,7 @@ export function registerLeadsTools(
     {
       title: "Delete lead",
       description: [
-        "Permanently delete a lead by ID.",
+        "delete_lead — permanently delete a lead by ID (ADMIN only).",
         "USE WHEN: the user explicitly asks to delete a lead by ID. DESTRUCTIVE —",
         "confirm intent first.",
         "DO NOT USE WHEN: the user asks to mark a lead lost, archive, or disqualify ->",
@@ -353,6 +511,8 @@ export function registerLeadsTools(
         "RETURNS: an ACTION confirmation card on success (the deleted lead's id); the",
         "model should confirm briefly.",
         "GOTCHAS: fails (P2025) if the lead does not exist.",
+        "OWNERSHIP: ADMIN role required — owning or creating a lead does NOT grant",
+        "delete. Non-admins should mark the lead LOST with update_lead instead.",
       ].join("\n"),
       inputSchema: {
         id: z.number().describe("Lead ID to delete."),
@@ -369,7 +529,8 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN");
 
       if (!a.id) throw new Error("Lead ID is required");
 
@@ -407,8 +568,9 @@ export function registerLeadsTools(
     {
       title: "Search leads",
       description: [
-        "Fuzzy lead lookup by a company/person phrase and/or required tags, with",
-        "optional structured filters by industry/sector, country, and status.",
+        "search_leads — fuzzy lead lookup by a company/person phrase and/or required",
+        "tags, with optional filters by industry/sector, country, status, owner and",
+        "region.",
         "USE WHEN: the user wants to SEE, LIST, FIND, or BROWSE leads/companies in a",
         "sector/industry/country or by any filter — this is the primary tool for showing",
         "a set of leads.",
@@ -423,7 +585,9 @@ export function registerLeadsTools(
         "table + CSV export). The card IS the answer — do not re-list rows. An empty",
         "result is returned inline as { success, data[], count, searchCriteria }.",
         "GOTCHAS: tags use hasEvery (a lead must carry ALL provided tags); the",
-        "industry/country/status filters narrow the result (ANDed with the phrase).",
+        "industry/country/status/owner/region filters narrow the result (ANDed with the",
+        "phrase). Visibility is OPEN — everyone sees every lead; mine=true narrows to",
+        "the leads you own or created.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -451,6 +615,28 @@ export function registerLeadsTools(
           .string()
           .optional()
           .describe("Filter by lead status (e.g. NEW, WON, LOST)."),
+        mine: z
+          .boolean()
+          .optional()
+          .describe("Only leads you own or created ('my leads')."),
+        ownerUserId: z
+          .number()
+          .optional()
+          .describe("Only leads owned by this user ID."),
+        regionId: z
+          .number()
+          .optional()
+          .describe(
+            "Only leads in this region, matched on the lead's region or its country's region (IDs from get_regions)."
+          ),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(1000)
+          .optional()
+          .default(20)
+          .describe("Maximum number of matches to return (max 1000)."),
       },
       annotations: {
         readOnlyHint: true,
@@ -464,7 +650,7 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
 
       // Fuzzy OR-group (phrase + tags) is matched loosely; the structured
       // filters (industry/country/status) narrow the set and are ANDed with it.
@@ -494,6 +680,18 @@ export function registerLeadsTools(
           country: { is: { name: { contains: a.country, mode: "insensitive" } } },
         });
       }
+      if (a.mine) {
+        and.push({ OR: [{ ownerUserId: me.id }, { createdByUserId: me.id }] });
+      }
+      if (a.ownerUserId != null) and.push({ ownerUserId: a.ownerUserId });
+      if (a.regionId != null) {
+        and.push({
+          OR: [
+            { regionId: a.regionId },
+            { country: { is: { regionId: a.regionId } } },
+          ],
+        });
+      }
 
       const whereConditions: any =
         or.length > 0
@@ -504,11 +702,12 @@ export function registerLeadsTools(
 
       const leads = await prisma.lead.findMany({
         where: whereConditions,
-        take: 20,
+        take: a.limit || 20,
         orderBy: { createdAt: "desc" },
         include: {
           product: { select: { id: true, name: true } },
           application: { select: { id: true, name: true } },
+          ownerUser: OWNER_SELECT,
         },
       });
 
@@ -520,6 +719,8 @@ export function registerLeadsTools(
         industry: l.industry ?? null,
         product: l.product?.name ?? null,
         application: l.application?.name ?? null,
+        owner: ownerLabel(l),
+        ownerUserId: l.ownerUserId ?? null,
         email: l.email ?? null,
         website: l.website ?? null,
       }));
@@ -533,7 +734,7 @@ export function registerLeadsTools(
         "Leads — search",
         config.PUBLIC_BASE_URL,
         0,
-        ["id", "name", "status", "industry", "product", "application"]
+        ["id", "name", "status", "industry", "product", "application", "owner"]
       );
       if (!("structuredContent" in widget)) {
         return ok({
@@ -546,6 +747,9 @@ export function registerLeadsTools(
             industry: a.industry,
             country: a.country,
             status: a.status,
+            mine: a.mine,
+            ownerUserId: a.ownerUserId,
+            regionId: a.regionId,
           },
         });
       }
@@ -559,7 +763,7 @@ export function registerLeadsTools(
   server.tool(
     "get_lead_notes",
     [
-      "Read notes / call / meeting / activity history for a specific lead.",
+      "get_lead_notes — read notes / call / meeting / activity history for a lead.",
       "USE WHEN: the user asks for notes, call/meeting history, or activity context",
       "for a lead.",
       "DO NOT USE WHEN: the user asks to add a note -> use create_lead_note.",
@@ -579,8 +783,6 @@ export function registerLeadsTools(
     },
     { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     async (a) => {
-      void getTenantSub();
-
       if (!a.leadId) throw new Error("leadId is required");
 
       const where: any = { leadId: a.leadId };
@@ -685,7 +887,8 @@ export function registerLeadsTools(
     {
       title: "Add note",
       description: [
-        "Record a note / call / meeting / email / task / follow-up on a lead.",
+        "create_lead_note — log a note / call / meeting / email / task / follow-up",
+        "on a lead.",
         "USE WHEN: the user explicitly asks to log activity or a note on a lead.",
         "WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user only wants to read lead history -> use get_lead_notes.",
@@ -693,6 +896,9 @@ export function registerLeadsTools(
         "should confirm briefly. Created note is in structuredContent.",
         "GOTCHAS: leadId and content are required; noteType is stored as a [TYPE]",
         "prefix on the content (defaults to 'general').",
+        "OWNERSHIP: notes are deliberately OPEN — any active user may add a note to any",
+        "lead, including one owned by someone else. The note is always attributed to",
+        "you (there is no way to write a note as another user).",
       ].join("\n"),
       inputSchema: {
         leadId: z.number().describe("Lead ID the note belongs to (required)."),
@@ -702,7 +908,6 @@ export function registerLeadsTools(
           .optional()
           .default("general")
           .describe("Note type, stored as an uppercase [TYPE] prefix. Defaults to general."),
-        userId: z.number().optional().describe("ID of the user creating the note."),
       },
       annotations: {
         readOnlyHint: false,
@@ -716,7 +921,7 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
 
       if (!a.leadId || !a.content) throw new Error("leadId and content are required");
 
@@ -727,11 +932,12 @@ export function registerLeadsTools(
       if (!lead) throw new Error(`Lead with ID ${a.leadId} not found`);
 
       const noteType = (a.noteType as string) || "general";
+      // Attribution is taken from the access token, never from an argument.
       const noteData: any = {
         leadId: a.leadId,
         content: `[${noteType.toUpperCase()}] ${a.content}`,
+        user_id: me.id,
       };
-      if (a.userId) noteData.user_id = a.userId;
 
       // Explicit select of columns that exist in the live `notes` table. The
       // Prisma schema also declares `createdBy`/`created_by`, which is NOT present
@@ -770,7 +976,7 @@ export function registerLeadsTools(
     {
       title: "Import leads",
       description: [
-        "Bulk-create multiple leads from prepared candidate data.",
+        "batch_create_leads — bulk-create leads from prepared candidate data.",
         "USE WHEN: the user explicitly asks to import/create many leads at once.",
         "BULK WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user is still researching/validating candidates, or only",
@@ -780,6 +986,9 @@ export function registerLeadsTools(
         "errored. Full summary + lists are in structuredContent.",
         "GOTCHAS: each lead needs name + productId; maximum 200 per call; prefer",
         "skipDuplicates=true (matches existing name or email).",
+        "OWNERSHIP: any active user may import. Every created lead is stamped with you",
+        "as creator and (unless ownerUserId says otherwise) as owner. Set countryId per",
+        "lead where you know it — that stamps the region competencies are checked on.",
       ].join("\n"),
       inputSchema: {
         leads: z
@@ -794,6 +1003,14 @@ export function registerLeadsTools(
               tags: z.array(z.string()).optional().describe("Free-form tags."),
               website: z.string().optional().describe("Website URL."),
               description: z.string().optional().describe("Description."),
+              countryId: z
+                .number()
+                .optional()
+                .describe("Country ID (get_regions). Also stamps the region."),
+              regionId: z
+                .number()
+                .optional()
+                .describe("Region ID (get_regions). Defaults to the country's region."),
             })
           )
           .describe("Array of leads to create (max 200)."),
@@ -802,6 +1019,10 @@ export function registerLeadsTools(
           .optional()
           .default(true)
           .describe("Skip leads whose name or email already exists. Defaults to true."),
+        ownerUserId: z
+          .number()
+          .optional()
+          .describe("Owner for every created lead. Defaults to you."),
       },
       annotations: {
         readOnlyHint: false,
@@ -815,7 +1036,9 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      // Any ACTIVE user may bulk-import; getCurrentUser refuses deactivated ones.
+      const me = await getCurrentUser();
+      const ownerUserId = await resolveOwnerUserId(a.ownerUserId, me.id);
 
       if (!a.leads || !Array.isArray(a.leads) || a.leads.length === 0) {
         throw new Error("leads array is required and must not be empty");
@@ -851,6 +1074,10 @@ export function registerLeadsTools(
             }
           }
 
+          const regionId = await resolveRegionId(
+            leadData.countryId,
+            leadData.regionId
+          );
           const lead = await prisma.lead.create({
             data: {
               name: leadData.name,
@@ -862,6 +1089,10 @@ export function registerLeadsTools(
               tags: leadData.tags || [],
               website: leadData.website,
               description: leadData.description,
+              countryId: leadData.countryId,
+              regionId,
+              createdByUserId: me.id,
+              ownerUserId,
             },
           });
           createdLeads.push(lead);
@@ -907,7 +1138,8 @@ export function registerLeadsTools(
     {
       title: "Update leads (bulk)",
       description: [
-        "Bulk-update status/tags/metadata across many existing leads.",
+        "batch_update_leads — bulk-update status/tags/metadata across many leads",
+        "(ADMIN only).",
         "USE WHEN: the user explicitly asks to change fields on multiple leads at once.",
         "BULK WRITE ACTION — confirm intent first.",
         "DO NOT USE WHEN: the user only wants to analyze/filter leads -> use get_leads;",
@@ -917,6 +1149,9 @@ export function registerLeadsTools(
         "structuredContent via the card id.",
         "GOTCHAS: maximum 500 IDs; operation='append' only affects tags (union with",
         "existing); status must be a valid LeadStatus value.",
+        "OWNERSHIP: ADMIN role required — a bulk write crosses everyone's book at once,",
+        "so per-lead ownership is not evaluated. Non-admins update leads one at a time",
+        "with update_lead.",
       ].join("\n"),
       inputSchema: {
         leadIds: z.array(z.number()).describe("Lead IDs to update (max 500)."),
@@ -947,7 +1182,8 @@ export function registerLeadsTools(
       },
     },
     async (a) => {
-      void getTenantSub();
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN");
 
       if (!a.leadIds || !Array.isArray(a.leadIds) || a.leadIds.length === 0) {
         throw new Error("leadIds array is required and must not be empty");
@@ -1017,6 +1253,97 @@ export function registerLeadsTools(
         },
         `[PRESENTATION] Bulk update: updated ${result.count} leads. Confirm briefly.`
       ) as any;
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // assign_lead — hand a lead to another user (or release it).
+  // -------------------------------------------------------------------------
+  registerAppTool(
+    server,
+    "assign_lead",
+    {
+      title: "Assign lead",
+      description: [
+        "assign_lead — set (or clear) the owner of a lead.",
+        "USE WHEN: the user asks to assign/reassign a lead to a colleague, to take a",
+        "lead over, or to release it back to the unowned pool. WRITE ACTION — confirm",
+        "intent first.",
+        "DON'T USE WHEN: you only want to change lead fields -> update_lead; you want to",
+        "know who owns what -> get_leads with ownerUserId / mine.",
+        "RETURNS: an ACTION confirmation card with the before/after owner; the same",
+        "before/after pair is in structuredContent.",
+        "GOTCHAS: pass ownerUserId=null to release the lead (it becomes claimable by",
+        "anyone whose region competency covers it).",
+        "OWNERSHIP: you may reassign a lead you own or created, or an unowned lead",
+        "inside your region competency; ADMIN may reassign anything. Once you hand a",
+        "lead to somebody else you can no longer edit it unless you created it.",
+      ].join("\n"),
+      inputSchema: {
+        leadId: z.number().describe("Lead ID to (re)assign (required)."),
+        ownerUserId: z
+          .number()
+          .nullable()
+          .describe("New owner's user ID, or null to leave the lead unowned."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: ACTION_WIDGET_URI },
+        "openai/outputTemplate": ACTION_WIDGET_URI,
+      },
+    },
+    async (a) => {
+      const me = await getCurrentUser();
+
+      if (!a.leadId) throw new Error("leadId is required");
+
+      const existing = await prisma.lead.findUnique({
+        where: { id: a.leadId },
+        select: { ...ACCESS_SELECT, ownerUser: OWNER_SELECT },
+      });
+      if (!existing) throw new Error(`Lead with ID ${a.leadId} not found`);
+
+      const access: LeadAccessFields = {
+        ownerUserId: existing.ownerUserId,
+        createdByUserId: existing.createdByUserId,
+        regionId: existing.regionId,
+        countryRegionId: existing.country?.regionId ?? null,
+      };
+      if (!canEditLead(me, access)) throw new Error(editRefusalMessage(access));
+
+      const nextOwnerId = await resolveOwnerUserId(a.ownerUserId, me.id);
+      const updated = await prisma.lead.update({
+        where: { id: a.leadId },
+        data: { ownerUserId: nextOwnerId },
+        select: { id: true, name: true, ownerUserId: true, ownerUser: OWNER_SELECT },
+      });
+
+      const before = existing.ownerUser
+        ? { id: existing.ownerUser.id, label: ownerLabel(existing) }
+        : null;
+      const after = updated.ownerUser
+        ? { id: updated.ownerUser.id, label: ownerLabel(updated) }
+        : null;
+      const beforeLabel = before?.label ?? "unassigned";
+      const afterLabel = after?.label ?? "unassigned";
+
+      const env = buildActionEnvelope(
+        {
+          status: "success",
+          title: "Lead reassigned",
+          detail: `${updated.name}: ${beforeLabel} → ${afterLabel}`,
+          id: String(updated.id),
+          idLabel: "Lead ID",
+        },
+        `[PRESENTATION] Lead "${updated.name}" (ID ${updated.id}) reassigned: ${beforeLabel} → ${afterLabel}. Confirm briefly.`
+      ) as any;
+      (env.structuredContent as Record<string, unknown>).owner = { before, after };
+      return env;
     }
   );
 }

@@ -43,7 +43,7 @@ export function registerAnalyticsTools(
     {
       title: "Leads by sector",
       description: [
-        "Read-only analytics dashboard: sales leads grouped by industry sector,",
+        "leads_analytics — read-only analytics dashboard: sales leads grouped by industry sector,",
         "rendered as an INTERACTIVE inline widget (sortable/searchable table + a",
         "header KPI strip). ONE call computes everything; the user reads the widget",
         "without any further tool calls.",
@@ -81,8 +81,6 @@ export function registerAnalyticsTools(
       },
     },
     async (args: { topN?: number }) => {
-      void getTenantSub();
-
       // Cap labels/rows to a sensible top N (default 12 for the bar breakdown).
       const topN = args.topN ?? 12;
 
@@ -213,7 +211,7 @@ export function registerAnalyticsTools(
     {
       title: "Leads by country",
       description: [
-        "Read-only choropleth MAP of sales leads counted per country, rendered as",
+        "leads_by_country — read-only choropleth MAP of sales leads counted per country, rendered as",
         "an INTERACTIVE inline widget (a coloured world/Europe map with a legend,",
         "hover tooltips and a Europa/Świat scope switch). ONE call computes",
         "everything; the map IS the answer.",
@@ -250,8 +248,6 @@ export function registerAnalyticsTools(
       },
     },
     async (args: { scope?: MapScope }) => {
-      void getTenantSub();
-
       const scope: MapScope = args.scope === "europe" ? "europe" : "world";
 
       // Leads grouped by their country FK; resolve each FK -> ISO-2 code + name.

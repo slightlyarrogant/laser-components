@@ -4,7 +4,9 @@ import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { dirname, join, normalize, extname } from "node:path";
 import { serve } from "@hono/node-server";
-import { Hono, type Context } from "hono";
+import { getConnInfo } from "@hono/node-server/conninfo";
+import { Hono, type Context, type MiddlewareHandler } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
@@ -17,6 +19,7 @@ import { VERSION } from "./version.js";
 import { oauthRouter, requireBearerToken } from "./auth/oauth.js";
 import { createMcpServer, tenantContext } from "./server.js";
 import { datasetCsvHandler } from "./datasets.js";
+import { prisma } from "./db/client.js";
 import { getRecentEvents, logEmitter, type SessionLogEvent } from "./core/session-log.js";
 
 // The MCP Apps SDK browser bundle (app-with-deps.js, bundled/self-contained),
@@ -46,7 +49,10 @@ app.use("*", async (c, next) => {
 app.use(
   "*",
   cors({
-    origin: "*",
+    // …except on /datasets/*: that CSV is fetched by the browser as a plain
+    // download from the widget's link, so no page needs cross-origin READ
+    // access to lead PII. Returning null omits Access-Control-Allow-Origin.
+    origin: (_origin, c) => (c.req.path.startsWith("/datasets/") ? null : "*"),
     allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
     allowHeaders: [
       "Content-Type",
@@ -58,6 +64,75 @@ app.use(
     exposeHeaders: ["mcp-session-id", "mcp-protocol-version"],
   })
 );
+
+// Global body cap. Every endpoint here takes either a small form post or a
+// JSON-RPC message; nothing legitimately uploads. Without it, `parseBody` on
+// the public /authorize form is an unauthenticated memory-exhaustion primitive.
+const MAX_BODY_BYTES = 1024 * 1024;
+app.use("*", bodyLimit({ maxSize: MAX_BODY_BYTES }));
+
+// ---------------------------------------------------------------------------
+// Rate limiting — in-memory per-IP sliding window.
+//
+// Deliberately process-local: one process serves this connector, and the thing
+// being protected (POST /authorize) is a bcrypt(12) oracle costing ~250 ms of
+// the single thread per attempt, so even a crude cap changes the economics.
+// Keyed by the first X-Forwarded-For entry because the live deploy sits behind
+// ngrok; the socket address is the fallback for direct connections.
+// ---------------------------------------------------------------------------
+
+const RATE_WINDOW_MS = 60_000;
+const rateBuckets = new Map<string, number[]>();
+
+setInterval(() => {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  for (const [key, hits] of rateBuckets) {
+    const kept = hits.filter((t) => t > cutoff);
+    if (kept.length === 0) rateBuckets.delete(key);
+    else rateBuckets.set(key, kept);
+  }
+}, RATE_WINDOW_MS).unref?.();
+
+function clientIp(c: Context): string {
+  const forwarded = c.req.header("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  try {
+    return getConnInfo(c as never).remote.address ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function rateLimit(bucket: string, limit: number): MiddlewareHandler {
+  return async (c, next) => {
+    // Only the write side is throttled; GET /authorize renders a form and
+    // legitimately gets re-fetched (favicon, back button, reload).
+    if (c.req.method !== "POST") return next();
+    const key = `${bucket}:${clientIp(c)}`;
+    const now = Date.now();
+    const hits = (rateBuckets.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+    if (hits.length >= limit) {
+      rateBuckets.set(key, hits);
+      console.warn(`[rate-limit] ${bucket} blocked ${key} (${hits.length}/${limit} per minute)`);
+      return c.json({ error: "rate_limited" }, 429, {
+        "Retry-After": String(Math.ceil(RATE_WINDOW_MS / 1000)),
+      });
+    }
+    hits.push(now);
+    rateBuckets.set(key, hits);
+    return next();
+  };
+}
+
+// Registered BEFORE app.route("/", oauthRouter): Hono composes handlers in
+// registration order, so middleware added after the route would never run.
+app.use("/authorize", rateLimit("authorize", 10));
+app.use("/oauth/authorize", rateLimit("authorize", 10));
+app.use("/token", rateLimit("token", 30));
+app.use("/register", rateLimit("register", 10));
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -172,9 +247,13 @@ const SESSION_LOG_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-app.get("/session-log", (c) => c.html(SESSION_LOG_HTML));
+// Bearer-gated: the stream carries every tool call plus live authorize URLs
+// (client_id, redirect_uri, state), which is enough to hijack an in-flight
+// login. Browsers cannot send an Authorization header from the URL bar, so this
+// view is now a curl/fetch-with-token tool, not a bookmark.
+app.get("/session-log", requireBearerToken, (c) => c.html(SESSION_LOG_HTML));
 
-app.get("/session-log/stream", (c) => {
+app.get("/session-log/stream", requireBearerToken, (c) => {
   const encoder = new TextEncoder();
   const recent = getRecentEvents();
   const stream = new ReadableStream({
@@ -313,7 +392,83 @@ app.get("/demo/*", serveLanding);
 // MCP endpoint — stateless, one fresh transport + server per request.
 // ---------------------------------------------------------------------------
 
-async function handleMcp(c: { get: (k: string) => string; req: { raw: Request } }) {
+/**
+ * Attach per-request cleanup to a transport response.
+ *
+ * The transport fills an SSE body AFTER `handleRequest` resolves, so closing in
+ * a plain `finally` would truncate the JSON-RPC response. Instead the body is
+ * pumped through a wrapper stream and the transport/server are closed when that
+ * stream ends — normally, on error, or when the client disconnects.
+ *
+ * `keepAlive` additionally emits an SSE comment every 15 s: the standalone GET
+ * stream sends zero bytes until the server has something to push, and ngrok
+ * drops a silent stream.
+ */
+function finalizeMcpResponse(
+  response: Response,
+  cleanup: () => void,
+  keepAlive: boolean
+): Response {
+  if (!response.body) {
+    cleanup();
+    return response;
+  }
+  const reader = response.body.getReader();
+  const encoder = new TextEncoder();
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (timer) clearInterval(timer);
+    cleanup();
+  };
+
+  const wrapped = new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (keepAlive) {
+        timer = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          } catch {
+            finish();
+          }
+        }, 15_000);
+        timer.unref?.();
+      }
+      void (async () => {
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          controller.close();
+        } catch (err) {
+          try {
+            controller.error(err);
+          } catch {
+            /* already errored/closed */
+          }
+        } finally {
+          finish();
+        }
+      })();
+    },
+    cancel(reason) {
+      finish();
+      return reader.cancel(reason);
+    },
+  });
+
+  return new Response(wrapped, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+async function handleMcp(c: Context) {
   const tenantSub = c.get("tenantSub");
 
   // Best-effort tool-call logging without consuming the transport's body.
@@ -335,13 +490,37 @@ async function handleMcp(c: { get: (k: string) => string; req: { raw: Request } 
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
   });
-  return tenantContext.run(tenantSub, async () => {
-    const server = createMcpServer();
-    await server.connect(transport);
-    const response = await transport.handleRequest(c.req.raw);
-    if (toolName) console.log(`[tool] ← ${toolName} done`);
-    return response;
-  });
+  let server: ReturnType<typeof createMcpServer> | undefined;
+  let closed = false;
+  const closeAll = () => {
+    if (closed) return;
+    closed = true;
+    void (async () => {
+      try {
+        await server?.close?.();
+      } catch (err) {
+        console.error("[mcp] server close failed", err);
+      }
+      try {
+        await transport.close();
+      } catch (err) {
+        console.error("[mcp] transport close failed", err);
+      }
+    })();
+  };
+
+  try {
+    return await tenantContext.run(tenantSub, async () => {
+      server = createMcpServer();
+      await server.connect(transport);
+      const response = await transport.handleRequest(c.req.raw);
+      if (toolName) console.log(`[tool] ← ${toolName} done`);
+      return finalizeMcpResponse(response, closeAll, c.req.method === "GET");
+    });
+  } catch (err) {
+    closeAll();
+    throw err;
+  }
 }
 
 app.all("/mcp", requireBearerToken, (c) => handleMcp(c));
@@ -354,11 +533,64 @@ app.all("/", requireBearerToken, (c) => handleMcp(c));
 
 const port = config.PORT;
 
-serve({ fetch: app.fetch, port }, () => {
+const server = serve({ fetch: app.fetch, port }, () => {
   console.log(`[lc-connect] listening on port ${port}`);
   console.log(
     `[lc-connect] OAuth discovery: ${config.PUBLIC_BASE_URL}/.well-known/oauth-authorization-server`
   );
   console.log(`[lc-connect] MCP endpoint: ${config.PUBLIC_BASE_URL}/mcp`);
+  console.log(`[lc-connect] state dir: ${config.STATE_DIR}`);
   console.log(`[lc-connect] NODE_ENV: ${config.NODE_ENV}`);
 });
+
+// ---------------------------------------------------------------------------
+// Process lifecycle
+//
+// Node 22 makes an unhandled rejection fatal by default, so a single stray
+// promise anywhere in 45 tool handlers would kill in-flight requests. We log
+// and keep serving instead; an uncaught exception is genuinely unrecoverable
+// state, so that one still exits (and systemd restarts us).
+// ---------------------------------------------------------------------------
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[lc-connect] unhandledRejection (continuing):", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("[lc-connect] uncaughtException — exiting:", err);
+  process.exit(1);
+});
+
+let shuttingDown = false;
+
+async function shutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[lc-connect] ${signal} received — draining`);
+
+  // Failsafe: long-lived SSE streams (/mcp GET, /session-log/stream) keep
+  // sockets open, so server.close() may never resolve. Unref'd so a clean
+  // drain still lets the process exit early.
+  const failsafe = setTimeout(() => {
+    console.error("[lc-connect] drain timed out after 10s — forcing exit");
+    process.exit(1);
+  }, 10_000);
+  failsafe.unref?.();
+
+  try {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  } catch (err) {
+    console.error("[lc-connect] error closing HTTP server:", err);
+  }
+  try {
+    await prisma.$disconnect();
+  } catch (err) {
+    console.error("[lc-connect] error disconnecting Prisma:", err);
+  }
+  clearTimeout(failsafe);
+  console.log("[lc-connect] shutdown complete");
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));

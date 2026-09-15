@@ -1,35 +1,35 @@
 # LC Connect — beads (2026-09-15)
 
 Source: docs/audit-2026-09-15.md. Decisions (Bogdan, 2026-09-15): internal single-company; per-user ownership + roles by region;
-open visibility (everyone reads everything); hosting stays laptop + ngrok; Phase 0 + ownership repairs today, restart, hand structure to client.
+open visibility (everyone reads everything); hosting stays on the company server (Sinktank) + ngrok; Phase 0 + ownership repairs today, restart, hand structure to client.
 
-## Phase 0 — emergency (today)
-- [ ] OAuth state files → absolute `STATE_DIR` (survive re-clone), gitignored, chmod 600
-- [ ] `WHATSAPP_URL` → :3092 in .env; 30 s timeout on WhatsApp + Perplexity fetches; `.max()` on report fields
-- [ ] Demo credentials off the public landing page; rotate demo password; store in gitignored access sheet
-- [ ] Deactivate legacy users (admin, admin@example.com, test@example.com) — `is_active=false`, login rejects inactive
-- [ ] Bearer on `/session-log*`; dataset CSV handle → full UUID, 30 min TTL, no CORS `*`
-- [ ] PKCE S256 verified when present; redirect_uris stored at /register and exact-matched at /authorize + /token
-- [ ] Rate limit /authorize /token /register; global 1 MB body limit
-- [ ] JWT iss/aud + TTL 4 h
-- [ ] `process.on` handlers + SIGTERM graceful (server.close + prisma.$disconnect); transport.close() in finally
-- [ ] datasets store cap (50 entries / 50 MB / 30 min, interval prune); logEmitter.setMaxListeners
-- [ ] Unit: MemoryMax=1500M, Restart=always, NoNewPrivileges, PrivateTmp; ngrok unit: drop StartLimit cap
-- [ ] `npm audit fix` (hono 4.13)
-- [ ] Commit + push landing polish (uncommitted since June)
-- [ ] Build → restart → verify register/authorize/token/mcp end-to-end via public URL → tell customer to re-add connector
+## Phase 0 — emergency (DONE 2026-09-15, live since 14:52)
+- [x] OAuth state files → absolute `STATE_DIR` (survive re-clone), gitignored, chmod 600
+- [x] `WHATSAPP_URL` → :3092 in .env; 30 s timeout on WhatsApp + Perplexity fetches; `.max()` on report fields
+- [x] Demo credentials off the public landing page; rotate demo password; store in gitignored access sheet
+- [x] Deactivate legacy users (admin, admin@example.com, test@example.com) — `is_active=false`, login rejects inactive
+- [x] Bearer on `/session-log*`; dataset CSV handle → full UUID, 30 min TTL, no CORS `*`
+- [x] PKCE S256 verified when present; redirect_uris stored at /register and exact-matched at /authorize + /token
+- [x] Rate limit /authorize /token /register; global 1 MB body limit
+- [x] JWT iss/aud + TTL 4 h
+- [x] `process.on` handlers + SIGTERM graceful (server.close + prisma.$disconnect); transport.close() in finally
+- [x] datasets store cap (50 entries / 50 MB / 30 min, interval prune); logEmitter.setMaxListeners
+- [x] Unit: MemoryMax=1500M, Restart=always, NoNewPrivileges, PrivateTmp; ngrok unit: drop StartLimit cap
+- [x] `npm audit fix` (hono 4.13)
+- [x] Commit + push landing polish (uncommitted since June)
+- [x] Build → restart → verify register/authorize/token/mcp end-to-end via public URL → tell customer to re-add connector
 
-## Ownership + roles (today/tomorrow, "minor DB tweaks")
-- [ ] Migration: `users.is_active`, `users.display_name`, `user_regions(user_id, region_id)`, `leads.owner_user_id`, indexes on leads(owner/created_by/region/country/status/product/created_at), notes(lead_id)
-- [ ] `src/core/access.ts`: `canEditLead`, `requireRole`; current user resolved from tenant sub per request
-- [ ] Creates stamp `createdByUserId` + `ownerUserId`; notes stamp `user_id` from context (drop caller-supplied userId)
-- [ ] Gating: delete_*/batch_update → ADMIN; catalogue/knowledge writes → ADMIN|RESEARCHER; lead edits → canEditLead
-- [ ] New tools: `whoami`, `assign_lead`, `manage_users` (ADMIN: list/create/set_role/set_regions/deactivate)
-- [ ] Filters `mine` / `ownerUserId` / `regionId` on get_leads + search_leads; `get_leads.limit.max(1000)`
-- [ ] `npm test` (node:test) for access rules; wire `_smoke.mjs` as `npm run smoke`
-- [ ] Tool descriptions: first line starts with the tool's own name (Vendo routing fix)
-- [ ] README rewrite; delete stale TODO block in tools/index.ts
-- [ ] Doc for the client: roles/regions structure + how to add users (`docs/roles-and-regions.md`)
+## Ownership + roles (DONE 2026-09-15; unknown geography falls OPEN by decision)
+- [x] Migration: `users.is_active`, `users.display_name`, `user_regions(user_id, region_id)`, `leads.owner_user_id`, indexes on leads(owner/created_by/region/country/status/product/created_at), notes(lead_id)
+- [x] `src/core/access.ts`: `canEditLead`, `requireRole`; current user resolved from tenant sub per request
+- [x] Creates stamp `createdByUserId` + `ownerUserId`; notes stamp `user_id` from context (drop caller-supplied userId)
+- [x] Gating: delete_*/batch_update → ADMIN; catalogue/knowledge writes → ADMIN|RESEARCHER; lead edits → canEditLead
+- [x] New tools: `whoami`, `assign_lead`, `manage_users` (ADMIN: list/create/set_role/set_regions/deactivate)
+- [x] Filters `mine` / `ownerUserId` / `regionId` on get_leads + search_leads; `get_leads.limit.max(1000)`
+- [x] `npm test` (node:test) for access rules; wire `_smoke.mjs` as `npm run smoke`
+- [x] Tool descriptions: first line starts with the tool's own name (Vendo routing fix)
+- [x] README rewrite; delete stale TODO block in tools/index.ts
+- [x] Doc for the client: roles/regions structure + how to add users (`docs/roles-and-regions.md`)
 
 ## Phase 1 — this week
 - [ ] OAuth state → Postgres tables (codes, clients, refresh tokens)
@@ -46,4 +46,4 @@ open visibility (everyone reads everything); hosting stays laptop + ngrok; Phase
 - [ ] Per-request McpServer rebuild → pooled server (measure first; ~580 KB garbage/request)
 - [ ] SSE keep-alive on GET /mcp
 - [ ] Widget coverage decision (15/42 tools have cards — by design?)
-- [ ] Hosting off the laptop (iKrystyna web?) — only if the client commits
+- [ ] Hosting off the company server (iKrystyna web?) — only if the client commits

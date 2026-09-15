@@ -7,8 +7,18 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/home/bogdan/Desktop/Projects/laser_components/lc-connect
 ExecStart=/usr/local/bin/node --env-file=.env dist/index.js
-Restart=on-failure
+# OAuth client registry + refresh tokens. Absolute, so a re-clone or a change of
+# working directory can never silently start the server with an empty registry.
+Environment=STATE_DIR=/home/bogdan/Desktop/Projects/laser_components/lc-connect/state
+# always (not on-failure): a clean SIGTERM-triggered exit(0) from our own
+# shutdown handler must still come back up.
+Restart=always
 RestartSec=3
+# Measured ceiling: a 50-way burst of get_leads(400) peaked at ~679 MB RSS.
+# 1500M leaves headroom while still killing a runaway before it takes the laptop.
+MemoryMax=1500M
+NoNewPrivileges=true
+PrivateTmp=true
 StandardOutput=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/server.log
 StandardError=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/server.log
 
