@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>LC Connect — Laser Components in plain English</title>
+<title>LC Connect — Live lead intelligence in ChatGPT and Claude</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   :root{
@@ -46,7 +46,8 @@
   .hero .lead{margin-top:26px;font-size:clamp(18px,2.2vw,23px);color:var(--muted);max-width:760px}
   .hero .lead b{color:var(--text)}
   .hero .cta{margin-top:38px;display:flex;gap:16px;flex-wrap:wrap}
-  .stage-tag{margin-top:54px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--faint)}
+  .stage-tag{margin-top:54px;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:9px}
+  .stage-tag .live-dot{width:8px;height:8px;border-radius:50%;background:#5fd07b;box-shadow:0 0 14px rgba(95,208,123,.7)}
 
   section{padding:78px 0}
   .sec-head .eyebrow{margin-bottom:14px}
@@ -143,6 +144,24 @@
     .caps.flip .shot{order:-1}
     .nav .links{display:none}
   }
+  @media(max-width:600px){
+    .wrap{padding:0 20px}
+    .nav .wrap{height:58px}
+    .brand{font-size:19px}
+    .nav .btn{font-size:12px!important;padding:8px 13px!important}
+    .hero{padding:68px 0 62px}
+    .hero h1{font-size:clamp(38px,12vw,52px)}
+    .hero .cta{flex-direction:column;align-items:stretch}
+    .hero .cta .btn{justify-content:center}
+    .grid4{grid-template-columns:1fr}
+    section{padding:58px 0}
+    .cred{padding:20px}
+    .field{align-items:flex-start;flex-direction:column}
+    .copy{align-self:flex-end}
+    .plat-seg{display:flex;width:100%}
+    .plat-btn{flex:1;padding:9px 14px}
+    .use-pop{width:100%}
+  }
 </style>
 </head>
 <body>
@@ -160,14 +179,14 @@
   <div class="beam a"></div><div class="beam b"></div>
   <div class="wrap">
     <span class="eyebrow"><span class="dot"></span>Laser Components · AI Connector · Discovery</span>
-    <h1>Your laser-components lead database,<br><span class="accent">answered in plain English.</span></h1>
+    <h1>Your Laser Components lead database,<br><span class="accent">answered in plain English.</span></h1>
     <div class="rule"></div>
     <p class="lead">LC Connect turns your live lead data into something you can simply <b>talk to</b> — inside ChatGPT or Claude. Find leads, enrich them, and explore the pipeline in seconds. No dashboards to learn, no exports to wrangle.</p>
     <div class="cta">
       <a class="btn" href="#demo">▶ Watch the 2-minute demo</a>
       <a class="btn ghost" href="#install">Get the demo access →</a>
     </div>
-    <div class="stage-tag">Discovery phase · prepared for evaluation</div>
+    <div class="stage-tag"><span class="live-dot"></span>Live demo · ready for evaluation</div>
   </div>
 </header>
 
@@ -259,8 +278,8 @@
     <div class="plat-pick">
       <div class="lbl">Which app do you use?</div>
       <div class="plat-seg">
-        <button class="plat-btn active" id="plat-chatgpt" data-plat="chatgpt">ChatGPT</button>
-        <button class="plat-btn" id="plat-claude" data-plat="claude">Claude</button>
+        <button type="button" class="plat-btn active" id="plat-chatgpt" data-plat="chatgpt" aria-pressed="true">ChatGPT</button>
+        <button type="button" class="plat-btn" id="plat-claude" data-plat="claude" aria-pressed="false">Claude</button>
       </div>
     </div>
 
@@ -283,10 +302,10 @@
       </div>
       <div class="cred">
         <div class="ch"><span class="t">Demo access</span><span class="pill">Sample data</span></div>
-        <div class="field"><div><div class="k">App name</div><div class="v" id="v-name">LC Connect</div></div><button class="copy" data-c="v-name">Copy</button></div>
-        <div class="field"><div style="min-width:0"><div class="k">Connector address</div><div class="v" id="v-url">https://lasercomponents.ngrok.app/mcp</div><div class="reminder">Paste into the app — not your browser.</div></div><button class="copy" data-c="v-url">Copy</button></div>
-        <div class="field"><div><div class="k">Email</div><div class="v" id="v-email">test@lasercomponents.local</div></div><button class="copy" data-c="v-email">Copy</button></div>
-        <div class="field"><div><div class="k">Password</div><div class="v" id="v-pass">Test1234!</div></div><button class="copy" data-c="v-pass">Copy</button></div>
+        <div class="field"><div><div class="k">App name</div><div class="v" id="v-name">LC Connect</div></div><button type="button" class="copy" data-c="v-name">Copy</button></div>
+        <div class="field"><div style="min-width:0"><div class="k">Connector address</div><div class="v" id="v-url">https://lasercomponents.ngrok.app/mcp</div><div class="reminder">Paste into the app — not your browser.</div></div><button type="button" class="copy" data-c="v-url">Copy</button></div>
+        <div class="field"><div><div class="k">Email</div><div class="v" id="v-email">test@lasercomponents.local</div></div><button type="button" class="copy" data-c="v-email">Copy</button></div>
+        <div class="field"><div><div class="k">Password</div><div class="v" id="v-pass">Test1234!</div></div><button type="button" class="copy" data-c="v-pass">Copy</button></div>
         <div class="note"><b>One-time</b> — these sign-in details are only entered when first connecting the app.</div>
         <div class="note" style="margin-top:10px"><b>On an organisation ChatGPT plan?</b> The connector is provided by your company — ask your IT department to enable it. The steps above are for an individual plan.</div>
       </div>
@@ -343,13 +362,13 @@
       </div>
     </div>
     <div class="meta">
-      LC Connect<br>Laser Components<br>Discovery · {YEAR}
+      LC Connect<br>Laser Components<br>Discovery · <span id="year"></span>
     </div>
   </div>
 </footer>
 
 <script>
-  document.body.innerHTML=document.body.innerHTML.replace('{YEAR}', new Date().getFullYear());
+  document.getElementById('year').textContent=new Date().getFullYear();
   document.querySelectorAll('.copy').forEach(function(b){
     b.addEventListener('click',function(){
       var el=document.getElementById(b.dataset.c);
@@ -364,6 +383,7 @@
     btn.addEventListener('click',function(){
       var plat=btn.dataset.plat;
       document.querySelectorAll('.plat-btn').forEach(function(b){b.classList.toggle('active',b===btn)});
+      document.querySelectorAll('.plat-btn').forEach(function(b){b.setAttribute('aria-pressed',b===btn?'true':'false')});
       document.querySelectorAll('.plat-steps').forEach(function(s){s.hidden=(s.dataset.steps!==plat)});
     });
   });
