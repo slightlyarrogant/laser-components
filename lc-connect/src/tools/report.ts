@@ -10,7 +10,7 @@ import { audit } from "../core/audit.js";
  * the WhatsApp bridge.
  *
  * Env names preserved from the old LC server:
- *   WHATSAPP_URL        — bridge base URL (POST {URL}/send)
+ *   WHATSAPP_URL        — bridge base URL (POST {URL}/send), body {chatId, message} (hermes bridge :3092)
  *   WHATSAPP_RECIPIENT  — target JID/lid
  */
 
@@ -130,7 +130,7 @@ export function registerReportTools(
         const response = await fetch(`${WHATSAPP_URL}/send`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: WHATSAPP_RECIPIENT, text: message }),
+          body: JSON.stringify({ chatId: WHATSAPP_RECIPIENT, message }),
           signal: AbortSignal.timeout(WHATSAPP_TIMEOUT_MS),
         });
 
