@@ -134,10 +134,13 @@ export function registerReportTools(
           signal: AbortSignal.timeout(WHATSAPP_TIMEOUT_MS),
         });
 
-        const result = (await response.json()) as { ok: boolean; error?: string };
+        const result = (await response.json().catch(() => ({}))) as {
+          ok?: boolean; success?: boolean; error?: string;
+        };
 
-        if (!result.ok) {
-          throw new Error(result.error || "WhatsApp delivery failed");
+        // hermes bridge answers {success:true,messageId}; the old bridge answered {ok:true}.
+        if (!response.ok || !(result.ok || result.success)) {
+          throw new Error(result.error || `WhatsApp delivery failed (HTTP ${response.status})`);
         }
 
         return buildActionEnvelope(
