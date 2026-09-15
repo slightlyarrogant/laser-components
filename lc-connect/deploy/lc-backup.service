@@ -1,0 +1,7 @@
+[Unit]
+Description=LC Connect DB backup
+[Service]
+Type=oneshot
+ExecStart=/home/bogdan/Desktop/Projects/laser_components/lc-connect/deploy/backup-db.sh
+StandardOutput=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/deploy/backup.log
+StandardError=append:/home/bogdan/Desktop/Projects/laser_components/lc-connect/deploy/backup.log

@@ -31,12 +31,27 @@ open visibility (everyone reads everything); hosting stays on the company server
 - [x] README rewrite; delete stale TODO block in tools/index.ts
 - [x] Doc for the client: roles/regions structure + how to add users (`docs/roles-and-regions.md`)
 
+## Gap-closing pass (2026-09-15, after "is this state-of-the-art?" review)
+Verdict: connector core = current standard (Hono + McpServer + OAuth 2.1 DCR/PKCE + metadata endpoints). Gaps were identity, ops, data.
+- [ ] **SSO / identity federation** — QUESTION TO CUSTOMER: which IdP (Entra ID / Google Workspace / Okta)? Then broker /authorize → their OIDC, map email → user row (2–3 d). Until answered: local accounts via manage_users.
+- [x] Nightly DB backup: `deploy/backup-db.sh` → ~/backups/laser_components (30 d) + NAS /mnt/dysk/backups/laser_components; user timer `lc-backup.timer` 02:15; first run OK (190 KB)
+- [x] Watchdog: `deploy/watchdog.sh` runs full public login flow every 5 min (`lc-watchdog.timer`), restarts ngrok or node by layer, Pushover on 2nd failure + on recovery; user `watchdog@lc-connect.local` (SALES); creds in gitignored deploy/watchdog.env
+- [x] logrotate for server.log + deploy/*.log (weekly, 8, copytruncate)
+- [ ] Audit trail: ActivityLog on every write + refusals; `get_audit_log`; feed merge (agent running)
+- [ ] OAuth state → Postgres (oauth_clients / codes / refresh tokens, hashed) with one-time import of state/*.json (agent running)
+- [ ] Widget lib 0.2.0 → 0.4.0 dark mode + mobile (agent running)
+- [ ] Geography backfill from `location` text + missing countries/regions seed (agent running)
+- [ ] pino structured logging + tool-call ledger (after OAuth agent; touches index/oauth)
+- [ ] Client-facing structure doc: current state + 3–4 day target (`docs/lc-connect-structure.md`)
+- [ ] Own R2 bucket/prefix for LC backups (today: local + NAS only)
+- [ ] Region taxonomy per client (France / Western Europe / Africa+emerging / Asia) — needs customer input, after geography backfill
+
 ## Phase 1 — this week
 - [ ] OAuth state → Postgres tables (codes, clients, refresh tokens)
 - [ ] Enforce PKCE (reject missing code_challenge) once both clients confirmed sending it
 - [ ] Widget lib 0.2.0 → 0.4.0 (dark mode + mobile)
 - [ ] pino JSON logging with user mixin + tool-call ledger; server.log rotation
-- [ ] Watchdog: timer runs full login flow via public URL; restarts ngrok/node on failure (June ask, still open)
+- [x] Watchdog: timer runs full login flow via public URL; restarts ngrok/node on failure (DONE 2026-09-15, see gap-closing pass)
 - [ ] jti deny-list / token revocation
 - [ ] `export_data` take caps; `search_resources` select-only-needed columns
 

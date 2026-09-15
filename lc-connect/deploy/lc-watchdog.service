@@ -1,0 +1,5 @@
+[Unit]
+Description=LC Connect watchdog (full login flow via public URL)
+[Service]
+Type=oneshot
+ExecStart=/home/bogdan/Desktop/Projects/laser_components/lc-connect/deploy/watchdog.sh
