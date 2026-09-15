@@ -41,7 +41,7 @@ Claude / ChatGPT  ──HTTPS──▶  LC Connect server  ──▶  Laser Comp
 | Transport | HTTPS end to end; no data is exposed without a valid session |
 | Backups | Nightly database backup, kept 30 days, stored on-site and off-site |
 | Monitoring | An automated check signs in through the public address every 5 minutes, exercising the full login and query path; on failure it restarts the affected component and alerts the operator. Structured logs are kept for diagnosis |
-| Hosting | Dedicated company server with backup power; managed by CFI |
+| Hosting | Dedicated server with backup power; operated by AutoOffice |
 | External AI | Market-intelligence tools call an external research model (Perplexity) with the lead's public company name and website only; no notes or internal data leave the system |
 
 ## 5. Your data today
