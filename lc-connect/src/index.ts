@@ -17,10 +17,12 @@ import {
 import { config } from "./config.js";
 import { VERSION } from "./version.js";
 import { oauthRouter, requireBearerToken } from "./auth/oauth.js";
+import { importLegacyOAuthState, startOAuthStateSweeper } from "./auth/store.js";
 import { createMcpServer, tenantContext } from "./server.js";
 import { datasetCsvHandler } from "./datasets.js";
 import { prisma } from "./db/client.js";
 import { getRecentEvents, logEmitter, type SessionLogEvent } from "./core/session-log.js";
+import { errMessage, errStack, log } from "./core/log.js";
 
 // The MCP Apps SDK browser bundle (app-with-deps.js, bundled/self-contained),
 // resolved through the shared @cfi/mcp-widgets helper against LC's own ext-apps
@@ -34,13 +36,27 @@ const APP_SDK_JS = getWidgetSdkJs();
 
 const app = new Hono();
 
-// Request/error logging so 500 causes are visible in stdout.
+// Access log — ONE structured line per request, emitted whether the handler
+// returned or threw. `userId` is contributed by the logger's tenant mixin when
+// the request ran inside a tenant context; it is read from `c.var.tenantSub`
+// here as well, because the access line is emitted AFTER the context has been
+// left. Re-throwing is unchanged: this middleware observes, it does not handle.
 app.use("*", async (c, next) => {
+  const started = Date.now();
+  const base = () => ({
+    evt: "http",
+    method: c.req.method,
+    path: c.req.path,
+    ms: Date.now() - started,
+    ip: clientIp(c),
+    userId: c.get("tenantSub") ?? undefined,
+  });
   try {
     await next();
-    console.log(`[http] ${c.req.method} ${c.req.path} → ${c.res.status}`);
+    log.info({ ...base(), status: c.res.status });
   } catch (err) {
-    console.error(`[http] ${c.req.method} ${c.req.path} → 500`, err);
+    log.error({ ...base(), status: 500, err: errMessage(err) });
+    log.debug({ evt: "http", path: c.req.path, stack: errStack(err) });
     throw err;
   }
 });
@@ -116,7 +132,14 @@ function rateLimit(bucket: string, limit: number): MiddlewareHandler {
     const hits = (rateBuckets.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
     if (hits.length >= limit) {
       rateBuckets.set(key, hits);
-      console.warn(`[rate-limit] ${bucket} blocked ${key} (${hits.length}/${limit} per minute)`);
+      log.warn({
+        evt: "rate-limit",
+        bucket,
+        ip: clientIp(c),
+        hits: hits.length,
+        limit,
+        windowMs: RATE_WINDOW_MS,
+      });
       return c.json({ error: "rate_limited" }, 429, {
         "Retry-After": String(Math.ceil(RATE_WINDOW_MS / 1000)),
       });
@@ -471,17 +494,20 @@ function finalizeMcpResponse(
 async function handleMcp(c: Context) {
   const tenantSub = c.get("tenantSub");
 
-  // Best-effort tool-call logging without consuming the transport's body.
+  // Peek at the JSON-RPC method WITHOUT consuming the transport's body, purely
+  // so a dispatch is traceable at debug level. The authoritative per-tool record
+  // is the `evt:"tool-call"` ledger in server.ts, which times the handler and —
+  // unlike the line this replaced — never serialises argument VALUES (they
+  // routinely carry lead PII).
   let toolName: string | undefined;
   try {
     const body = (await c.req.raw.clone().json()) as {
       method?: string;
-      params?: { name?: string; arguments?: unknown };
+      params?: { name?: string };
     };
     if (body?.method === "tools/call") {
       toolName = body.params?.name ?? "unknown";
-      const args = JSON.stringify(body.params?.arguments ?? {});
-      console.log(`[tool] → ${toolName} ${args.slice(0, 200)}`);
+      log.debug({ evt: "mcp-dispatch", phase: "start", tool: toolName });
     }
   } catch {
     /* not JSON — ping, initialize, etc. */
@@ -499,12 +525,12 @@ async function handleMcp(c: Context) {
       try {
         await server?.close?.();
       } catch (err) {
-        console.error("[mcp] server close failed", err);
+        log.error({ evt: "mcp-close", part: "server", err: errMessage(err) });
       }
       try {
         await transport.close();
       } catch (err) {
-        console.error("[mcp] transport close failed", err);
+        log.error({ evt: "mcp-close", part: "transport", err: errMessage(err) });
       }
     })();
   };
@@ -514,7 +540,7 @@ async function handleMcp(c: Context) {
       server = createMcpServer();
       await server.connect(transport);
       const response = await transport.handleRequest(c.req.raw);
-      if (toolName) console.log(`[tool] ← ${toolName} done`);
+      if (toolName) log.debug({ evt: "mcp-dispatch", phase: "done", tool: toolName });
       return finalizeMcpResponse(response, closeAll, c.req.method === "GET");
     });
   } catch (err) {
@@ -531,16 +557,44 @@ app.all("/", requireBearerToken, (c) => handleMcp(c));
 // Start HTTP server
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// OAuth state bootstrap — BEFORE the first request is accepted.
+//
+// One-time migration of the legacy STATE_DIR JSON files (dynamic_clients.json,
+// refresh_tokens.json) into Postgres; both are renamed to *.imported once they
+// land, so this is a no-op on every subsequent start. Awaited rather than
+// fired-and-forgotten so no /authorize can be served against a half-imported
+// client registry. A DB that is down at boot must not stop the process from
+// coming up (/health still answers), so failures are logged, not thrown.
+// ---------------------------------------------------------------------------
+
+try {
+  await importLegacyOAuthState(config.STATE_DIR);
+} catch (err) {
+  log.error({ evt: "oauth-legacy-import", err: errMessage(err) });
+  log.debug({ evt: "oauth-legacy-import", stack: errStack(err) });
+}
+startOAuthStateSweeper();
+
 const port = config.PORT;
 
 const server = serve({ fetch: app.fetch, port }, () => {
-  console.log(`[lc-connect] listening on port ${port}`);
-  console.log(
-    `[lc-connect] OAuth discovery: ${config.PUBLIC_BASE_URL}/.well-known/oauth-authorization-server`
-  );
-  console.log(`[lc-connect] MCP endpoint: ${config.PUBLIC_BASE_URL}/mcp`);
-  console.log(`[lc-connect] state dir: ${config.STATE_DIR}`);
-  console.log(`[lc-connect] NODE_ENV: ${config.NODE_ENV}`);
+  // One line, not five: the startup banner is a CONFIG SUMMARY, and a summary
+  // split across five lines cannot be read back as a single record. Secrets are
+  // absent by construction — only ports, public URLs and paths appear here.
+  log.info({
+    evt: "startup",
+    port,
+    nodeEnv: config.NODE_ENV,
+    logLevel: log.level,
+    publicBaseUrl: config.PUBLIC_BASE_URL,
+    mcpEndpoint: `${config.PUBLIC_BASE_URL}/mcp`,
+    oauthDiscovery: `${config.PUBLIC_BASE_URL}/.well-known/oauth-authorization-server`,
+    stateDir: config.STATE_DIR,
+    accessTokenTtlSeconds: config.JWT_ACCESS_TOKEN_TTL_SECONDS,
+    authCodeTtlSeconds: config.AUTH_CODE_TTL_SECONDS,
+    perplexityConfigured: Boolean(config.PERPLEXITY_API_KEY),
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -553,11 +607,18 @@ const server = serve({ fetch: app.fetch, port }, () => {
 // ---------------------------------------------------------------------------
 
 process.on("unhandledRejection", (reason) => {
-  console.error("[lc-connect] unhandledRejection (continuing):", reason);
+  log.error({
+    evt: "unhandledRejection",
+    action: "continuing",
+    err: errMessage(reason),
+    stack: errStack(reason),
+  });
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("[lc-connect] uncaughtException — exiting:", err);
+  // Fatal: the stack goes out at error level here (not debug) because the
+  // process is about to disappear and there is no later chance to ask for it.
+  log.fatal({ evt: "uncaughtException", action: "exiting", err: errMessage(err), stack: errStack(err) });
   process.exit(1);
 });
 
@@ -566,13 +627,13 @@ let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.log(`[lc-connect] ${signal} received — draining`);
+  log.info({ evt: "shutdown", phase: "draining", signal });
 
   // Failsafe: long-lived SSE streams (/mcp GET, /session-log/stream) keep
   // sockets open, so server.close() may never resolve. Unref'd so a clean
   // drain still lets the process exit early.
   const failsafe = setTimeout(() => {
-    console.error("[lc-connect] drain timed out after 10s — forcing exit");
+    log.error({ evt: "shutdown", phase: "drain-timeout", timeoutMs: 10_000 });
     process.exit(1);
   }, 10_000);
   failsafe.unref?.();
@@ -580,15 +641,15 @@ async function shutdown(signal: string): Promise<void> {
   try {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   } catch (err) {
-    console.error("[lc-connect] error closing HTTP server:", err);
+    log.error({ evt: "shutdown", phase: "http-close", err: errMessage(err) });
   }
   try {
     await prisma.$disconnect();
   } catch (err) {
-    console.error("[lc-connect] error disconnecting Prisma:", err);
+    log.error({ evt: "shutdown", phase: "prisma-disconnect", err: errMessage(err) });
   }
   clearTimeout(failsafe);
-  console.log("[lc-connect] shutdown complete");
+  log.info({ evt: "shutdown", phase: "complete", signal });
   process.exit(0);
 }
 

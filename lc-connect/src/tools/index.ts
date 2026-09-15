@@ -8,9 +8,17 @@ import {
   type KpiItem,
   type KpiMeta,
 } from "@cfi/mcp-widgets";
+import { DATASET_WIDGET_URI, okList } from "../datasets.js";
+import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 import { getCurrentUser, invalidateCurrentUser } from "../core/current-user.js";
 import { requireRole } from "../core/access.js";
+import {
+  AUDIT_DEFAULT_LIMIT,
+  AUDIT_MAX_LIMIT,
+  audit,
+  queryAuditLog,
+} from "../core/audit.js";
 import { registerProductsTools } from "./products.js";
 import { registerApplicationsTools } from "./applications.js";
 import { registerLeadsTools } from "./leads.js";
@@ -307,21 +315,29 @@ export function registerAllTools(
       const me = await getCurrentUser();
       requireRole(me, "ADMIN");
 
-      // Resolve the target account for the actions that need one.
+      // Resolve the target account for the actions that need one. The BEFORE
+      // state (role, activation, regions) comes back with it so the audit row
+      // can carry a real before/after rather than just the new value.
       const findTarget = async () => {
         if (a.userId == null && !a.email) {
           throw new Error(`action "${a.action}" requires userId or email`);
         }
         const target = await prisma.user.findUnique({
           where: a.userId != null ? { id: a.userId } : { email: a.email as string },
-          select: { id: true },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            isActive: true,
+            regions: { select: { regionId: true } },
+          },
         });
         if (!target) {
           throw new Error(
             `User ${a.userId != null ? `#${a.userId}` : a.email} not found`
           );
         }
-        return target.id;
+        return target;
       };
 
       const reload = async (id: number) => {
@@ -336,6 +352,12 @@ export function registerAllTools(
             where: a.includeInactive ? {} : { isActive: true },
             orderBy: { id: "asc" },
             select: USER_SELECT,
+          });
+          await audit({
+            action: "user.listed",
+            resourceType: "user",
+            resourceId: null,
+            details: { count: rows.length, includeInactive: !!a.includeInactive },
           });
           return jsonOk({
             success: true,
@@ -371,6 +393,20 @@ export function registerAllTools(
             },
             select: { id: true },
           });
+          // Only the target's identity and grants — never the password, never
+          // its hash. sanitizeDetails would redact them anyway; they simply do
+          // not get assembled here.
+          await audit({
+            action: "user.created",
+            resourceType: "user",
+            resourceId: created.id,
+            details: {
+              email: a.email,
+              role: a.role,
+              displayName: a.displayName ?? null,
+              regionIds: a.regionIds ?? [],
+            },
+          });
           return jsonOk({
             success: true,
             action: "create",
@@ -380,13 +416,24 @@ export function registerAllTools(
 
         case "set_role": {
           if (!a.role) throw new Error("set_role requires role");
-          const id = await findTarget();
+          const target = await findTarget();
+          const id = target.id;
           if (id === me.id && a.role !== "ADMIN") {
             throw new Error(
               "You cannot remove your own ADMIN role — ask another admin to do it."
             );
           }
           await prisma.user.update({ where: { id }, data: { role: a.role } });
+          await audit({
+            action: "user.role_changed",
+            resourceType: "user",
+            resourceId: id,
+            details: {
+              email: target.email,
+              before: { role: target.role },
+              after: { role: a.role },
+            },
+          });
           return jsonOk({ success: true, action: "set_role", user: await reload(id) });
         }
 
@@ -396,7 +443,8 @@ export function registerAllTools(
               "set_regions requires regionIds (pass [] for global competency)"
             );
           }
-          const id = await findTarget();
+          const target = await findTarget();
+          const id = target.id;
           const unique = [...new Set(a.regionIds)];
           if (unique.length > 0) {
             const found = await prisma.region.findMany({
@@ -418,21 +466,46 @@ export function registerAllTools(
                 ]
               : []),
           ]);
+          await audit({
+            action: "user.regions_changed",
+            resourceType: "user",
+            resourceId: id,
+            details: {
+              email: target.email,
+              before: { regionIds: target.regions.map((r) => r.regionId).sort((x, y) => x - y) },
+              after: { regionIds: [...unique].sort((x, y) => x - y) },
+              competencyAfter: unique.length === 0 ? "global" : "regional",
+            },
+          });
           return jsonOk({ success: true, action: "set_regions", user: await reload(id) });
         }
 
         case "deactivate": {
-          const id = await findTarget();
+          const target = await findTarget();
+          const id = target.id;
           if (id === me.id) {
             throw new Error("You cannot deactivate your own account.");
           }
           await prisma.user.update({ where: { id }, data: { isActive: false } });
+          await audit({
+            action: "user.deactivated",
+            resourceType: "user",
+            resourceId: id,
+            details: { email: target.email, before: { isActive: target.isActive } },
+          });
           return jsonOk({ success: true, action: "deactivate", user: await reload(id) });
         }
 
         case "reactivate": {
-          const id = await findTarget();
+          const target = await findTarget();
+          const id = target.id;
           await prisma.user.update({ where: { id }, data: { isActive: true } });
+          await audit({
+            action: "user.reactivated",
+            resourceType: "user",
+            resourceId: id,
+            details: { email: target.email, before: { isActive: target.isActive } },
+          });
           return jsonOk({ success: true, action: "reactivate", user: await reload(id) });
         }
 
@@ -440,7 +513,8 @@ export function registerAllTools(
           if (!a.password || a.password.length < 10) {
             throw new Error("reset_password requires a password of at least 10 characters");
           }
-          const id = await findTarget();
+          const target = await findTarget();
+          const id = target.id;
           await prisma.user.update({
             where: { id },
             data: {
@@ -448,6 +522,14 @@ export function registerAllTools(
               resetTokenHash: null,
               resetTokenExpiry: null,
             },
+          });
+          // WHOSE password was reset, and nothing else. No password, no hash,
+          // not even its length.
+          await audit({
+            action: "user.password_reset",
+            resourceType: "user",
+            resourceId: id,
+            details: { email: target.email },
           });
           return jsonOk({
             success: true,
@@ -457,6 +539,122 @@ export function registerAllTools(
           });
         }
       }
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // get_audit_log — the raw audit trail (ADMIN / RESEARCHER).
+  // -------------------------------------------------------------------------
+  registerAppTool(
+    server,
+    "get_audit_log",
+    {
+      title: "Audit log",
+      description: [
+        "get_audit_log — the raw LC Connect audit trail: every write anybody made,",
+        "newest first (who, what action, which record, when, what changed).",
+        "USE WHEN: someone asks who changed/deleted/assigned something, what a specific",
+        "colleague did, whether a write was refused, or wants a compliance-style review",
+        "of activity in a period.",
+        "DON'T USE WHEN: the user wants the friendly CRM timeline (lead creations +",
+        "notes mixed in) -> use get_activity_feed; they want lead DATA -> search_leads.",
+        "RETURNS: a small result inline as { success, count, entries[] }; a LARGE result",
+        "(> threshold) as an interactive DATASET widget (sortable/searchable + CSV).",
+        "ROLES: requires ADMIN or RESEARCHER — the trail names who did what and is not",
+        "open to everyone.",
+        "GOTCHAS: `action` is a PREFIX match, so \"lead.\" catches every lead action and",
+        "\"lead.delete\" catches both lead.deleted and lead.delete_refused. `since` is an",
+        `ISO date. limit defaults to ${AUDIT_DEFAULT_LIMIT}, capped at ${AUDIT_MAX_LIMIT}.`,
+        "Refusals are recorded too (…_refused) — an attempted delete is as interesting",
+        "as a completed one.",
+        PRESENT_BRIEFLY,
+      ].join("\n"),
+      inputSchema: {
+        userId: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Only actions by this user ID (resolve with manage_users/whoami)."),
+        action: z
+          .string()
+          .optional()
+          .describe('Action prefix, e.g. "lead." or "user.role_changed".'),
+        resourceType: z
+          .enum([
+            "lead",
+            "note",
+            "product",
+            "application",
+            "product_application",
+            "resource",
+            "learning",
+            "user",
+            "issue",
+          ])
+          .optional()
+          .describe("Only actions on this kind of record."),
+        since: z
+          .string()
+          .optional()
+          .describe("Only entries at or after this ISO date (e.g. 2026-09-01)."),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(AUDIT_MAX_LIMIT)
+          .optional()
+          .default(AUDIT_DEFAULT_LIMIT)
+          .describe(
+            `Maximum entries to return. Defaults to ${AUDIT_DEFAULT_LIMIT}, capped at ${AUDIT_MAX_LIMIT}.`
+          ),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+      _meta: {
+        ui: { resourceUri: DATASET_WIDGET_URI },
+        "openai/outputTemplate": DATASET_WIDGET_URI,
+      },
+    },
+    async (a) => {
+      const me = await getCurrentUser();
+      requireRole(me, "ADMIN", "RESEARCHER");
+
+      const entries = await queryAuditLog({
+        userId: a.userId,
+        action: a.action,
+        resourceType: a.resourceType,
+        since: a.since,
+        limit: a.limit,
+      });
+
+      // Flat scalar projection, same shape get_leads gives the DATASET widget.
+      const rows = entries.map((e) => ({
+        timestamp: e.timestamp,
+        actor: e.actor,
+        actorEmail: e.actorEmail,
+        userId: e.userId,
+        action: e.action,
+        resourceType: e.resourceType,
+        resourceId: e.resourceId,
+        details: e.summary,
+      }));
+
+      const widget = okList(
+        rows,
+        "Audit log",
+        config.PUBLIC_BASE_URL,
+        10,
+        ["timestamp", "actor", "action", "resourceId", "details"]
+      );
+      if (!("structuredContent" in widget)) {
+        return jsonOk({ success: true, count: entries.length, entries });
+      }
+      return widget as any;
     }
   );
 

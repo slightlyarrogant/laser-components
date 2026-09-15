@@ -19,6 +19,7 @@ import {
   requireRole,
   type LeadAccessFields,
 } from "../core/access.js";
+import { audit, capIdList, diffFields } from "../core/audit.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
@@ -54,6 +55,46 @@ const ACCESS_SELECT = {
   regionId: true,
   country: { select: { regionId: true } },
 };
+
+/**
+ * ACCESS_SELECT plus every column update_lead can write. Loaded in the same
+ * round trip as the ownership check so the audit row can carry a real
+ * before/after diff instead of just "these field names changed".
+ */
+const UPDATE_SNAPSHOT_SELECT = {
+  ...ACCESS_SELECT,
+  email: true,
+  phone: true,
+  status: true,
+  industry: true,
+  tags: true,
+  description: true,
+  website: true,
+  applicationId: true,
+  annualRevenue: true,
+  employeeCount: true,
+  confidence: true,
+  countryId: true,
+};
+
+/**
+ * Compact snapshot of a lead for a DELETE audit row: identity + the few
+ * columns an admin reviewing a deletion actually needs. Never note bodies,
+ * never the description blob.
+ */
+function deletedLeadSnapshot(lead: {
+  name?: string | null;
+  status?: unknown;
+  ownerUserId?: number | null;
+  productId?: number | null;
+}): Record<string, unknown> {
+  return {
+    name: lead.name ?? null,
+    status: lead.status ?? null,
+    ownerUserId: lead.ownerUserId ?? null,
+    productId: lead.productId ?? null,
+  };
+}
 
 /**
  * Region stamping for writes: an explicit regionId wins; otherwise the lead's
@@ -342,6 +383,21 @@ export function registerLeadsTools(
         include: { product: true, application: true, ownerUser: OWNER_SELECT },
       });
 
+      await audit({
+        action: "lead.created",
+        resourceType: "lead",
+        resourceId: lead.id,
+        details: {
+          name: lead.name,
+          status: lead.status,
+          productId: lead.productId,
+          applicationId: lead.applicationId ?? null,
+          ownerUserId: lead.ownerUserId ?? null,
+          countryId: lead.countryId ?? null,
+          regionId: lead.regionId ?? null,
+        },
+      });
+
       // Success -> ACTION confirmation widget (terminal). The human fields go to
       // BOTH the model (structuredContent) and the widget (_meta), so the model
       // can confirm in words even if the card is collapsed.
@@ -424,10 +480,11 @@ export function registerLeadsTools(
 
       if (!a.id) throw new Error("Lead ID is required");
 
-      // Ownership gate: load only the columns the rule needs.
+      // Ownership gate: the columns the rule needs, plus the pre-update values
+      // of every writable column so the audit row can diff before/after.
       const existing = await prisma.lead.findUnique({
         where: { id: a.id },
-        select: ACCESS_SELECT,
+        select: UPDATE_SNAPSHOT_SELECT,
       });
       if (!existing) throw new Error(`Lead with ID ${a.id} not found`);
       const access: LeadAccessFields = {
@@ -462,6 +519,21 @@ export function registerLeadsTools(
           where: { id: a.id },
           data: updateData,
           include: { product: true, application: true, region: true, country: true },
+        });
+
+        // before/after over the CHANGED fields only — a no-op update writes an
+        // audit row with an empty diff, which is itself worth seeing.
+        const diff = diffFields(existing as Record<string, unknown>, updateData);
+        await audit({
+          action: "lead.updated",
+          resourceType: "lead",
+          resourceId: updatedLead.id,
+          details: {
+            name: updatedLead.name,
+            changed: diff.changed,
+            before: diff.before,
+            after: diff.after,
+          },
         });
 
         // Human summary of what changed. If status was set, lead with it; else
@@ -530,15 +602,27 @@ export function registerLeadsTools(
     },
     async (a) => {
       const me = await getCurrentUser();
-      requireRole(me, "ADMIN");
+      // A REFUSED delete is exactly what an admin wants to see in the trail, so
+      // the role check is audited before it is re-thrown.
+      try {
+        requireRole(me, "ADMIN");
+      } catch (err) {
+        await audit({
+          action: "lead.delete_refused",
+          resourceType: "lead",
+          resourceId: a.id ?? null,
+          details: { reason: err instanceof Error ? err.message : String(err) },
+        });
+        throw err;
+      }
 
       if (!a.id) throw new Error("Lead ID is required");
 
-      // Fetch the name first so the confirmation card can show it (the delete
-      // itself returns nothing useful for the card).
+      // Fetch the row first: the confirmation card needs the name, and the
+      // audit row needs a compact snapshot of what is about to disappear.
       const existing = await prisma.lead.findUnique({
         where: { id: a.id },
-        select: { name: true },
+        select: { name: true, status: true, ownerUserId: true, productId: true },
       });
       try {
         await prisma.lead.delete({ where: { id: a.id } });
@@ -546,6 +630,12 @@ export function registerLeadsTools(
         if (error.code === "P2025") throw new Error(`Lead with ID ${a.id} not found`);
         throw error;
       }
+      await audit({
+        action: "lead.deleted",
+        resourceType: "lead",
+        resourceId: a.id,
+        details: existing ? deletedLeadSnapshot(existing) : { name: null },
+      });
       return buildActionEnvelope(
         {
           status: "success",
@@ -954,6 +1044,20 @@ export function registerLeadsTools(
         },
       });
 
+      // The note BODY is deliberately not stored — the trail records that a
+      // note of this type was attached to this lead, not what it said.
+      await audit({
+        action: "note.created",
+        resourceType: "note",
+        resourceId: note.id,
+        details: {
+          leadId: a.leadId,
+          leadName: lead.name,
+          noteType: noteType.toUpperCase(),
+          contentLength: String(a.content).length,
+        },
+      });
+
       return buildActionEnvelope(
         {
           status: "success",
@@ -1115,6 +1219,22 @@ export function registerLeadsTools(
         errors: errors.length,
       };
 
+      // Counts + the created id list (capped at 500) — enough to reconstruct
+      // exactly what a bulk import put into the database.
+      const createdIds = capIdList(createdLeads.map((l: any) => l.id));
+      await audit({
+        action: "lead.batch_created",
+        resourceType: "lead",
+        resourceId: null,
+        details: {
+          ...summary,
+          ownerUserId,
+          skipDuplicates,
+          createdIds: createdIds.ids,
+          createdIdsOmitted: createdIds.omitted,
+        },
+      });
+
       return buildActionEnvelope(
         {
           status: hasIssues ? "warning" : "success",
@@ -1183,7 +1303,26 @@ export function registerLeadsTools(
     },
     async (a) => {
       const me = await getCurrentUser();
-      requireRole(me, "ADMIN");
+      // A refused bulk write is audited before it is re-thrown: an attempted
+      // cross-book edit is worth as much to an admin as a successful one.
+      try {
+        requireRole(me, "ADMIN");
+      } catch (err) {
+        const attempted = capIdList(Array.isArray(a.leadIds) ? a.leadIds : []);
+        await audit({
+          action: "lead.batch_update_refused",
+          resourceType: "lead",
+          resourceId: null,
+          details: {
+            reason: err instanceof Error ? err.message : String(err),
+            requested: attempted.count,
+            leadIds: attempted.ids,
+            leadIdsOmitted: attempted.omitted,
+            updates: a.updates ?? null,
+          },
+        });
+        throw err;
+      }
 
       if (!a.leadIds || !Array.isArray(a.leadIds) || a.leadIds.length === 0) {
         throw new Error("leadIds array is required and must not be empty");
@@ -1220,6 +1359,20 @@ export function registerLeadsTools(
             )
           );
           const updatedCount = updatePromises.length;
+          const touched = capIdList(existingLeads.map((l: any) => l.id));
+          await audit({
+            action: "lead.batch_updated",
+            resourceType: "lead",
+            resourceId: null,
+            details: {
+              operation: "append",
+              requested: a.leadIds.length,
+              updated: updatedCount,
+              updates: { ...updateData, tags: updates.tags },
+              leadIds: touched.ids,
+              leadIdsOmitted: touched.omitted,
+            },
+          });
           return buildActionEnvelope(
             {
               status: updatedCount > 0 ? "success" : "warning",
@@ -1241,6 +1394,20 @@ export function registerLeadsTools(
       const result = await prisma.lead.updateMany({
         where: { id: { in: a.leadIds } },
         data: updateData,
+      });
+      const requestedIds = capIdList(a.leadIds);
+      await audit({
+        action: "lead.batch_updated",
+        resourceType: "lead",
+        resourceId: null,
+        details: {
+          operation: "replace",
+          requested: a.leadIds.length,
+          updated: result.count,
+          updates: updateData,
+          leadIds: requestedIds.ids,
+          leadIdsOmitted: requestedIds.omitted,
+        },
       });
       return buildActionEnvelope(
         {
@@ -1331,6 +1498,17 @@ export function registerLeadsTools(
         : null;
       const beforeLabel = before?.label ?? "unassigned";
       const afterLabel = after?.label ?? "unassigned";
+
+      await audit({
+        action: "lead.assigned",
+        resourceType: "lead",
+        resourceId: updated.id,
+        details: {
+          name: updated.name,
+          before: { ownerUserId: existing.ownerUserId ?? null, owner: beforeLabel },
+          after: { ownerUserId: updated.ownerUserId ?? null, owner: afterLabel },
+        },
+      });
 
       const env = buildActionEnvelope(
         {

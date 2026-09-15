@@ -22,6 +22,8 @@ model User {
   activities                      ActivityLog[]
   industrial_application_research IndustrialApplicationResearch[]
   leads                           Lead[]                          @relation("LeadCreatedBy")
+  oauthAuthCodes                  OAuthAuthCode[]
+  oauthRefreshTokens              OAuthRefreshToken[]
   ownedLeads                      Lead[]                          @relation("LeadOwner")
   regions                         UserRegion[]
   research_attachments            ResearchAttachment[]
@@ -44,6 +46,54 @@ model UserRegion {
 
   @@id([userId, regionId])
   @@map("user_regions")
+}
+
+/// OAuth 2.0 dynamic client registry (RFC 7591). `redirectUris` is the exact
+/// allow-list /authorize matches against; an empty array means the client is
+/// known but cannot start a flow until it re-registers.
+/// Mirrors db/migrations/2026-09-15-oauth-state.sql.
+model OAuthClient {
+  clientId     String    @id @map("client_id")
+  clientName   String?   @map("client_name")
+  redirectUris String[]  @map("redirect_uris")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt   DateTime? @map("last_used_at") @db.Timestamptz(6)
+
+  @@map("oauth_clients")
+}
+
+/// Single-use authorization codes. Redemption is a DELETE ... RETURNING, so a
+/// code can be exchanged exactly once even under concurrent requests.
+model OAuthAuthCode {
+  code                String   @id
+  clientId            String   @map("client_id")
+  userId              Int      @map("user_id")
+  redirectUri         String   @map("redirect_uri")
+  codeChallenge       String?  @map("code_challenge")
+  codeChallengeMethod String?  @map("code_challenge_method")
+  expiresAt           DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([expiresAt])
+  @@map("oauth_auth_codes")
+}
+
+/// Rotating refresh tokens. The primary key is sha256(token) in hex — the raw
+/// token is never stored. Rotation sets `usedAt` instead of deleting, so a
+/// replayed token stays distinguishable from an unknown one until it expires.
+model OAuthRefreshToken {
+  tokenHash String    @id @map("token_hash")
+  clientId  String    @map("client_id")
+  userId    Int       @map("user_id")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("oauth_refresh_tokens")
 }
 
 model SearchTemplate {

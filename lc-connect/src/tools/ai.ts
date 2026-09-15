@@ -12,6 +12,14 @@ import {
 import { DATASET_WIDGET_URI, okList } from "../datasets.js";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
+import {
+  AUDIT_DEFAULT_LIMIT,
+  AUDIT_MAX_LIMIT,
+  normalizeAuditLimit,
+  parseSince,
+  queryAuditLog,
+} from "../core/audit.js";
+import { getCurrentUser } from "../core/current-user.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
@@ -1205,25 +1213,66 @@ Also provide an overall weighted score and recommendation for next steps.`;
     {
       title: "Activity",
       description: [
-        "get_activity_feed — recent CRM activity timeline (lead creations + notes), newest first.",
-        "USE WHEN: the user asks what recently changed or wants a recent activity feed.",
-        "Read-only local DB operation (no AI).",
-        "DO NOT USE WHEN: the user asks to report an issue to the admin -> use",
-        "report_issue.",
+        "get_activity_feed — recent CRM activity timeline, newest first: the AUDIT TRAIL",
+        "(every recorded write — creates, updates, deletes, assignments, bulk imports,",
+        "user administration, and refused destructive attempts) merged with the older",
+        "lead-creation and note events that predate the trail.",
+        "USE WHEN: the user asks what recently changed, who did what, or wants a recent",
+        "activity feed. Read-only local DB operation (no AI).",
+        "DO NOT USE WHEN: the user wants the raw audit table only (no legacy events) ->",
+        "use get_audit_log; they ask to report an issue to the admin -> report_issue.",
         "RETURNS: a small result inline as { success, totalActivities, dateRange,",
         "activities[] }; a LARGE result (> threshold) as an interactive DATASET widget",
         "(sortable/searchable table + CSV export). The card IS the answer.",
-        "GOTCHAS: dateFrom/dateTo are ISO dates; the feed mixes lead-created and",
-        "note-added events split evenly up to `limit`.",
+        "GOTCHAS: `action` is a PREFIX match (\"lead.\" catches every lead action);",
+        "`since`/dateFrom/dateTo are ISO dates; `userId` scopes to one person. Audited",
+        "events win over the legacy ones, so a lead created since the trail went live",
+        `appears once, not twice. limit defaults to ${AUDIT_DEFAULT_LIMIT}, capped at ${AUDIT_MAX_LIMIT}.`,
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
-        limit: z.number().optional().default(50).describe("Maximum number of activities to return. Defaults to 50."),
-        userId: z.number().optional().describe("Optional user ID filter (reserved)."),
+        limit: z
+          .number()
+          .int()
+          .positive()
+          .max(AUDIT_MAX_LIMIT)
+          .optional()
+          .default(AUDIT_DEFAULT_LIMIT)
+          .describe(
+            `Maximum number of activities to return. Defaults to ${AUDIT_DEFAULT_LIMIT}, capped at ${AUDIT_MAX_LIMIT}.`
+          ),
+        userId: z
+          .number()
+          .int()
+          .positive()
+          .optional()
+          .describe("Only activity by this user ID (resolve with whoami/manage_users)."),
+        action: z
+          .string()
+          .optional()
+          .describe('Action prefix from the audit trail, e.g. "lead." or "user.".'),
+        resourceType: z
+          .enum([
+            "lead",
+            "note",
+            "product",
+            "application",
+            "product_application",
+            "resource",
+            "learning",
+            "user",
+            "issue",
+          ])
+          .optional()
+          .describe("Only activity on this kind of record."),
+        since: z
+          .string()
+          .optional()
+          .describe("Only activity at or after this ISO date (alias of dateFrom)."),
         activityTypes: z
           .array(z.enum(["lead_created", "lead_updated", "note_added", "status_changed"]))
           .optional()
-          .describe("Optional activity type filter (reserved)."),
+          .describe("Optional legacy activity type filter (lead_created / note_added)."),
         dateFrom: z.string().optional().describe("Only activity on/after this date (ISO)."),
         dateTo: z.string().optional().describe("Only activity on/before this date (ISO)."),
       },
@@ -1241,48 +1290,132 @@ Also provide an overall weighted score and recommendation for next steps.`;
     async (a) => {
       void getTenantSub();
 
-      const limit = a.limit || 50;
+      const limit = normalizeAuditLimit(a.limit);
+      // `since` and the legacy `dateFrom` mean the same thing; the later of the
+      // two wins so passing both cannot silently widen the window.
+      const sinceRaw = a.since ?? a.dateFrom ?? null;
+      const since = parseSince(sinceRaw);
+      const until = a.dateTo ? parseSince(a.dateTo as string) : null;
+
       const activities: any[] = [];
 
+      // ---- 1. The audit trail: the authoritative record of every write. ----
+      // User-management events (user.*) are visible to ADMIN only; everyone else
+      // sees the data-level trail. get_audit_log remains the gated full view.
+      const viewer = await getCurrentUser();
+      const auditRows = await queryAuditLog({
+        userId: a.userId,
+        action: a.action,
+        resourceType: a.resourceType,
+        since: sinceRaw,
+        limit,
+      });
+      for (const r of auditRows) {
+        if (until && r.timestamp > until) continue;
+        if (viewer.role !== "ADMIN" && r.action.startsWith("user.")) continue;
+        activities.push({
+          source: "audit",
+          type: r.action,
+          timestamp: r.timestamp,
+          actor: r.actor,
+          actorEmail: r.actorEmail,
+          userId: r.userId,
+          resourceType: r.resourceType,
+          resourceId: r.resourceId,
+          description: `${r.actor}: ${r.action}${r.resourceId ? ` #${r.resourceId}` : ""}`,
+          summary: r.summary,
+          details: r.details,
+        });
+      }
+
+      // Anything already in the trail must not be re-reported from the raw
+      // tables below, or every post-audit lead would show up twice.
+      const auditedLeadIds = new Set(
+        auditRows.filter((r) => r.action === "lead.created").map((r) => r.resourceId)
+      );
+      const auditedNoteIds = new Set(
+        auditRows.filter((r) => r.action === "note.created").map((r) => r.resourceId)
+      );
+
+      // ---- 2. Legacy events: leads/notes written before the trail existed. --
       const dateFilter: any = {};
-      if (a.dateFrom) dateFilter.gte = new Date(a.dateFrom as string);
-      if (a.dateTo) dateFilter.lte = new Date(a.dateTo as string);
+      if (since) dateFilter.gte = since;
+      if (until) dateFilter.lte = until;
+      const createdAt = Object.keys(dateFilter).length > 0 ? dateFilter : undefined;
 
-      const recentLeads = await prisma.lead.findMany({
-        where: { createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined },
-        take: Math.floor(limit / 2),
-        orderBy: { createdAt: "desc" },
-        include: { product: { select: { name: true } } },
-      });
+      const types = (a.activityTypes as string[] | undefined) ?? null;
+      const wantsLeads =
+        (!a.resourceType || a.resourceType === "lead") &&
+        (!types || types.includes("lead_created")) &&
+        (!a.action || "lead.created".startsWith(a.action));
+      const wantsNotes =
+        (!a.resourceType || a.resourceType === "note") &&
+        (!types || types.includes("note_added")) &&
+        (!a.action || "note.created".startsWith(a.action));
 
-      recentLeads.forEach((lead: any) => {
-        activities.push({
-          type: "lead_created",
-          timestamp: lead.createdAt,
-          description: `New lead created: ${lead.name}`,
-          details: { leadId: lead.id, leadName: lead.name, product: lead.product.name, status: lead.status },
-        });
-      });
-
-      const recentNotes = await prisma.note.findMany({
-        where: { createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined },
-        take: Math.floor(limit / 2),
-        orderBy: { createdAt: "desc" },
-        include: { lead: { select: { name: true } } },
-      });
-
-      recentNotes.forEach((note: any) => {
-        activities.push({
-          type: "note_added",
-          timestamp: note.createdAt,
-          description: `Note added to lead: ${note.lead.name}`,
-          details: {
-            noteId: note.id,
-            leadName: note.lead.name,
-            notePreview: note.content.substring(0, 100) + (note.content.length > 100 ? "..." : ""),
+      if (wantsLeads) {
+        const recentLeads = await prisma.lead.findMany({
+          where: {
+            createdAt,
+            ...(a.userId != null ? { createdByUserId: a.userId } : {}),
           },
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: { product: { select: { name: true } } },
         });
-      });
+        for (const lead of recentLeads as any[]) {
+          if (auditedLeadIds.has(String(lead.id))) continue;
+          activities.push({
+            source: "legacy",
+            type: "lead_created",
+            timestamp: lead.createdAt,
+            actor: null,
+            userId: lead.createdByUserId ?? null,
+            resourceType: "lead",
+            resourceId: String(lead.id),
+            description: `New lead created: ${lead.name}`,
+            summary: `name=${lead.name}, status=${lead.status}`,
+            details: {
+              leadId: lead.id,
+              leadName: lead.name,
+              product: lead.product?.name ?? null,
+              status: lead.status,
+            },
+          });
+        }
+      }
+
+      if (wantsNotes) {
+        const recentNotes = await prisma.note.findMany({
+          where: {
+            createdAt,
+            ...(a.userId != null ? { user_id: a.userId } : {}),
+          },
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: { lead: { select: { name: true } } },
+        });
+        for (const note of recentNotes as any[]) {
+          if (auditedNoteIds.has(String(note.id))) continue;
+          activities.push({
+            source: "legacy",
+            type: "note_added",
+            timestamp: note.createdAt,
+            actor: null,
+            userId: note.user_id ?? null,
+            resourceType: "note",
+            resourceId: String(note.id),
+            description: `Note added to lead: ${note.lead.name}`,
+            summary: `lead=${note.lead.name}`,
+            details: {
+              noteId: note.id,
+              leadName: note.lead.name,
+              notePreview:
+                note.content.substring(0, 100) + (note.content.length > 100 ? "..." : ""),
+            },
+          });
+        }
+      }
 
       activities.sort((x: any, y: any) => new Date(y.timestamp).getTime() - new Date(x.timestamp).getTime());
       const limitedActivities = activities.slice(0, limit);
@@ -1290,9 +1423,12 @@ Also provide an overall weighted score and recommendation for next steps.`;
       // Flatten the nested `details` into scalar columns for the DATASET widget.
       const rows = limitedActivities.map((act: any) => ({
         timestamp: act.timestamp,
+        actor: act.actor ?? (act.userId != null ? `user #${act.userId}` : null),
         type: act.type,
+        resourceType: act.resourceType ?? null,
+        resourceId: act.resourceId ?? null,
         description: act.description,
-        leadId: act.details?.leadId ?? null,
+        details: act.summary ?? null,
         lead: act.details?.leadName ?? null,
         product: act.details?.product ?? null,
         status: act.details?.status ?? null,
@@ -1303,13 +1439,13 @@ Also provide an overall weighted score and recommendation for next steps.`;
         "Activity",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
-        ["timestamp", "type", "lead", "description"]
+        ["timestamp", "actor", "type", "description", "details"]
       );
       if (!("structuredContent" in widget)) {
         return ok({
           success: true,
           totalActivities: limitedActivities.length,
-          dateRange: { from: a.dateFrom || "unlimited", to: a.dateTo || "now" },
+          dateRange: { from: sinceRaw || "unlimited", to: a.dateTo || "now" },
           activities: limitedActivities,
         });
       }

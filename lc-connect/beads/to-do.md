@@ -37,25 +37,28 @@ Verdict: connector core = current standard (Hono + McpServer + OAuth 2.1 DCR/PKC
 - [x] Nightly DB backup: `deploy/backup-db.sh` → ~/backups/laser_components (30 d) + NAS /mnt/dysk/backups/laser_components; user timer `lc-backup.timer` 02:15; first run OK (190 KB)
 - [x] Watchdog: `deploy/watchdog.sh` runs full public login flow every 5 min (`lc-watchdog.timer`), restarts ngrok or node by layer, Pushover on 2nd failure + on recovery; user `watchdog@lc-connect.local` (SALES); creds in gitignored deploy/watchdog.env
 - [x] logrotate for server.log + deploy/*.log (weekly, 8, copytruncate)
-- [ ] Audit trail: ActivityLog on every write + refusals; `get_audit_log`; feed merge (agent running)
-- [ ] OAuth state → Postgres (oauth_clients / codes / refresh tokens, hashed) with one-time import of state/*.json (agent running)
-- [ ] Widget lib 0.2.0 → 0.4.0 dark mode + mobile (agent running)
-- [ ] Geography backfill from `location` text + missing countries/regions seed (agent running)
-- [ ] pino structured logging + tool-call ledger (after OAuth agent; touches index/oauth)
-- [ ] Client-facing structure doc: current state + 3–4 day target (`docs/lc-connect-structure.md`)
+- [x] Audit trail: ActivityLog on every write + refusals; `get_audit_log` (ADMIN|RESEARCHER); feed merges audit rows, user.* hidden from non-admins
+- [x] OAuth state → Postgres (oauth_clients / codes / refresh tokens sha256) with one-time import of state/*.json (imported on 2026-09-15 restart)
+- [x] Widget lib 0.2.0 → 0.4.0 dark mode + mobile (no breaking changes; LC amber accent falls back to library accent in dark — needs `themeDark` upstream)
+- [x] Geography: 10 → 150 leads with country+region (website ccTLD allowlist, tag `geo:tld`, `--revert-tld`); +3 regions +26 countries; Turkey → Middle East; backlog 246 in scripts/README-geography.md
+- [x] pino JSON logging + tool-call ledger (argsKeys only, no PII), redaction, userId mixin; old raw-args line removed
+- [x] Client-facing structure doc: `docs/lc-connect-structure.md`
 - [ ] Own R2 bucket/prefix for LC backups (today: local + NAS only)
 - [ ] Region taxonomy per client (France / Western Europe / Africa+emerging / Asia) — needs customer input, after geography backfill
 
 ## Phase 1 — this week
-- [ ] OAuth state → Postgres tables (codes, clients, refresh tokens)
+- [x] OAuth state → Postgres tables (codes, clients, refresh tokens)
 - [ ] Enforce PKCE (reject missing code_challenge) once both clients confirmed sending it
-- [ ] Widget lib 0.2.0 → 0.4.0 (dark mode + mobile)
-- [ ] pino JSON logging with user mixin + tool-call ledger; server.log rotation
+- [x] Widget lib 0.2.0 → 0.4.0 (dark mode + mobile)
+- [x] pino JSON logging with user mixin + tool-call ledger; server.log rotation
 - [x] Watchdog: timer runs full login flow via public URL; restarts ngrok/node on failure (DONE 2026-09-15, see gap-closing pass)
 - [ ] jti deny-list / token revocation
 - [ ] `export_data` take caps; `search_resources` select-only-needed columns
 
 ## Later / decision-gated
+- [ ] Lithuania (and other backlog countries) missing from `countries` — seed when the customer confirms geography blocks
+- [ ] `themeDark` config surface upstream in @cfi/mcp-widgets so LC amber survives dark mode
+- [ ] Activity feed: consider hiding `user.*` also from RESEARCHER (today ADMIN-only)
 - [ ] Geography backfill: derive `country_id`/`region_id` from `leads.location` (10/396 have country today) — needed before region competencies mean anything
 - [ ] Regions taxonomy per client (today: NA/EU/AS only; client wants France, Western Europe, Africa+emerging, Asia)
 - [ ] Per-request McpServer rebuild → pooled server (measure first; ~580 KB garbage/request)

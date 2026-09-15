@@ -14,12 +14,22 @@ import { config } from "./config.js";
 // LC widget config (passed to EVERY registerXxxWidget).
 //
 // We no longer vendor a hand-patched English fork; instead the OFFICIAL
-// @cfi/mcp-widgets@0.2.0 reads this config (injected as window.__CFG__ into the
+// @cfi/mcp-widgets@0.4.0 reads this config (injected as window.__CFG__ into the
 // served widget HTML) at render time:
 //   - locale 'en'  -> all library chrome is English (Search / ⬇ CSV / Total /
 //     Europe-World scope / No data / etc.), replacing what the fork baked in.
 //   - theme        -> amber accent (matches our deck) + deep-navy bars.
-// Background/surface left default (light). Our own tool titles/labels are DATA
+//
+// LIGHT ONLY, by library design. Since 0.3.0 every widget also emits a dark
+// token block under `:root[data-theme="dark"]` / `@media (prefers-color-scheme:
+// dark)` (specificity 0,2,0), which outranks the plain `:root{}` block this
+// config injects (0,1,0). So in Claude.ai's dark theme the library's dark
+// palette wins and the amber accent is replaced by the library's light-indigo.
+// That is deliberate (contrast on dark is the library's job, not ours) and must
+// NOT be worked around by forking/patching the vendored library: if LC ever
+// needs a dark-mode brand accent, it belongs in @cfi/mcp-widgets as a
+// `themeDark` config surface, added upstream.
+// Background/surface left default. Our own tool titles/labels are DATA
 // and layer on top of this English chrome.
 // ---------------------------------------------------------------------------
 const WIDGET_CONFIG: WidgetConfig = {

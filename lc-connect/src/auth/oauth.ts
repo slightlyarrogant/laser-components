@@ -1,6 +1,3 @@
-import fs from "fs";
-import fsp from "fs/promises";
-import path from "path";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { createRequire } from "node:module";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
@@ -8,242 +5,40 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 import { emitAuthRequest } from "../core/session-log.js";
+import { child, errMessage, errStack, hashId } from "../core/log.js";
+import {
+  consumeAuthCode,
+  consumeRefreshToken,
+  createAuthCode,
+  getClient,
+  isAbsoluteHttpUrl,
+  issueRefreshToken,
+  registerClient,
+  touchClient,
+} from "./store.js";
+
+// Re-exported so the shape of this module's public surface is unchanged for
+// callers; the implementation now lives with the rest of the store helpers.
+export { isAbsoluteHttpUrl };
 
 const require = createRequire(import.meta.url);
 const bcrypt = require("bcryptjs") as typeof import("bcryptjs");
 
-// ---------------------------------------------------------------------------
-// Auth-code store (in-memory, single-use, short-lived)
-// ---------------------------------------------------------------------------
-
-interface AuthCode {
-  sub: string;
-  email: string;
-  clientId: string;
-  redirectUri: string;
-  /** PKCE S256 challenge, when the client sent one at /authorize. */
-  codeChallenge?: string;
-  expiresAt: number;
-}
-
-const authCodes = new Map<string, AuthCode>();
-
-function issueAuthCode(
-  sub: string,
-  email: string,
-  clientId: string,
-  redirectUri: string,
-  codeChallenge?: string
-): string {
-  const code = randomUUID();
-  authCodes.set(code, {
-    sub,
-    email,
-    clientId,
-    redirectUri,
-    ...(codeChallenge ? { codeChallenge } : {}),
-    expiresAt: Date.now() + config.AUTH_CODE_TTL_SECONDS * 1000,
-  });
-  return code;
-}
-
-function consumeAuthCode(code: string): AuthCode | undefined {
-  const entry = authCodes.get(code);
-  authCodes.delete(code); // single-use
-  if (!entry || Date.now() > entry.expiresAt) return undefined;
-  return entry;
-}
-
-// Sweep expired codes every minute
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, entry] of authCodes) {
-    if (now > entry.expiresAt) authCodes.delete(code);
-  }
-}, 60_000).unref?.();
+// Every line from this module carries `mod:"oauth"`. The client_id is ALWAYS
+// passed through hashId(): it is correlatable across lines but, paired with a
+// registered redirect_uri, a verbatim one is enough to start a flow — and this
+// log is read by more people than the client registry is.
+const log = child({ mod: "oauth" });
 
 // ---------------------------------------------------------------------------
-// Refresh token store (long-lived, single-use rotation, disk-persisted)
+// OAuth state
+//
+// Authorization codes, refresh tokens and the dynamic client registry all live
+// in Postgres (src/auth/store.ts, tables created by
+// db/migrations/2026-09-15-oauth-state.sql). There is no in-memory or on-disk
+// copy: a restart, a re-clone or a second process all see the same state, which
+// is exactly what the Map + JSON-file version could not do.
 // ---------------------------------------------------------------------------
-
-interface RefreshToken {
-  sub: string;
-  email: string;
-  clientId: string;
-  expiresAt: number;
-}
-
-const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-// State lives under config.STATE_DIR (created at boot). An explicit
-// REFRESH_TOKENS_PATH env still wins, so existing deploys that pin a path keep
-// working; the default no longer depends on process.cwd() — resolving against
-// cwd is what silently dropped the whole registry when the repo was re-cloned.
-const REFRESH_TOKENS_PATH = path.resolve(
-  process.env.REFRESH_TOKENS_PATH ?? path.join(config.STATE_DIR, "refresh_tokens.json")
-);
-
-const refreshTokens = new Map<string, RefreshToken>();
-
-function loadRefreshTokens(): void {
-  try {
-    const raw = fs.readFileSync(REFRESH_TOKENS_PATH, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return;
-    const now = Date.now();
-    for (const [tok, entry] of parsed as [string, RefreshToken][]) {
-      if (typeof tok === "string" && entry?.expiresAt > now) {
-        refreshTokens.set(tok, entry);
-      }
-    }
-  } catch {
-    // missing or corrupt file is fine on first run
-  }
-}
-
-// Persisted off the request path: the token grant does not wait for the disk
-// write. Writes are serialised through a single promise chain so two concurrent
-// grants cannot interleave and truncate the file.
-let refreshWriteChain: Promise<void> = Promise.resolve();
-
-function saveRefreshTokens(): void {
-  refreshWriteChain = refreshWriteChain.then(async () => {
-    try {
-      const now = Date.now();
-      const active = [...refreshTokens.entries()].filter(([, e]) => e.expiresAt > now);
-      await fsp.writeFile(REFRESH_TOKENS_PATH, JSON.stringify(active), {
-        encoding: "utf8",
-        mode: 0o600,
-      });
-      await fsp.chmod(REFRESH_TOKENS_PATH, 0o600);
-    } catch {
-      console.error("[oauth] Failed to persist refresh tokens to", REFRESH_TOKENS_PATH);
-    }
-  });
-}
-
-loadRefreshTokens();
-
-function issueRefreshToken(sub: string, email: string, clientId: string): string {
-  const token = randomUUID();
-  refreshTokens.set(token, {
-    sub,
-    email,
-    clientId,
-    expiresAt: Date.now() + REFRESH_TOKEN_TTL_MS,
-  });
-  saveRefreshTokens();
-  return token;
-}
-
-function consumeRefreshToken(token: string): RefreshToken | undefined {
-  const entry = refreshTokens.get(token);
-  if (!entry) return undefined; // unknown token — nothing changed, no write
-  refreshTokens.delete(token); // single-use rotation
-  saveRefreshTokens();
-  if (Date.now() > entry.expiresAt) return undefined;
-  return entry;
-}
-
-setInterval(() => {
-  const now = Date.now();
-  let changed = false;
-  for (const [tok, entry] of refreshTokens) {
-    if (now > entry.expiresAt) {
-      refreshTokens.delete(tok);
-      changed = true;
-    }
-  }
-  if (changed) saveRefreshTokens();
-}, 60 * 60_000).unref?.();
-
-// ---------------------------------------------------------------------------
-// Dynamic client registry (RFC 7591) — persisted to DYNAMIC_CLIENTS_PATH
-// ---------------------------------------------------------------------------
-
-const DYNAMIC_CLIENTS_PATH = path.resolve(
-  process.env.DYNAMIC_CLIENTS_PATH ?? path.join(config.STATE_DIR, "dynamic_clients.json")
-);
-
-interface RegisteredClient {
-  /** Exact redirect URIs supplied at registration — the /authorize allow-list. */
-  redirectUris: string[];
-  createdAt: number;
-}
-
-const dynamicClients = new Map<string, RegisteredClient>();
-
-/** An absolute http(s) URL — the only redirect target shape we register. */
-export function isAbsoluteHttpUrl(value: unknown): value is string {
-  if (typeof value !== "string" || value.length === 0) return false;
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return false;
-  }
-  return url.protocol === "http:" || url.protocol === "https:";
-}
-
-function loadDynamicClients(): void {
-  try {
-    const raw = fs.readFileSync(DYNAMIC_CLIENTS_PATH, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return;
-    for (const item of parsed) {
-      // Legacy on-disk format: a bare array of client_id strings, with no
-      // redirect URIs recorded. Such a client keeps an empty allow-list, so
-      // /authorize rejects it until the connector re-registers — which is
-      // exactly the protection this change adds.
-      if (typeof item === "string") {
-        dynamicClients.set(item, { redirectUris: [], createdAt: 0 });
-        continue;
-      }
-      if (Array.isArray(item) && typeof item[0] === "string") {
-        const meta = item[1] as Partial<RegisteredClient> | undefined;
-        dynamicClients.set(item[0], {
-          redirectUris: Array.isArray(meta?.redirectUris)
-            ? meta.redirectUris.filter(isAbsoluteHttpUrl)
-            : [],
-          createdAt: typeof meta?.createdAt === "number" ? meta.createdAt : 0,
-        });
-      }
-    }
-  } catch {
-    // missing or corrupt file is fine on first run
-  }
-}
-
-function saveDynamicClients(): void {
-  try {
-    fs.writeFileSync(
-      DYNAMIC_CLIENTS_PATH,
-      JSON.stringify([...dynamicClients.entries()]),
-      { encoding: "utf8", mode: 0o600 }
-    );
-    fs.chmodSync(DYNAMIC_CLIENTS_PATH, 0o600);
-  } catch {
-    console.error("[oauth] Failed to persist dynamic clients to", DYNAMIC_CLIENTS_PATH);
-  }
-}
-
-loadDynamicClients();
-
-// LC accepts any registered client. Claude.ai registers dynamically via /register;
-// we do not maintain a static allow-list, so an unknown client_id that has gone
-// through registration is trusted. (VC kept a static list + dynamic set; LC has
-// no static OAUTH_CLIENT_IDS env, so registration is the sole gate.)
-function isKnownClient(clientId: string): boolean {
-  return dynamicClients.has(clientId);
-}
-
-/**
- * Exact-match redirect_uri check. Without it, anyone who can call the
- * unauthenticated /register can point a login at their own callback and
- * harvest the authorization code of whoever signs in.
- */
-function isRegisteredRedirectUri(clientId: string, redirectUri: string): boolean {
-  return dynamicClients.get(clientId)?.redirectUris.includes(redirectUri) ?? false;
-}
 
 // ---------------------------------------------------------------------------
 // PKCE (RFC 7636, S256 only)
@@ -258,13 +53,15 @@ function warnMissingPkce(clientId: string): void {
   if (pkceWarnedClients.has(clientId)) return;
   if (pkceWarnedClients.size > 1000) pkceWarnedClients.clear();
   pkceWarnedClients.add(clientId);
-  console.warn(
-    `[oauth] client ${clientId} authorized without PKCE (no code_challenge) — permitted for now, will be rejected in Phase 1`
-  );
+  log.warn({
+    evt: "oauth-no-pkce",
+    client: hashId(clientId),
+    phase: "permitted-for-now",
+  });
 }
 
 /** base64url(sha256(verifier)) === challenge, compared in constant time. */
-function verifyPkceChallenge(verifier: string, challenge: string): boolean {
+export function verifyPkceChallenge(verifier: string, challenge: string): boolean {
   const computed = Buffer.from(
     createHash("sha256").update(verifier, "ascii").digest("base64url")
   );
@@ -449,11 +246,14 @@ oauthRouter.post("/register", async (c) => {
   }
 
   const clientId = randomUUID();
-  dynamicClients.set(clientId, { redirectUris, createdAt: Date.now() });
-  saveDynamicClients();
-  console.log(
-    `[oauth] registered client ${clientId} with redirect_uris ${redirectUris.join(" ")}`
-  );
+  const clientName = typeof body.client_name === "string" ? body.client_name : undefined;
+  await registerClient(clientId, redirectUris, clientName);
+  log.info({
+    evt: "oauth-client-registered",
+    client: hashId(clientId),
+    clientName,
+    redirectUris,
+  });
 
   return c.json(
     {
@@ -472,14 +272,17 @@ oauthRouter.post("/register", async (c) => {
 /**
  * GET /authorize — display the LC login form.
  */
-function handleAuthorizeGet(c: Context) {
+async function handleAuthorizeGet(c: Context) {
   const { client_id, redirect_uri, response_type, state, code_challenge, code_challenge_method } =
     c.req.query();
 
   if (response_type !== "code") {
     return c.text("unsupported_response_type: only 'code' is supported", 400);
   }
-  if (!client_id || !isKnownClient(client_id)) {
+  // One lookup serves both the "is this client registered?" and the
+  // "is this redirect_uri registered for it?" gates below.
+  const client = client_id ? await getClient(client_id) : null;
+  if (!client) {
     return c.text("unauthorized_client: unknown client_id", 400);
   }
   if (!redirect_uri) {
@@ -488,10 +291,13 @@ function handleAuthorizeGet(c: Context) {
   // Checked BEFORE the login form is rendered: an unvalidated redirect_uri
   // turns this page into a credential-harvest / code-theft vector even if the
   // user never submits it.
-  if (!isRegisteredRedirectUri(client_id, redirect_uri)) {
-    console.warn(
-      `[oauth] /authorize rejected: redirect_uri ${redirect_uri} is not registered for client ${client_id}`
-    );
+  if (!client.redirectUris.includes(redirect_uri)) {
+    log.warn({
+      evt: "oauth-redirect-rejected",
+      method: "GET",
+      client: hashId(client_id),
+      redirectUri: redirect_uri,
+    });
     return c.text(
       "invalid_request: redirect_uri does not match a redirect URI registered for this client",
       400
@@ -571,7 +377,8 @@ async function handleAuthorizePost(c: Context) {
       status
     );
 
-  if (!client_id || !isKnownClient(client_id)) {
+  const client = client_id ? await getClient(client_id) : null;
+  if (!client) {
     return c.text("unauthorized_client", 400);
   }
   if (!redirect_uri) {
@@ -579,10 +386,13 @@ async function handleAuthorizePost(c: Context) {
   }
   // Re-checked on the POST: the hidden field is attacker-controllable, so the
   // GET-time check alone would not stop a forged form post.
-  if (!isRegisteredRedirectUri(client_id, redirect_uri)) {
-    console.warn(
-      `[oauth] POST /authorize rejected: redirect_uri ${redirect_uri} is not registered for client ${client_id}`
-    );
+  if (!client.redirectUris.includes(redirect_uri)) {
+    log.warn({
+      evt: "oauth-redirect-rejected",
+      method: "POST",
+      client: hashId(client_id),
+      redirectUri: redirect_uri,
+    });
     return c.text(
       "invalid_request: redirect_uri does not match a redirect URI registered for this client",
       400
@@ -594,26 +404,52 @@ async function handleAuthorizePost(c: Context) {
     return fail("Email and password are required", 400);
   }
 
+  // A failed login logs the REASON but never the identity that was attempted:
+  // the submitted email is an unauthenticated, attacker-chosen string, and
+  // writing it here would turn the log into a list of guessed addresses (and,
+  // when someone types their password into the email box, worse). The password
+  // is never in scope for logging at all. A SUCCESSFUL login logs the email,
+  // because at that point it is a verified account identity, not a guess.
+  const clientHash = client_id ? hashId(client_id) : undefined;
+  const loginFailed = (reason: string, status: 400 | 401 = 401) => {
+    log.warn({ evt: "oauth-login-failed", reason, client: clientHash });
+    return fail("Invalid email or password", status);
+  };
+
   try {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return fail("Invalid email or password");
+    if (!user) return loginFailed("unknown-email");
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return fail("Invalid email or password");
+    if (!valid) return loginFailed("bad-password");
 
     // A deactivated account is refused with the SAME message as a bad password:
     // "this account exists but is switched off" is an enumeration oracle.
-    if (!user.isActive) return fail("Invalid email or password");
+    if (!user.isActive) return loginFailed("inactive-account");
 
-    const sub = String(user.id);
-    const code = issueAuthCode(sub, user.email, client_id, redirect_uri, code_challenge);
+    const code = await createAuthCode({
+      userId: user.id,
+      clientId: client_id,
+      redirectUri: redirect_uri,
+      codeChallenge: code_challenge,
+      ttlSeconds: config.AUTH_CODE_TTL_SECONDS,
+    });
+
+    log.info({
+      evt: "oauth-login-ok",
+      userId: String(user.id),
+      email: user.email,
+      client: clientHash,
+      pkce: Boolean(code_challenge),
+    });
 
     const target = new URL(redirect_uri);
     target.searchParams.set("code", code);
     if (state) target.searchParams.set("state", state);
     return c.redirect(target.toString(), 302);
   } catch (err) {
-    console.error("[LC OAuth] authorize error:", err);
+    log.error({ evt: "oauth-authorize-error", client: clientHash, err: errMessage(err) });
+    log.debug({ evt: "oauth-authorize-error", stack: errStack(err) });
     return fail("Internal error — please try again", 400);
   }
 }
@@ -649,7 +485,7 @@ async function handleTokenPost(c: Context) {
 
   const { grant_type, code, redirect_uri, client_id, refresh_token, code_verifier } = params;
 
-  if (!client_id || !isKnownClient(client_id)) {
+  if (!client_id || !(await getClient(client_id))) {
     return c.json({ error: "unauthorized_client" }, 401);
   }
 
@@ -658,7 +494,7 @@ async function handleTokenPost(c: Context) {
     if (!refresh_token) {
       return c.json({ error: "invalid_request", error_description: "refresh_token is required" }, 400);
     }
-    const entry = consumeRefreshToken(refresh_token);
+    const entry = await consumeRefreshToken(refresh_token);
     if (!entry) {
       return c.json({ error: "invalid_grant", error_description: "refresh_token is invalid or expired" }, 400);
     }
@@ -668,7 +504,8 @@ async function handleTokenPost(c: Context) {
     // LC has no backend ERP session to refresh — the "ensure backend session"
     // hook is a no-op. Re-mint the JWT directly from the stored identity.
     const accessToken = await signAccessToken(entry.sub, Number(entry.sub), entry.email);
-    const newRefreshToken = issueRefreshToken(entry.sub, entry.email, client_id);
+    const newRefreshToken = await issueRefreshToken(Number(entry.sub), client_id);
+    touchClient(client_id);
     return c.json({
       access_token: accessToken,
       refresh_token: newRefreshToken,
@@ -696,7 +533,7 @@ async function handleTokenPost(c: Context) {
     );
   }
 
-  const entry = consumeAuthCode(code);
+  const entry = await consumeAuthCode(code);
   if (!entry) {
     return c.json({ error: "invalid_grant", error_description: "code is invalid or expired" }, 400);
   }
@@ -722,7 +559,8 @@ async function handleTokenPost(c: Context) {
   }
 
   const accessToken = await signAccessToken(entry.sub, Number(entry.sub), entry.email);
-  const newRefreshToken = issueRefreshToken(entry.sub, entry.email, client_id);
+  const newRefreshToken = await issueRefreshToken(Number(entry.sub), client_id);
+  touchClient(client_id);
 
   return c.json({
     access_token: accessToken,

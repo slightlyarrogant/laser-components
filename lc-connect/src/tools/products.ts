@@ -7,6 +7,7 @@ import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 import { getCurrentUser } from "../core/current-user.js";
 import { requireRole } from "../core/access.js";
+import { audit } from "../core/audit.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 /**
@@ -353,6 +354,17 @@ export function registerProductsTools(
         const sub = (newProduct as any).subcategory;
         const cat = sub?.category;
         const ctx = [cat?.name, sub?.name].filter(Boolean).join(" / ");
+        await audit({
+          action: "product.created",
+          resourceType: "product",
+          resourceId: newProduct.id,
+          details: {
+            name: newProduct.name,
+            subcategoryId: newProduct.subcategoryId,
+            sku: (newProduct as any).sku ?? null,
+            category: ctx || null,
+          },
+        });
         return buildActionEnvelope(
           {
             status: "success",
@@ -411,7 +423,19 @@ export function registerProductsTools(
     },
     async (a) => {
       const me = await getCurrentUser();
-      requireRole(me, "ADMIN");
+      // A refused delete is audited before it is re-thrown — an attempted
+      // catalog deletion is exactly what an admin wants to see in the trail.
+      try {
+        requireRole(me, "ADMIN");
+      } catch (err) {
+        await audit({
+          action: "product.delete_refused",
+          resourceType: "product",
+          resourceId: a.id ?? null,
+          details: { reason: err instanceof Error ? err.message : String(err) },
+        });
+        throw err;
+      }
 
       if (!a.id) throw new Error("Product ID is required");
       const product = await prisma.product.findUnique({
@@ -423,11 +447,31 @@ export function registerProductsTools(
       });
       if (!product) throw new Error(`Product with ID ${a.id} not found`);
       if (product.leads.length > 0 || product.product_applications.length > 0) {
-        throw new Error(
-          `Cannot delete product ${a.id}: It has ${product.leads.length} leads and ${product.product_applications.length} application mappings. Please remove these associations first.`
-        );
+        const reason = `Cannot delete product ${a.id}: It has ${product.leads.length} leads and ${product.product_applications.length} application mappings. Please remove these associations first.`;
+        await audit({
+          action: "product.delete_refused",
+          resourceType: "product",
+          resourceId: a.id,
+          details: {
+            reason,
+            name: product.name,
+            leads: product.leads.length,
+            mappings: product.product_applications.length,
+          },
+        });
+        throw new Error(reason);
       }
       await prisma.product.delete({ where: { id: a.id } });
+      await audit({
+        action: "product.deleted",
+        resourceType: "product",
+        resourceId: a.id,
+        details: {
+          name: product.name,
+          subcategoryId: (product as any).subcategoryId ?? null,
+          sku: (product as any).sku ?? null,
+        },
+      });
       return buildActionEnvelope(
         {
           status: "success",

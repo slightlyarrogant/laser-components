@@ -8,6 +8,7 @@ import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 import { getCurrentUser } from "../core/current-user.js";
 import { requireRole } from "../core/access.js";
+import { audit } from "../core/audit.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
@@ -520,6 +521,12 @@ export function registerKnowledgeTools(
 
       // resource_slug supplied but unknown -> nothing was saved -> warning card.
       if (result.saved === false) {
+        await audit({
+          action: "learning.save_refused",
+          resourceType: "learning",
+          resourceId: null,
+          details: { reason: result.message, resourceSlug: a.resource_slug ?? null },
+        });
         return buildActionEnvelope(
           {
             status: "warning",
@@ -529,6 +536,20 @@ export function registerKnowledgeTools(
           `[PRESENTATION] The learning was NOT saved (unknown resource_slug). Inform the user.`
         ) as any;
       }
+
+      // observation/context are free text: sanitizeDetails truncates them at
+      // 500 chars, so the trail says WHAT was captured without duplicating it.
+      await audit({
+        action: "learning.saved",
+        resourceType: "learning",
+        resourceId: result.event_id,
+        details: {
+          eventType: result.event_type,
+          impact: result.impact,
+          resourceSlug: a.resource_slug ?? null,
+          observation: a.observation,
+        },
+      });
 
       return buildActionEnvelope(
         {
@@ -585,6 +606,20 @@ export function registerKnowledgeTools(
       const me = await getCurrentUser();
       requireRole(me, "ADMIN", "RESEARCHER");
       const result = await updateResource(a);
+      // The new body is NOT stored (it is a full document); the version bump
+      // plus the stated reason is what makes the change reviewable.
+      await audit({
+        action: "resource.updated",
+        resourceType: "resource",
+        resourceId: result.slug,
+        details: {
+          slug: result.slug,
+          newVersion: result.newVersion,
+          changeReason: a.change_reason,
+          changedBy: a.changed_by ?? null,
+          contentLength: String(a.content ?? "").length,
+        },
+      });
       return buildActionEnvelope(
         {
           status: "success",
@@ -647,6 +682,12 @@ export function registerKnowledgeTools(
 
       // Slug already taken -> nothing created -> warning card.
       if (result.created === false) {
+        await audit({
+          action: "resource.create_refused",
+          resourceType: "resource",
+          resourceId: result.slug,
+          details: { reason: result.message },
+        });
         return buildActionEnvelope(
           {
             status: "warning",
@@ -658,6 +699,19 @@ export function registerKnowledgeTools(
           `[PRESENTATION] A resource with slug "${result.slug}" already exists — nothing was created. Suggest update_resource.`
         ) as any;
       }
+
+      await audit({
+        action: "resource.created",
+        resourceType: "resource",
+        resourceId: result.slug,
+        details: {
+          slug: result.slug,
+          title: a.title,
+          category: a.category,
+          version: result.version,
+          contentLength: String(a.content ?? "").length,
+        },
+      });
 
       return buildActionEnvelope(
         {

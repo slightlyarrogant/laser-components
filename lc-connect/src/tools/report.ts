@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import { ACTION_WIDGET_URI, buildActionEnvelope } from "@cfi/mcp-widgets";
 import { config } from "../config.js";
+import { audit } from "../core/audit.js";
 
 /**
  * report_issue — forwards a bug/data/connector issue to the administrator via
@@ -115,6 +116,15 @@ export function registerReportTools(
         `*Category:* ${CATEGORY_EMOJI[category] || "📋"} ${category}\n` +
         `*Time:* ${timestamp}\n\n` +
         `*Description:*\n${description}`;
+
+      // Audited BEFORE the WhatsApp round trip: the report was made whether or
+      // not the bridge delivered it, and the trail is the durable record.
+      await audit({
+        action: "issue.reported",
+        resourceType: "issue",
+        resourceId: null,
+        details: { title, category, severity },
+      });
 
       try {
         const response = await fetch(`${WHATSAPP_URL}/send`, {

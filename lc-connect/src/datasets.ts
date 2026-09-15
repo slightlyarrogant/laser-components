@@ -7,6 +7,9 @@ import {
   type DatasetSchema,
   type WidgetEnvelope,
 } from "@cfi/mcp-widgets";
+import { child } from "./core/log.js";
+
+const log = child({ mod: "datasets" });
 
 // ---------------------------------------------------------------------------
 // Vendo-free dataset layer for LC Connect.
@@ -92,7 +95,24 @@ function dropEntry(id: string): void {
 
 function prune() {
   const now = Date.now();
-  for (const [id, e] of datasets) if (e.expiresAt < now) dropEntry(id);
+  let expired = 0;
+  for (const [id, e] of datasets) {
+    if (e.expiresAt < now) {
+      dropEntry(id);
+      expired++;
+    }
+  }
+  // Only when something actually went: a per-minute "swept 0" line would bury
+  // the log under noise from an idle server.
+  if (expired > 0) {
+    log.debug({
+      evt: "dataset-evict",
+      reason: "expired",
+      dropped: expired,
+      entries: datasets.size,
+      bytes: totalBytes,
+    });
+  }
 }
 
 /**
@@ -101,13 +121,30 @@ function prune() {
  * downloadable rather than 404-ing the button that was just rendered.
  */
 function evictToCaps(): void {
+  let dropped = 0;
+  let reason: "max-entries" | "max-bytes" | undefined;
   while (
     datasets.size > MAX_ENTRIES ||
     (totalBytes > MAX_BYTES && datasets.size > 1)
   ) {
+    reason = datasets.size > MAX_ENTRIES ? "max-entries" : "max-bytes";
     const oldest = datasets.keys().next();
     if (oldest.done) break;
     dropEntry(oldest.value);
+    dropped++;
+  }
+  // A cap eviction means a CSV link that was just handed to a user has gone
+  // 404 — worth an info line, unlike routine TTL expiry.
+  if (dropped > 0) {
+    log.info({
+      evt: "dataset-evict",
+      reason,
+      dropped,
+      entries: datasets.size,
+      bytes: totalBytes,
+      maxEntries: MAX_ENTRIES,
+      maxBytes: MAX_BYTES,
+    });
   }
 }
 

@@ -7,6 +7,7 @@ import { config } from "../config.js";
 import { prisma } from "../db/client.js";
 import { getCurrentUser } from "../core/current-user.js";
 import { requireRole } from "../core/access.js";
+import { audit } from "../core/audit.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which a list result is emitted as a DATASET widget rather than
@@ -162,6 +163,12 @@ export function registerApplicationsTools(
       const application = await prisma.application.create({
         data: applicationData,
         include: { _count: { select: { leads: true, product_applications: true } } },
+      });
+      await audit({
+        action: "application.created",
+        resourceType: "application",
+        resourceId: application.id,
+        details: { name: application.name, status: application.status },
       });
       return buildActionEnvelope(
         {
@@ -329,6 +336,18 @@ export function registerApplicationsTools(
       });
       const productName = (mapping as any).product?.name ?? `#${a.productId}`;
       const applicationName = (mapping as any).application?.name ?? `#${a.applicationId}`;
+      await audit({
+        action: "product_application.created",
+        resourceType: "product_application",
+        resourceId: `${a.productId}:${a.applicationId}`,
+        details: {
+          productId: a.productId,
+          productName,
+          applicationId: a.applicationId,
+          applicationName,
+          assignedBy: a.assignedBy || "MCP Server",
+        },
+      });
       return buildActionEnvelope(
         {
           status: "success",
