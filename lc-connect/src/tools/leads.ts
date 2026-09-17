@@ -166,7 +166,7 @@ export function registerLeadsTools(
         "GOTCHAS: resolve productId/applicationId with search_products/get_applications",
         "first; status must be one of NEW/CONTACTED/QUALIFIED/LOST/WON. Summarize large",
         "result sets analytically. Visibility is OPEN — everyone sees every lead; use",
-        "mine=true or ownerUserId to narrow to a person's book.",
+        "mine=true or ownerUserId to narrow to a person's book; unowned=true for leads nobody owns yet.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -192,6 +192,10 @@ export function registerLeadsTools(
           .number()
           .optional()
           .describe("Only leads owned by this user ID (resolve with whoami/manage_users)."),
+        unowned: z
+          .boolean()
+          .optional()
+          .describe("Only leads with NO owner (free to claim via assign_lead). Combine with regionId/countryId to find unowned leads in a territory."),
         regionId: z
           .number()
           .optional()
@@ -234,6 +238,7 @@ export function registerLeadsTools(
         and.push({ OR: [{ ownerUserId: me.id }, { createdByUserId: me.id }] });
       }
       if (a.ownerUserId != null) and.push({ ownerUserId: a.ownerUserId });
+      if (a.unowned) and.push({ ownerUserId: null });
       if (a.regionId != null) {
         and.push({
           OR: [
@@ -713,6 +718,10 @@ export function registerLeadsTools(
           .number()
           .optional()
           .describe("Only leads owned by this user ID."),
+        unowned: z
+          .boolean()
+          .optional()
+          .describe("Only leads with NO owner (free to claim via assign_lead). Combine with regionId/countryId to find unowned leads in a territory."),
         regionId: z
           .number()
           .optional()
@@ -774,6 +783,7 @@ export function registerLeadsTools(
         and.push({ OR: [{ ownerUserId: me.id }, { createdByUserId: me.id }] });
       }
       if (a.ownerUserId != null) and.push({ ownerUserId: a.ownerUserId });
+      if (a.unowned) and.push({ ownerUserId: null });
       if (a.regionId != null) {
         and.push({
           OR: [

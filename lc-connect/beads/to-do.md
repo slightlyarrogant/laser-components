@@ -61,6 +61,15 @@ Verdict: connector core = current standard (Hono + McpServer + OAuth 2.1 DCR/PKC
 - [ ] jti deny-list / token revocation
 - [ ] `export_data` take caps; `search_resources` select-only-needed columns
 
+## Findings from the claude.ai end-to-end test (2026-09-17, as Łukasz/RESEARCHER)
+- [x] `unowned` filter on get_leads/search_leads (model reached for export_data to find unowned leads)
+- [ ] `get_regions` card renders "No data." in claude.ai although the model received the regions — check the envelope for that tool
+- [ ] Widget-first brevity hides owner from the model: the dataset card carried 90 rows but the model saw only a slim summary and could not filter by owner. Consider a compact per-row summary (id, name, owner, status) in structuredContent up to ~50 rows
+- [ ] Cap `export_data` (unbounded today) — it is the model's fallback whenever a filter is missing
+- [ ] Connector icon in claude.ai shows the ngrok logo (no icon in server metadata) — add an LC Connect icon
+- [ ] Sign-in page is the old dark template (green button, "Laser Components MCP Server") — restyle to the brand
+- [ ] Landing page: Claude moved connectors to Customize → Connectors (was Settings → Connectors) — update the install steps + screenshot
+
 ## Later / decision-gated
 - [ ] Lithuania (and other backlog countries) missing from `countries` — seed when the customer confirms geography blocks
 - [ ] `themeDark` config surface upstream in @cfi/mcp-widgets so LC amber survives dark mode
