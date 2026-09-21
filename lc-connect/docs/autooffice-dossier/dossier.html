@@ -357,6 +357,25 @@ ol.toc .p{
   font-family:"Ubuntu Mono", monospace; font-size:8pt; color: var(--muted);
 }
 
+.duo{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm 10mm;
+  margin-top: 1mm;
+}
+.duo > div{
+  break-inside: avoid;
+  padding-top: 2.4mm;
+  border-top:.4pt solid var(--hair);
+  line-height:1.5;
+}
+.duo .d{
+  display:block;
+  font-weight:500;
+  color: var(--ink);
+  margin-bottom: .6mm;
+}
+
 .metaline{
   display:flex; gap: 12mm;
   margin-top: 4mm; padding-top: 2.6mm;
@@ -455,9 +474,8 @@ ol.toc .p{
     <li><span class="n">3</span><span class="t">iKrystyna &mdash; our software-as-a-service and core business</span><span class="p">4</span></li>
     <li><span class="n">4</span><span class="t">Bespoke solutions</span><span class="p">6</span></li>
     <li><span class="n">5</span><span class="t">Reference client</span><span class="p">7</span></li>
-    <li><span class="n">6</span><span class="t">Advanced example &mdash; from a CAD file to a production routing</span><span class="p">7</span></li>
-    <li><span class="n">7</span><span class="t">How we work</span><span class="p">9</span></li>
-    <li><span class="n">8</span><span class="t">Company details</span><span class="p">9</span></li>
+    <li><span class="n">6</span><span class="t">How we work</span><span class="p">8</span></li>
+    <li><span class="n">7</span><span class="t">Company details</span><span class="p">8</span></li>
   </ol>
 </section>
 
@@ -694,16 +712,16 @@ ol.toc .p{
   </ul>
 </section>
 
-<!-- ================================ 7 · REFERENCE CLIENT + CAD EXAMPLE -->
+<!-- ============================================== 7 · REFERENCE CLIENT -->
 <section class="page">
   <div class="eyebrow">Section 5</div>
   <h1 class="section">Reference client</h1>
   <div class="rule"></div>
 
-  <p class="lead">CFI is AutoOffice&rsquo;s principal client and the maker of the Vendo ERP system.</p>
+  <p class="lead">CFI, the maker of the Vendo ERP system, is a long-standing client of AutoOffice.</p>
   <p>For CFI, AutoOffice develops applied-AI solutions around the ERP. Among them is <strong>Vendo
-  Connect</strong>, the connector that lets users of Vendo ERP work with their data through an AI assistant.
-  The worked example below comes from that connector.</p>
+  Connect</strong>, the connector that lets users of Vendo ERP work with their data through an AI
+  assistant.</p>
 
   <div class="metaline">
     <span><span class="k">Client</span> CFI</span>
@@ -711,61 +729,37 @@ ol.toc .p{
     <span><span class="k">Product</span> Vendo ERP</span>
   </div>
 
-  <div class="spacer-m"></div>
+  <h2>Depth of the integration</h2>
+  <p>Vendo Connect is not a reporting add-on attached to the side of the ERP. It reaches across the
+  system&rsquo;s main areas and it writes as well as reads: more than a hundred operations are registered,
+  covering the work people do in the ERP every day rather than a read-only summary layer on top of it.</p>
 
-  <div class="eyebrow">Section 6 &middot; Advanced example, from Vendo Connect</div>
-  <h1 class="section">From a CAD file to a production routing, in one step</h1>
-  <div class="rule"></div>
+  <p>Writing is not a side channel. Every change runs inside the ERP&rsquo;s own transaction: the assistant
+  opens a transaction, makes the change and closes it, and the ERP tracks the change and rolls the whole
+  transaction back if it is not completed properly. Permissions come from the ERP as well. The connector
+  reads the signed-in user&rsquo;s own permissions from Vendo and offers only the operations that user is
+  entitled to &mdash; and Vendo enforces them again, server-side, on every call.</p>
 
-  <p>An engineer drops a STEP file into the chat. The connector stores it per customer and immediately starts
-  a background worker: the solid model is converted to a web-viewable 3D mesh, and every part in it is
-  rendered as a dimensioned 2D drawing &mdash; front, top and side, with overall dimensions in millimetres and
-  a sheet-thickness callout for flat parts. For this rotor assembly the conversion takes well under a
-  minute.</p>
-
-  <p>The connector then reads the assembly tree straight out of the STEP: 46 bill-of-material positions,
-  12 sub-assemblies, hierarchical item numbers (1 / 1.1 / 1.1.1), a quantity on every line (edge multiplicity
-  &times; parent quantity), and a bounding box measured from each part&rsquo;s geometry. Every leaf is
-  classified as made in-house or bought in, and gets a suggested operation list.</p>
-
-  <p>Finally the routing: operations in sequence, candidate workstations from the plant&rsquo;s machine list,
-  and setup/unit times &mdash; presented as a proposal. Nothing is written into the ERP until a person
-  confirms it.</p>
-
-  <div class="note">Interface shown in Polish, as deployed.</div>
-
-  <figure class="framed" style="width:104mm; margin-top:3mm">
-    <img src="assets/cad/rotor-3d.png" alt="3D view of the rotor assembly">
-    <figcaption><span class="fignum">Figure 5</span>The rotor assembly as the connector&rsquo;s 3D viewer shows
-    it in the chat, converted automatically from the uploaded STEP file. Rotate, zoom, no CAD licence and no
-    plug-in required.</figcaption>
-  </figure>
-</section>
-
-<!-- ================================================= 9 · CAD EXAMPLE (2) -->
-<section class="page">
-  <div class="eyebrow" style="margin-bottom:5mm">Section 6 &middot; continued &middot; the breakdown and the proposed routing</div>
-
-  <figure class="framed" style="margin-top:0; width:160mm">
-    <img src="assets/cad/rotor-breakdown-top.png" alt="Assembly breakdown by the connector">
-    <figcaption><span class="fignum">Figure 6</span>The assembly broken down by the connector: repeatable part
-    families and one-off parts, each with quantity and overall dimensions read from the geometry, colour-coded
-    into made / bought / assembled, with uncertain names flagged for review. Top of a longer view; the bought
-    components are listed separately further down.</figcaption>
-  </figure>
-
-  <figure class="framed" style="width:152mm; margin-top:5mm">
-    <img src="assets/cad/rotor-routing.png" alt="Proposed routing for one manufactured part">
-    <figcaption><span class="fignum">Figure 7</span>A proposed routing for one manufactured part of the rotor
-    (a blade, 251.5 &times; 8 &times; 407.9&nbsp;mm, &asymp;&nbsp;8&nbsp;mm sheet): cutting, bending, drilling,
-    each with unit time Tj, setup time Tpz and the candidate workstations, shown next to the
-    machine-generated dimensioned projection of the same part.</figcaption>
-  </figure>
+  <h2>What the assistant can reach</h2>
+  <div class="duo">
+    <div><span class="d">CRM</span>Clients and contact persons, events and tasks, cases and their stages,
+    the sales funnel and process types.</div>
+    <div><span class="d">Sales and purchase documents</span>Offers, sales and purchase invoices,
+    corrections, document positions and discounts.</div>
+    <div><span class="d">Warehouse and logistics</span>Goods receipts and issues, internal documents, stock
+    states and remaining goods.</div>
+    <div><span class="d">Production</span>Production orders and their positions, technologies with their
+    operations and materials, workstations, production plans and calculations.</div>
+    <div><span class="d">Communication</span>E-mail, internal chat and SMS, sent from inside the same
+    conversation.</div>
+    <div><span class="d">Analytics</span>Sales, purchases, costs and turnover, payment settlements and debt
+    reports, and maps by region.</div>
+  </div>
 </section>
 
 <!-- ============================================ 10 · HOW WE WORK + DETAILS -->
 <section class="page">
-  <div class="eyebrow">Section 7</div>
+  <div class="eyebrow">Section 6</div>
   <h1 class="section">How we work</h1>
   <div class="rule"></div>
 
@@ -814,7 +808,7 @@ ol.toc .p{
 
   <div class="spacer-l"></div>
 
-  <div class="eyebrow">Section 8</div>
+  <div class="eyebrow">Section 7</div>
   <h1 class="section">Company details</h1>
   <div class="rule"></div>
 
