@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" width="1600" height="800" font-family="Hanken Grotesk, Ubuntu, sans-serif">
+  <rect x="0" y="0" width="1600" height="800" fill="#f8f8f3"/>
+
+  <!-- ============ TITLE ============ -->
+  <text x="48" y="52" fill="#263e43" font-size="27" font-weight="600">iKrystyna — automated accounting pipeline</text>
+  <text x="48" y="78" fill="#5b7178" font-size="15">From source document to filed declaration, with the accountant in the loop</text>
+
+  <!-- ============ SWIMLANE LABELS ============ -->
+  <rect x="48" y="104" width="1504" height="1" fill="#dcdcd2"/>
+
+  <!-- ============ LANE 1: CLIENT-FACING (TOP) ============ -->
+  <rect x="48" y="128" width="1504" height="138" rx="10" fill="#fffefa" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="68" y="152" fill="#9a7033" font-size="11.5" font-weight="700" letter-spacing="1.4">CLIENT SURFACES</text>
+
+  <!-- Client panel -->
+  <rect x="68" y="166" width="300" height="82" rx="8" fill="#f3f0e6" stroke="#9a7033" stroke-width="1.5"/>
+  <text x="88" y="194" fill="#263e43" font-size="16" font-weight="600">Client panel</text>
+  <text x="88" y="215" fill="#5b7178" font-size="13">ikrystyna.pl/panel — books, cases,</text>
+  <text x="88" y="233" fill="#5b7178" font-size="13">deadlines, monthly summaries</text>
+
+  <!-- Connect -->
+  <rect x="408" y="166" width="330" height="82" rx="8" fill="#f3f0e6" stroke="#9a7033" stroke-width="1.5"/>
+  <text x="428" y="194" fill="#263e43" font-size="16" font-weight="600">iKrystyna Connect (MCP)</text>
+  <text x="428" y="215" fill="#5b7178" font-size="13">connect.ikrystyna.pl — read-only tools,</text>
+  <text x="428" y="233" fill="#5b7178" font-size="13">OAuth + per-tenant JWT; writes are requests</text>
+
+  <!-- AI assistant -->
+  <rect x="778" y="166" width="250" height="82" rx="8" fill="#eef2f0" stroke="#557765" stroke-width="1.5"/>
+  <text x="798" y="194" fill="#263e43" font-size="16" font-weight="600">Owner&#8217;s AI assistant</text>
+  <text x="798" y="215" fill="#5b7178" font-size="13">Claude / ChatGPT asks in plain</text>
+  <text x="798" y="233" fill="#5b7178" font-size="13">language, gets the real figures</text>
+
+  <!-- Accountant review -->
+  <rect x="1068" y="166" width="464" height="82" rx="8" fill="#f6ece8" stroke="#b25a44" stroke-width="1.5"/>
+  <text x="1088" y="194" fill="#263e43" font-size="16" font-weight="600">Accountant review loop &#8212; human in the loop</text>
+  <text x="1088" y="215" fill="#5b7178" font-size="13">Approves outgoing replies, decides unclear documents, signs</text>
+  <text x="1088" y="233" fill="#5b7178" font-size="13">and files declarations. Nothing legal leaves unreviewed.</text>
+
+  <!-- Connect links -->
+  <line x1="738" y1="207" x2="778" y2="207" stroke="#557765" stroke-width="2"/>
+  <line x1="368" y1="207" x2="408" y2="207" stroke="#9a7033" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <!-- ============ LANE 2: MAIN PIPELINE ============ -->
+  <text x="68" y="312" fill="#3d7189" font-size="11.5" font-weight="700" letter-spacing="1.4">AUTOMATED PIPELINE</text>
+
+  <!-- ---- Column 1: SOURCES ---- -->
+  <rect x="48" y="330" width="250" height="300" rx="10" fill="#fffefa" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="68" y="358" fill="#263e43" font-size="16" font-weight="600">Document sources</text>
+
+  <rect x="68" y="374" width="210" height="62" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="86" y="398" fill="#263e43" font-size="14.5" font-weight="600">KSeF</text>
+  <text x="86" y="418" fill="#5b7178" font-size="12.5">Polish national e-invoicing</text>
+
+  <rect x="68" y="448" width="210" height="62" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="86" y="472" fill="#263e43" font-size="14.5" font-weight="600">E-mail &amp; scans</text>
+  <text x="86" y="492" fill="#5b7178" font-size="12.5">PDF, photo, manual upload</text>
+
+  <rect x="68" y="522" width="210" height="62" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="86" y="546" fill="#263e43" font-size="14.5" font-weight="600">Bank statements</text>
+  <text x="86" y="566" fill="#5b7178" font-size="12.5">Imported and matched</text>
+
+  <text x="68" y="608" fill="#5b7178" font-size="12.5">One address, any format.</text>
+
+  <!-- ---- Column 2: INTAKE ---- -->
+  <rect x="338" y="330" width="266" height="300" rx="10" fill="#fffefa" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="358" y="358" fill="#263e43" font-size="16" font-weight="600">Intake &amp; classification</text>
+
+  <rect x="358" y="374" width="226" height="56" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="376" y="397" fill="#263e43" font-size="14" font-weight="600">Registry stamp</text>
+  <text x="376" y="416" fill="#5b7178" font-size="12.5">Recorded before processing</text>
+
+  <rect x="358" y="440" width="226" height="56" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="376" y="463" fill="#263e43" font-size="14" font-weight="600">Classify &amp; extract</text>
+  <text x="376" y="482" fill="#5b7178" font-size="12.5">Document type, header, lines</text>
+
+  <rect x="358" y="506" width="226" height="56" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="376" y="529" fill="#263e43" font-size="14" font-weight="600">Validate</text>
+  <text x="376" y="548" fill="#5b7178" font-size="12.5">Tax ID, VAT, duplicates</text>
+
+  <text x="358" y="592" fill="#5b7178" font-size="12.5">Anything uncertain is routed</text>
+  <text x="358" y="610" fill="#5b7178" font-size="12.5">to a person, never guessed.</text>
+
+  <!-- ---- Column 3: ENGINE ---- -->
+  <rect x="644" y="330" width="420" height="300" rx="10" fill="#fffefa" stroke="#3d7189" stroke-width="2"/>
+  <text x="664" y="358" fill="#263e43" font-size="16" font-weight="600">Accounting engine</text>
+  <text x="900" y="358" fill="#3d7189" font-size="12.5" font-weight="600">rule-based posting</text>
+
+  <rect x="664" y="374" width="190" height="72" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="682" y="398" fill="#263e43" font-size="14.5" font-weight="600">Ledger</text>
+  <text x="682" y="417" fill="#5b7178" font-size="12.5">Double-entry posting,</text>
+  <text x="682" y="434" fill="#5b7178" font-size="12.5">chart of accounts, balances</text>
+
+  <rect x="874" y="374" width="170" height="72" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="892" y="398" fill="#263e43" font-size="14.5" font-weight="600">VAT records</text>
+  <text x="892" y="417" fill="#5b7178" font-size="12.5">Rates, split payment,</text>
+  <text x="892" y="434" fill="#5b7178" font-size="12.5">car-expense rules</text>
+
+  <rect x="664" y="460" width="190" height="72" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="682" y="484" fill="#263e43" font-size="14.5" font-weight="600">Payroll &amp; ZUS</text>
+  <text x="682" y="503" fill="#5b7178" font-size="12.5">Pay runs, contributions</text>
+  <text x="682" y="520" fill="#5b7178" font-size="12.5">(ZUS = social insurance)</text>
+
+  <rect x="874" y="460" width="170" height="72" rx="7" fill="#e7eef2" stroke="#3d7189" stroke-width="1.2"/>
+  <text x="892" y="484" fill="#263e43" font-size="14.5" font-weight="600">Monthly close</text>
+  <text x="892" y="503" fill="#5b7178" font-size="12.5">Bank anchor to the</text>
+  <text x="892" y="520" fill="#5b7178" font-size="12.5">cent, no plug entries</text>
+
+  <rect x="664" y="546" width="380" height="62" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="682" y="570" fill="#263e43" font-size="14" font-weight="600">Reconciliation gate: ledger = VAT records = KSeF</text>
+  <text x="682" y="590" fill="#5b7178" font-size="12.5">Deterministic checks; a mismatch blocks the close.</text>
+
+  <!-- ---- Column 4: FILINGS ---- -->
+  <rect x="1104" y="330" width="250" height="300" rx="10" fill="#fffefa" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="1124" y="358" fill="#263e43" font-size="16" font-weight="600">Filings &amp; output</text>
+
+  <rect x="1124" y="374" width="210" height="62" rx="7" fill="#f6ece8" stroke="#b25a44" stroke-width="1.2"/>
+  <text x="1142" y="398" fill="#263e43" font-size="14.5" font-weight="600">JPK_V7M</text>
+  <text x="1142" y="418" fill="#5b7178" font-size="12.5">VAT ledger + return, XML</text>
+
+  <rect x="1124" y="448" width="210" height="62" rx="7" fill="#f6ece8" stroke="#b25a44" stroke-width="1.2"/>
+  <text x="1142" y="472" fill="#263e43" font-size="14.5" font-weight="600">KSeF submissions</text>
+  <text x="1142" y="492" fill="#5b7178" font-size="12.5">Sales invoices, KSeF no.</text>
+
+  <rect x="1124" y="522" width="210" height="62" rx="7" fill="#f6ece8" stroke="#b25a44" stroke-width="1.2"/>
+  <text x="1142" y="546" fill="#263e43" font-size="14.5" font-weight="600">ZUS &amp; income tax</text>
+  <text x="1142" y="566" fill="#5b7178" font-size="12.5">Declaration files, CIT/PIT</text>
+
+  <text x="1124" y="608" fill="#5b7178" font-size="12.5">Signed and filed by a person.</text>
+
+  <!-- ---- Column 5: AUTHORITIES ---- -->
+  <rect x="1394" y="330" width="158" height="300" rx="10" fill="#f0f0ea" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="1414" y="358" fill="#263e43" font-size="16" font-weight="600">Authorities</text>
+  <text x="1414" y="392" fill="#5b7178" font-size="13.5">KSeF 2.0</text>
+  <text x="1414" y="418" fill="#5b7178" font-size="13.5">Tax office</text>
+  <text x="1414" y="444" fill="#5b7178" font-size="13.5">ZUS</text>
+  <text x="1414" y="482" fill="#5b7178" font-size="12.5">Confirmations of</text>
+  <text x="1414" y="500" fill="#5b7178" font-size="12.5">receipt flow back</text>
+  <text x="1414" y="518" fill="#5b7178" font-size="12.5">into the books.</text>
+
+  <!-- ---- FLOW ARROWS between columns ---- -->
+  <line x1="298" y1="480" x2="330" y2="480" stroke="#3d7189" stroke-width="2.5"/>
+  <polygon points="338,480 326,474 326,486" fill="#3d7189"/>
+
+  <line x1="604" y1="480" x2="636" y2="480" stroke="#3d7189" stroke-width="2.5"/>
+  <polygon points="644,480 632,474 632,486" fill="#3d7189"/>
+
+  <line x1="1064" y1="480" x2="1096" y2="480" stroke="#3d7189" stroke-width="2.5"/>
+  <polygon points="1104,480 1092,474 1092,486" fill="#3d7189"/>
+
+  <line x1="1354" y1="480" x2="1386" y2="480" stroke="#b25a44" stroke-width="2.5"/>
+  <polygon points="1394,480 1382,474 1382,486" fill="#b25a44"/>
+
+  <!-- ---- Review loop: pipeline up to accountant ---- -->
+  <line x1="471" y1="330" x2="471" y2="290" stroke="#b25a44" stroke-width="2" stroke-dasharray="6 4"/>
+  <line x1="471" y1="290" x2="1300" y2="290" stroke="#b25a44" stroke-width="2" stroke-dasharray="6 4"/>
+  <line x1="1300" y1="290" x2="1300" y2="256" stroke="#b25a44" stroke-width="2" stroke-dasharray="6 4"/>
+  <polygon points="1300,248 1294,260 1306,260" fill="#b25a44"/>
+  <rect x="726" y="272" width="278" height="24" rx="5" fill="#f8f8f3"/>
+  <text x="740" y="289" fill="#b25a44" font-size="12.5" font-weight="600">unclear document or judgement call</text>
+
+  <!-- ---- Panel / Connect read from engine (read-only) ---- -->
+  <line x1="844" y1="330" x2="844" y2="310" stroke="#9a7033" stroke-width="2"/>
+  <line x1="844" y1="310" x2="320" y2="310" stroke="#9a7033" stroke-width="2"/>
+  <line x1="320" y1="310" x2="320" y2="256" stroke="#9a7033" stroke-width="2"/>
+  <polygon points="320,248 314,260 326,260" fill="#9a7033"/>
+  <rect x="404" y="298" width="196" height="24" rx="5" fill="#f8f8f3"/>
+  <text x="416" y="315" fill="#9a7033" font-size="12.5" font-weight="600">books and figures, read-only</text>
+
+  <!-- ============ LANE 3: PLATFORM (BOTTOM) ============ -->
+  <rect x="48" y="662" width="1504" height="106" rx="10" fill="#fffefa" stroke="#dcdcd2" stroke-width="1"/>
+  <text x="68" y="686" fill="#557765" font-size="11.5" font-weight="700" letter-spacing="1.4">PLATFORM</text>
+
+  <rect x="68" y="698" width="280" height="54" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="86" y="720" fill="#263e43" font-size="14" font-weight="600">PostgreSQL, one schema</text>
+  <text x="86" y="739" fill="#5b7178" font-size="12.5">Row-level security per company</text>
+
+  <rect x="368" y="698" width="280" height="54" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="386" y="720" fill="#263e43" font-size="14" font-weight="600">Audit trail</text>
+  <text x="386" y="739" fill="#5b7178" font-size="12.5">Every change logged and retained</text>
+
+  <rect x="668" y="698" width="280" height="54" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="686" y="720" fill="#263e43" font-size="14" font-weight="600">Services under systemd</text>
+  <text x="686" y="739" fill="#5b7178" font-size="12.5">Health endpoints, restart policy</text>
+
+  <rect x="968" y="698" width="280" height="54" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="986" y="720" fill="#263e43" font-size="14" font-weight="600">Scheduled watchdogs</text>
+  <text x="986" y="739" fill="#5b7178" font-size="12.5">Deadlines, anchors, overdue alerts</text>
+
+  <rect x="1268" y="698" width="264" height="54" rx="7" fill="#eef2f0" stroke="#557765" stroke-width="1.2"/>
+  <text x="1286" y="720" fill="#263e43" font-size="14" font-weight="600">Backups &amp; retention</text>
+  <text x="1286" y="739" fill="#5b7178" font-size="12.5">Nightly off-site, GDPR purges</text>
+</svg>

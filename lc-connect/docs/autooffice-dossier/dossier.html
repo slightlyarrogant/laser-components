@@ -1,0 +1,855 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AutoOffice Sp. z o.o. — Company Dossier</title>
+<style>
+/* ---------------------------------------------------------------- page */
+@page {
+  size: A4;
+  margin: 17mm 20mm 17mm 20mm;
+}
+
+:root{
+  --ink:      #24262a;
+  --body:     #3c4046;
+  --muted:    #71767d;
+  --faint:    #9aa0a6;
+  --rule:     #d9dbde;
+  --hair:     #e6e8ea;
+  --tint:     #f5f5f6;
+  --mark:     #3a3d42;
+
+  /* iKrystyna identity — used only inside the iKrystyna section */
+  --k-ink:    #263e43;
+  --k-accent: #3d7189;
+  --k-sage:   #557765;
+  --k-ochre:  #9a7033;
+  --k-paper:  #fffefa;
+  --k-bg:     #f8f8f3;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{
+  margin:0; padding:0;
+  background:#fff;
+  color: var(--body);
+  font-family: "Ubuntu", "Ubuntu Light", sans-serif;
+  font-weight: 400;
+  font-size: 9.6pt;
+  line-height: 1.58;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page{
+  break-after: page;
+  page-break-after: always;
+}
+.page:last-child{ break-after: auto; page-break-after: auto; }
+
+/* ------------------------------------------------------------ headings */
+h1,h2,h3,h4{ color: var(--ink); font-weight: 400; margin:0; }
+
+.eyebrow{
+  font-family:"Ubuntu Mono", monospace;
+  font-size: 7.4pt;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 3.5mm;
+}
+
+h1.section{
+  font-size: 19pt;
+  font-weight: 300;
+  letter-spacing: -.012em;
+  line-height: 1.2;
+  margin-bottom: 4mm;
+}
+h1.section + .rule{ margin-bottom: 5mm; }
+
+h2{
+  font-size: 11.2pt;
+  font-weight: 500;
+  letter-spacing: .002em;
+  margin: 6mm 0 2.5mm;
+}
+h2:first-child{ margin-top:0; }
+
+h3{
+  font-size: 9.6pt;
+  font-weight: 500;
+  margin: 5mm 0 1.5mm;
+}
+
+p{ margin: 0 0 3.2mm; }
+p:last-child{ margin-bottom:0; }
+
+.lead{
+  font-size: 11pt;
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.rule{ height:0; border-top:.4pt solid var(--rule); margin: 4mm 0; }
+.hairline{ height:0; border-top:.4pt solid var(--hair); margin: 4mm 0; }
+
+strong{ font-weight:500; color: var(--ink); }
+em{ font-style: italic; }
+
+.mono{ font-family:"Ubuntu Mono", monospace; }
+.muted{ color: var(--muted); }
+
+/* --------------------------------------------------------------- cover */
+.cover{
+  height: 263mm;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.cover-top{ padding-top: 46mm; }
+.wordmark{
+  font-family:"Ubuntu", sans-serif;
+  font-weight:300;
+  color: var(--mark);
+  letter-spacing: -.01em;
+}
+.cover .wordmark{ font-size: 40pt; line-height:1; }
+.cover-rule{ height:0; border-top:.6pt solid var(--mark); margin: 9mm 0 0; width: 100%; }
+.cover-title{
+  margin-top: 62mm;
+  font-size: 24pt;
+  font-weight:300;
+  color: var(--ink);
+  letter-spacing:-.01em;
+}
+.cover-sub{
+  margin-top: 3mm;
+  font-family:"Ubuntu Mono", monospace;
+  font-size: 9pt;
+  letter-spacing:.08em;
+  color: var(--muted);
+}
+.cover-meta{
+  padding-bottom: 6mm;
+  font-size: 9pt;
+  color: var(--muted);
+}
+.cover-meta .row{ display:flex; gap: 4mm; padding: 1.6mm 0; }
+.cover-meta .k{
+  width: 34mm;
+  font-family:"Ubuntu Mono", monospace;
+  font-size: 7.4pt;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: var(--faint);
+  padding-top: .6mm;
+}
+.cover-meta .v{ color: var(--ink); }
+.cover-meta .rule{ margin: 4mm 0; }
+
+/* ------------------------------------------------------------- columns */
+.cols{ display:flex; gap: 10mm; }
+.col-main{ flex: 1 1 auto; }
+.col-side{ flex: 0 0 52mm; }
+
+.sidecard{
+  background: var(--tint);
+  border-top: 1.2pt solid var(--mark);
+  padding: 5mm 5mm 5.5mm;
+}
+.sidecard .t{
+  font-family:"Ubuntu Mono", monospace;
+  font-size:7.2pt; letter-spacing:.12em; text-transform:uppercase;
+  color: var(--muted); margin-bottom: 3.5mm;
+}
+.sidecard dl{ margin:0; }
+.sidecard dt{
+  font-family:"Ubuntu Mono", monospace;
+  font-size: 7pt; letter-spacing:.06em; text-transform:uppercase;
+  color: var(--faint); margin-top: 3.2mm;
+}
+.sidecard dt:first-child{ margin-top:0; }
+.sidecard dd{ margin:.5mm 0 0; font-size: 9pt; color: var(--ink); line-height:1.45; }
+
+/* --------------------------------------------------------------- lists */
+ul.plain{ list-style:none; margin: 0 0 3mm; padding:0; }
+ul.plain > li{
+  position:relative;
+  padding-left: 5.5mm;
+  margin-bottom: 1.6mm;
+}
+ul.plain > li::before{
+  content:"";
+  position:absolute; left:0; top: 2.05mm;
+  width: 2.4mm; height:0; border-top:.7pt solid var(--faint);
+}
+
+dl.facts{ margin:0; }
+dl.facts > div{
+  break-inside: avoid;
+  padding: 1.9mm 0;
+  border-top:.4pt solid var(--hair);
+}
+dl.facts > div:first-child{ border-top:.4pt solid var(--rule); }
+dl.facts dt{ font-weight:500; color: var(--ink); margin-bottom: .8mm; }
+dl.facts dd{ margin:0; color: var(--body); }
+
+/* -------------------------------------------------------------- tables */
+table{
+  width:100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  break-inside: avoid;
+}
+th{
+  text-align:left;
+  font-family:"Ubuntu Mono", monospace;
+  font-weight:400;
+  font-size: 7.2pt;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color: var(--faint);
+  padding: 0 4mm 2mm 0;
+  border-bottom:.5pt solid var(--rule);
+  vertical-align: bottom;
+}
+td{
+  padding: 2.8mm 4mm 2.8mm 0;
+  border-bottom:.4pt solid var(--hair);
+  vertical-align: top;
+  line-height:1.45;
+}
+td:last-child, th:last-child{ padding-right:0; }
+td.name{ color: var(--ink); font-weight:500; white-space: nowrap; }
+tr{ break-inside: avoid; }
+
+/* ------------------------------------------------------------- figures */
+figure{
+  margin: 6mm 0 0;
+  break-inside: avoid;
+}
+figure img{
+  display:block;
+  width:100%;
+  height:auto;
+}
+figure.framed img{
+  border:.4pt solid var(--hair);
+}
+figcaption{
+  margin-top: 2.2mm;
+  font-size: 7.6pt;
+  line-height:1.5;
+  color: var(--muted);
+  break-before: avoid;
+}
+figcaption .fignum{
+  font-family:"Ubuntu Mono", monospace;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color: var(--faint);
+  margin-right: 1.5mm;
+}
+
+/* ------------------------------------------------- iKrystyna section */
+.k-section{ color: var(--k-ink); }
+.k-section h1.section,
+.k-section h2,
+.k-section h3{ color: var(--k-ink); }
+.k-section .rule{ border-top-color: rgba(38,62,67,.22); }
+.k-section .hairline{ border-top-color: rgba(38,62,67,.13); }
+.k-section p{ color: #35484c; }
+.k-section strong{ color: var(--k-ink); }
+
+.k-head{
+  display:flex; align-items:flex-start; gap: 6mm;
+  background: var(--k-bg);
+  padding: 7mm 7mm 7mm;
+  margin-bottom: 7mm;
+}
+.k-head img{ width: 11mm; height:auto; display:block; }
+.k-head .t{ flex:1; }
+.k-head h1{ margin:0; font-size: 19pt; font-weight:300; letter-spacing:-.012em; color: var(--k-ink); }
+.k-head .s{ margin-top: 2mm; font-size: 9pt; color: var(--k-accent); }
+
+.k-card{
+  background: var(--k-bg);
+  padding: 5mm 6mm 5.5mm;
+  break-inside: avoid;
+}
+.k-card .t{
+  font-family:"Ubuntu Mono", monospace;
+  font-size:7.2pt; letter-spacing:.12em; text-transform:uppercase;
+  color: var(--k-ochre); margin-bottom: 3mm;
+}
+.k-section dl.facts > div{ border-top-color: rgba(38,62,67,.13); }
+.k-section dl.facts > div:first-child{ border-top-color: rgba(38,62,67,.28); }
+.k-section dl.facts dt{ color: var(--k-accent); }
+.k-section dl.facts dd{ color: #35484c; }
+.k-section figure.framed img{ border-color: rgba(38,62,67,.16); }
+.k-section figcaption{ color: #5c6f70; }
+.k-section figcaption .fignum{ color: var(--k-ochre); }
+.k-section .eyebrow{ color: var(--k-sage); }
+
+.k-addr{ margin:0; }
+.k-addr div{
+  display:flex; gap: 4mm; padding: 1.6mm 0;
+  border-top:.4pt solid rgba(38,62,67,.13);
+  font-size: 8.6pt;
+}
+.k-addr div:first-child{ border-top:.4pt solid rgba(38,62,67,.28); }
+.k-addr .l{ flex: 0 0 46mm; color: #35484c; }
+.k-addr .u{ font-family:"Ubuntu Mono", monospace; color: var(--k-accent); }
+
+/* ------------------------------------------------------ company block */
+.company{
+  border-top: 1.2pt solid var(--mark);
+  padding-top: 5mm;
+  break-inside: avoid;
+}
+.company .grid{ display:flex; gap: 12mm; }
+.company .cell{ flex:1; }
+.company .k{
+  font-family:"Ubuntu Mono", monospace;
+  font-size:7.2pt; letter-spacing:.12em; text-transform:uppercase;
+  color: var(--faint); margin-bottom: 1.8mm;
+}
+.company .v{ color: var(--ink); line-height:1.6; }
+.company .v .mono{ font-size: 9pt; }
+.contact-slot{
+  margin-top: 3mm;
+  padding-top: 2.5mm;
+  border-top:.4pt solid var(--hair);
+  min-height: 7mm;
+  font-size: 8.2pt;
+  color: var(--faint);
+}
+
+/* ---------------------------------------------------------- note boxes */
+.note{
+  background: var(--tint);
+  border-left: 1.2pt solid var(--mark);
+  padding: 4mm 5mm;
+  font-size: 8.8pt;
+  break-inside: avoid;
+}
+
+/* ------------------------------------------------------------ contents */
+ol.toc{ list-style:none; margin:0; padding:0; }
+ol.toc li{
+  display:flex; align-items:baseline; gap: 4mm;
+  padding: 0.75mm 0;
+  font-size: 8.6pt;
+  line-height: 1.28;
+  border-top:.4pt solid var(--hair);
+}
+ol.toc li:first-child{ border-top:.4pt solid var(--rule); }
+ol.toc .n{
+  flex: 0 0 8mm;
+  font-family:"Ubuntu Mono", monospace; font-size:8pt; color: var(--faint);
+}
+ol.toc .t{ flex:1; color: var(--ink); }
+ol.toc .p{
+  font-family:"Ubuntu Mono", monospace; font-size:8pt; color: var(--muted);
+}
+
+.metaline{
+  display:flex; gap: 12mm;
+  margin-top: 4mm; padding-top: 2.6mm;
+  border-top:.4pt solid var(--rule);
+  font-size: 8.8pt; color: var(--ink);
+}
+.metaline .k{
+  font-family:"Ubuntu Mono", monospace;
+  font-size:7pt; letter-spacing:.1em; text-transform:uppercase;
+  color: var(--faint); margin-right: 1.5mm;
+}
+
+.spacer-s{ height: 4mm; }
+.spacer-m{ height: 9mm; }
+.spacer-l{ height: 16mm; }
+</style>
+</head>
+<body>
+
+<!-- =============================================================== 1 · COVER -->
+<section class="page">
+  <div class="cover">
+    <div class="cover-top">
+      <div class="wordmark">autooffice</div>
+      <div class="cover-rule"></div>
+      <div class="cover-title">Company Dossier</div>
+      <div class="cover-sub">SEPTEMBER 2026</div>
+    </div>
+    <div class="cover-meta">
+      <div class="rule"></div>
+      <div class="row"><div class="k">Prepared for</div><div class="v">Laser Components</div></div>
+      <div class="row"><div class="k">Issued by</div><div class="v">AutoOffice Sp. z o.o., Opole, Poland</div></div>
+      <div class="row"><div class="k">Classification</div><div class="v">Confidential</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== 2 · AT A GLANCE -->
+<section class="page">
+  <div class="eyebrow">Section 1</div>
+  <h1 class="section">AutoOffice at a glance</h1>
+  <div class="rule"></div>
+
+  <div class="cols">
+    <div class="col-main">
+      <p class="lead">AutoOffice Sp.&nbsp;z&nbsp;o.o. is a Polish software company based in Opole. It writes and
+      operates its own software, and it builds software that connects other companies&rsquo; systems to the
+      AI assistants their people already use.</p>
+
+      <h2>Two lines of business</h2>
+
+      <h3>iKrystyna &mdash; our own software-as-a-service</h3>
+      <p>iKrystyna is AutoOffice&rsquo;s own product for automated accounting and the company&rsquo;s core
+      business. It is a service that companies subscribe to, not a project delivered once: AutoOffice writes
+      it, hosts it, operates it and answers for it. Over twenty small and mid-size companies are registered
+      on it. The connector platform described in this dossier is the same one that serves it.</p>
+
+      <h3>Bespoke AI integration</h3>
+      <p>Alongside the product, AutoOffice carries out bespoke AI integration work for a small number of
+      established mid-size companies. That work is done under non-disclosure, which is why the clients are
+      not named here.</p>
+
+      <h2>What we specialise in</h2>
+      <p>Our speciality is <strong>connectors</strong>: software that lets a company&rsquo;s own AI assistant
+      &mdash; Claude, ChatGPT or Microsoft Copilot &mdash; work safely with that company&rsquo;s business
+      systems. They are built on the <strong>Model Context Protocol</strong> (MCP), an open, published
+      standard for connecting AI assistants to external systems and data. Because the protocol is open and
+      not owned by AutoOffice, a connector is not tied to one assistant, one vendor or one supplier.</p>
+    </div>
+
+    <div class="col-side">
+      <div class="sidecard">
+        <div class="t">In brief</div>
+        <dl>
+          <dt>Company</dt>
+          <dd>AutoOffice Sp. z o.o.</dd>
+          <dt>Seat</dt>
+          <dd>Opole, Poland</dd>
+          <dt>Own product</dt>
+          <dd>iKrystyna &mdash; automated accounting, delivered as a service</dd>
+          <dt>Registered on it</dt>
+          <dd>Over 20 small and mid-size companies</dd>
+          <dt>Second line</dt>
+          <dd>Bespoke AI integration, under non-disclosure</dd>
+          <dt>Speciality</dt>
+          <dd>Connectors on the open Model Context Protocol</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:7mm">Contents</h2>
+  <ol class="toc">
+    <li><span class="n">1</span><span class="t">AutoOffice at a glance</span><span class="p">2</span></li>
+    <li><span class="n">2</span><span class="t">What we build &mdash; one platform, several connectors</span><span class="p">3</span></li>
+    <li><span class="n">3</span><span class="t">iKrystyna &mdash; our software-as-a-service and core business</span><span class="p">4</span></li>
+    <li><span class="n">4</span><span class="t">Bespoke solutions</span><span class="p">6</span></li>
+    <li><span class="n">5</span><span class="t">Reference client</span><span class="p">7</span></li>
+    <li><span class="n">6</span><span class="t">Advanced example &mdash; from a CAD file to a production routing</span><span class="p">7</span></li>
+    <li><span class="n">7</span><span class="t">How we work</span><span class="p">9</span></li>
+    <li><span class="n">8</span><span class="t">Company details</span><span class="p">9</span></li>
+  </ol>
+</section>
+
+<!-- ======================================================= 3 · WHAT WE BUILD -->
+<section class="page">
+  <div class="eyebrow">Section 2</div>
+  <h1 class="section">What we build &mdash; one platform, several connectors</h1>
+  <div class="rule"></div>
+
+  <p class="lead">A connector sits between the assistant a company already pays for and the system where its
+  work actually lives. It is the place where sign-in, permissions and the audit trail are enforced.</p>
+
+  <figure style="margin-top:3mm">
+    <svg viewBox="-3 -3 986 266" preserveAspectRatio="xMidYMid meet"
+         style="display:block; width:100%; height:auto;"
+         role="img" aria-label="Diagram: AI assistant, connector, system of record">
+      <defs>
+        <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="#71767d" stroke-width="1.4"/>
+        </marker>
+      </defs>
+
+      <!-- box 1 -->
+      <rect x="1" y="52" width="250" height="118" fill="#ffffff" stroke="#c9ccd0" stroke-width="1"/>
+      <text x="22" y="90" font-family="Ubuntu, sans-serif" font-size="17" font-weight="500" fill="#24262a">Your AI assistant</text>
+      <text x="22" y="118" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#6b7077">Claude · ChatGPT ·</text>
+      <text x="22" y="138" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#6b7077">Microsoft Copilot</text>
+      <text x="22" y="160" font-family="Ubuntu Mono, monospace" font-size="11" fill="#9aa0a6">YOUR SUBSCRIPTION</text>
+
+      <!-- box 2 -->
+      <rect x="365" y="24" width="250" height="174" fill="#f5f5f6" stroke="#3a3d42" stroke-width="1.2"/>
+      <text x="386" y="60" font-family="Ubuntu, sans-serif" font-size="17" font-weight="500" fill="#24262a">Connector</text>
+      <text x="386" y="86" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#4b5058">Sign-in</text>
+      <text x="386" y="108" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#4b5058">Roles and permissions</text>
+      <text x="386" y="130" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#4b5058">Audit trail</text>
+      <text x="386" y="152" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#4b5058">Interactive result cards</text>
+      <text x="386" y="180" font-family="Ubuntu Mono, monospace" font-size="11" fill="#9aa0a6">BUILT BY AUTOOFFICE</text>
+
+      <!-- box 3 -->
+      <rect x="729" y="52" width="250" height="118" fill="#ffffff" stroke="#c9ccd0" stroke-width="1"/>
+      <text x="750" y="90" font-family="Ubuntu, sans-serif" font-size="17" font-weight="500" fill="#24262a">Your system of record</text>
+      <text x="750" y="118" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#6b7077">ERP · accounting ·</text>
+      <text x="750" y="138" font-family="Ubuntu, sans-serif" font-size="13.5" fill="#6b7077">lead database</text>
+      <text x="750" y="160" font-family="Ubuntu Mono, monospace" font-size="11" fill="#9aa0a6">YOUR DATA, YOUR SERVER</text>
+
+      <!-- arrows -->
+      <line x1="256" y1="111" x2="358" y2="111" stroke="#71767d" stroke-width="1.4" marker-end="url(#arw)"/>
+      <line x1="620" y1="111" x2="722" y2="111" stroke="#71767d" stroke-width="1.4" marker-end="url(#arw)"/>
+      <text x="264" y="101" font-family="Ubuntu Mono, monospace" font-size="11" fill="#9aa0a6">QUESTION</text>
+      <text x="628" y="101" font-family="Ubuntu Mono, monospace" font-size="11" fill="#9aa0a6">QUERY</text>
+    </svg>
+    <figcaption><span class="fignum">Figure 1</span>Only the middle block is ours; the assistant and the
+    system of record stay with the customer.</figcaption>
+  </figure>
+
+  <h2>Three instances of the same platform</h2>
+  <p style="margin-bottom:3.5mm">All three run the same server framework on the Model Context Protocol, the
+  same sign-in and role model, and AutoOffice&rsquo;s shared result-card library.</p>
+  <table>
+    <thead>
+      <tr><th style="width:34mm">Connector</th><th style="width:34mm">Domain</th><th>Built for</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="name">iKrystyna Connect</td>
+        <td>Accounting</td>
+        <td>AutoOffice&rsquo;s own accounting service &mdash; the owner of a company asks about their own books
+        and gets figures from the live ledger.</td>
+      </tr>
+      <tr>
+        <td class="name">Vendo Connect</td>
+        <td>ERP</td>
+        <td>CFI, the maker of the Vendo ERP system &mdash; users of Vendo work with ERP data through an
+        AI assistant.</td>
+      </tr>
+      <tr>
+        <td class="name">LC Connect</td>
+        <td>Lead intelligence</td>
+        <td>Laser Components &mdash; finding, enriching and organising leads.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What sits inside the middle block</h2>
+  <ul class="plain">
+    <li><strong>Sign-in.</strong> People sign in through the identity provider the company already uses.</li>
+    <li><strong>Roles and permissions.</strong> What the assistant may see and do follows the role of the
+    person asking, not the wording of the question.</li>
+    <li><strong>Audit trail.</strong> Every change is recorded, including attempts that were refused.</li>
+    <li><strong>Interactive result cards.</strong> Answers come back as tables and figures rendered inside the
+    conversation and built from the system of record, not from the model&rsquo;s general knowledge. Figures 3
+    and 4 in this dossier are two such cards.</li>
+  </ul>
+
+  <h2>Bring your own intelligence</h2>
+  <p>The customer keeps its own AI subscription and its own choice of assistant. AutoOffice charges no
+  per-user fees and resells no AI capacity. The connector&rsquo;s source code lives in a repository the
+  customer controls, and the data stays in the customer&rsquo;s system of record.</p>
+</section>
+
+<!-- ======================================================= 4 · iKRYSTYNA 1 -->
+<section class="page k-section">
+  <div class="eyebrow" style="color:var(--faint)">Section 3</div>
+  <div class="k-head">
+    <img src="assets/ikrystyna/k-mark.png" alt="iKrystyna mark">
+    <div class="t">
+      <h1>iKrystyna</h1>
+      <div class="s">Our software-as-a-service for automated accounting &mdash; and our core business</div>
+    </div>
+  </div>
+
+  <p class="lead">iKrystyna is AutoOffice&rsquo;s own software product and its core business: statutory
+  accounting for Polish limited liability companies (sp.&nbsp;z&nbsp;o.o.), run on software AutoOffice built
+  itself. Documents go to one e-mail address in any format; back comes a single message: what is missing,
+  what it blocks, by when. Books, VAT, payroll, declarations and deadlines are kept by the system; an
+  accountant reviews what the law or judgement requires. More than twenty companies are registered.</p>
+
+  <h2>The automated accounting engine</h2>
+  <p>Documents arrive from KSeF (Poland&rsquo;s national e-invoicing system), from e-mail and scans, and from
+  banks. Each is stamped into a processing registry before it is touched; extraction reads type, header and
+  lines, then tax-ID, VAT-rate and duplicate checks run. Posting into the double-entry ledger is
+  deterministic: a rule set and account dictionary, not a model guess. Payroll covers all Polish contract
+  types and computes ZUS (state social insurance) contributions; bank statements are matched against
+  invoices.</p>
+  <p>Month-end is gated: the bank account must reconcile to the statement to the cent, and ledger, VAT records
+  and KSeF must agree. Only then are the JPK_V7M file (the monthly VAT ledger and return), KSeF submissions
+  and ZUS and income-tax declarations generated. Anything ambiguous goes to a person, every outgoing message
+  is human-approved, and a person signs and files the declarations.</p>
+
+  <figure class="framed">
+    <img src="assets/ikrystyna/ikrystyna-architecture.png" alt="iKrystyna pipeline diagram" style="max-height:92mm; object-fit:contain;">
+    <figcaption><span class="fignum">Figure 2</span>The iKrystyna pipeline, from source document to filed
+    declaration, with the accountant in the loop.</figcaption>
+  </figure>
+</section>
+
+<!-- ======================================================= 5 · iKRYSTYNA 2 -->
+<section class="page k-section">
+  <div class="eyebrow">iKrystyna &middot; continued</div>
+  <h1 class="section">iKrystyna Connect</h1>
+  <div class="rule"></div>
+
+  <p>Connect is an MCP server that lets the owner query their own books from Claude or ChatGPT in plain
+  language: what is due this month, what sits in the KSeF inbox, last month&rsquo;s profit and loss, overdue
+  receivables, the state of the close, whether a counterparty is on the Ministry&rsquo;s VAT white list.
+  Answers are figures and interactive widgets built from the live ledger, not the model&rsquo;s general
+  knowledge. Forty-five tools are registered, read-only by design; issuing a sales invoice is the one
+  exception, a prepare &rarr; confirm &rarr; issue sequence. Every other change is an audited request to the
+  office.</p>
+
+  <p>Connect is built on the same platform as Vendo Connect and LC Connect &mdash; the same server framework
+  on the Model Context Protocol, the same OAuth sign-in and role model, an audit trail in each, and
+  AutoOffice&rsquo;s shared result-card library for everything the assistant displays. It differs only where
+  the business does: which system it reads and which questions it answers.</p>
+
+  <p>The two figures below are answers returned by iKrystyna Connect inside an AI assistant. They are result
+  cards built from the ledger: the assistant does not compute or estimate the numbers, it asks the connector
+  for them and renders what comes back. The interface is shown in Polish, as deployed.</p>
+
+  <figure class="framed">
+    <img src="assets/ikrystyna/ikrystyna-demo-monthly-summary.png" alt="Monthly financial summary card">
+    <figcaption><span class="fignum">Figure 3</span>Monthly financial summary &mdash; net revenue, costs, net
+    result and the VAT position for a closed month. Shown for the demonstration company
+    <strong>TechCode Sp. z o.o.</strong> with demonstration data.</figcaption>
+  </figure>
+
+  <figure class="framed">
+    <img src="assets/ikrystyna/ikrystyna-demo-vat-report.png" alt="VAT report card">
+    <figcaption><span class="fignum">Figure 4</span>VAT position for the current month with the six preceding
+    closed months beneath it. Shown for the demonstration company <strong>TechCode Sp. z o.o.</strong> with
+    demonstration data.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================== 6 · iKRYSTYNA 3 + BESPOKE SOLUTIONS -->
+<section class="page">
+  <div class="k-section">
+    <div class="eyebrow">iKrystyna &middot; continued</div>
+    <h1 class="section">Engineering facts</h1>
+    <div class="rule"></div>
+
+    <dl class="facts">
+      <div>
+        <dt>Isolation in the database, not in application code</dt>
+        <dd>PostgreSQL row-level security covers the company-scoped tables; Connect takes the tenant from the
+        JWT, never from a tool argument.</dd>
+      </div>
+      <div>
+        <dt>Tamper-evident audit trail</dt>
+        <dd>An immutable log with a SHA-256 hash chain records financial actions; middleware logs every tool
+        call with user, company and arguments.</dd>
+      </div>
+      <div>
+        <dt>Tested on CI</dt>
+        <dd>238 pytest files under <span class="mono">tests/</span>, including a tenant-isolation suite, behind
+        12 GitHub Actions workflows.</dd>
+      </div>
+      <div>
+        <dt>Operated as a supervised service</dt>
+        <dd>Hosted in the EU (Warsaw). Every component runs as a supervised service that restarts on failure;
+        all traffic is encrypted with automatically renewed certificates.</dd>
+      </div>
+      <div>
+        <dt>Monitored and backed up</dt>
+        <dd>Prometheus, Grafana and Loki scrape the API, MCP server and PostgreSQL; timers watch filing
+        deadlines and anchors; data is held in the EU, with nightly off-site backups and GDPR purges.</dd>
+      </div>
+    </dl>
+
+    <h2>Public addresses</h2>
+    <div class="k-addr">
+      <div><span class="l">Product site</span><span class="u">ikrystyna.pl</span></div>
+      <div><span class="l">Client panel</span><span class="u">ikrystyna.pl/panel/</span></div>
+      <div><span class="l">AI connector (MCP endpoint)</span><span class="u">connect.ikrystyna.pl</span></div>
+    </div>
+  </div>
+
+  <div class="spacer-s"></div>
+
+  <div class="eyebrow">Section 4</div>
+  <h1 class="section">Bespoke solutions</h1>
+  <div class="rule"></div>
+
+  <p>Beside its own product, AutoOffice carries out bespoke AI integration work for a small number of
+  established mid-size companies. That work is done under non-disclosure.</p>
+
+  <h2 style="margin-top:5mm">Typical scope of an engagement</h2>
+  <ul class="plain">
+    <li>A connector to an existing system.</li>
+    <li>Identity integration &mdash; people sign in with the accounts they already have.</li>
+    <li>A role model, so that what an assistant may see and do follows the role of the person asking.</li>
+    <li>An audit trail.</li>
+    <li>Operation and support of the running service.</li>
+  </ul>
+</section>
+
+<!-- ================================ 7 · REFERENCE CLIENT + CAD EXAMPLE -->
+<section class="page">
+  <div class="eyebrow">Section 5</div>
+  <h1 class="section">Reference client</h1>
+  <div class="rule"></div>
+
+  <p class="lead">CFI is AutoOffice&rsquo;s principal client and the maker of the Vendo ERP system.</p>
+  <p>For CFI, AutoOffice develops applied-AI solutions around the ERP. Among them is <strong>Vendo
+  Connect</strong>, the connector that lets users of Vendo ERP work with their data through an AI assistant.
+  The worked example below comes from that connector.</p>
+
+  <div class="metaline">
+    <span><span class="k">Client</span> CFI</span>
+    <span><span class="k">Web</span> <span class="mono">www.cfi.pl</span></span>
+    <span><span class="k">Product</span> Vendo ERP</span>
+  </div>
+
+  <div class="spacer-m"></div>
+
+  <div class="eyebrow">Section 6 &middot; Advanced example, from Vendo Connect</div>
+  <h1 class="section">From a CAD file to a production routing, in one step</h1>
+  <div class="rule"></div>
+
+  <p>An engineer drops a STEP file into the chat. The connector stores it per customer and immediately starts
+  a background worker: the solid model is converted to a web-viewable 3D mesh, and every part in it is
+  rendered as a dimensioned 2D drawing &mdash; front, top and side, with overall dimensions in millimetres and
+  a sheet-thickness callout for flat parts. For this rotor assembly the conversion takes well under a
+  minute.</p>
+
+  <p>The connector then reads the assembly tree straight out of the STEP: 46 bill-of-material positions,
+  12 sub-assemblies, hierarchical item numbers (1 / 1.1 / 1.1.1), a quantity on every line (edge multiplicity
+  &times; parent quantity), and a bounding box measured from each part&rsquo;s geometry. Every leaf is
+  classified as made in-house or bought in, and gets a suggested operation list.</p>
+
+  <p>Finally the routing: operations in sequence, candidate workstations from the plant&rsquo;s machine list,
+  and setup/unit times &mdash; presented as a proposal. Nothing is written into the ERP until a person
+  confirms it.</p>
+
+  <div class="note">Interface shown in Polish, as deployed.</div>
+
+  <figure class="framed" style="width:104mm; margin-top:3mm">
+    <img src="assets/cad/rotor-3d.png" alt="3D view of the rotor assembly">
+    <figcaption><span class="fignum">Figure 5</span>The rotor assembly as the connector&rsquo;s 3D viewer shows
+    it in the chat, converted automatically from the uploaded STEP file. Rotate, zoom, no CAD licence and no
+    plug-in required.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================= 9 · CAD EXAMPLE (2) -->
+<section class="page">
+  <div class="eyebrow" style="margin-bottom:5mm">Section 6 &middot; continued &middot; the breakdown and the proposed routing</div>
+
+  <figure class="framed" style="margin-top:0; width:160mm">
+    <img src="assets/cad/rotor-breakdown-top.png" alt="Assembly breakdown by the connector">
+    <figcaption><span class="fignum">Figure 6</span>The assembly broken down by the connector: repeatable part
+    families and one-off parts, each with quantity and overall dimensions read from the geometry, colour-coded
+    into made / bought / assembled, with uncertain names flagged for review. Top of a longer view; the bought
+    components are listed separately further down.</figcaption>
+  </figure>
+
+  <figure class="framed" style="width:152mm; margin-top:5mm">
+    <img src="assets/cad/rotor-routing.png" alt="Proposed routing for one manufactured part">
+    <figcaption><span class="fignum">Figure 7</span>A proposed routing for one manufactured part of the rotor
+    (a blade, 251.5 &times; 8 &times; 407.9&nbsp;mm, &asymp;&nbsp;8&nbsp;mm sheet): cutting, bending, drilling,
+    each with unit time Tj, setup time Tpz and the candidate workstations, shown next to the
+    machine-generated dimensioned projection of the same part.</figcaption>
+  </figure>
+</section>
+
+<!-- ============================================ 10 · HOW WE WORK + DETAILS -->
+<section class="page">
+  <div class="eyebrow">Section 7</div>
+  <h1 class="section">How we work</h1>
+  <div class="rule"></div>
+
+  <table>
+    <tbody>
+      <tr>
+        <td class="name" style="width:44mm">Sign-in</td>
+        <td>Through the customer&rsquo;s own identity provider. No separate password estate.</td>
+      </tr>
+      <tr>
+        <td class="name">Permissions</td>
+        <td>Role-based. What the assistant may see and do follows the role of the person asking.</td>
+      </tr>
+      <tr>
+        <td class="name">Audit trail</td>
+        <td>Every change is recorded, including attempts that were refused.</td>
+      </tr>
+      <tr>
+        <td class="name">Backups</td>
+        <td>Nightly.</td>
+      </tr>
+      <tr>
+        <td class="name">Monitoring</td>
+        <td>Automated: every five minutes a monitor signs in and runs a query, so a failure is found by us
+        before it is reported by a user.</td>
+      </tr>
+      <tr>
+        <td class="name">Source code</td>
+        <td>Held in the customer&rsquo;s own repository.</td>
+      </tr>
+      <tr>
+        <td class="name">Commercial terms</td>
+        <td>A flat monthly service fee with included development hours. No per-user fees.</td>
+      </tr>
+      <tr>
+        <td class="name">Exit</td>
+        <td>Without lock-in.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="spacer-s"></div>
+  <div class="note">The detailed service terms &mdash; scope, service levels, response times and the
+  commercial schedule &mdash; are carried by a separate document, the <strong>LC Connect Service
+  Package</strong>.</div>
+
+  <div class="spacer-l"></div>
+
+  <div class="eyebrow">Section 8</div>
+  <h1 class="section">Company details</h1>
+  <div class="rule"></div>
+
+  <div class="company">
+    <div class="grid">
+      <div class="cell">
+        <div class="k">Registered company</div>
+        <div class="v">
+          AutoOffice Sp. z o.o.<br>
+          ul. Św. Wojciecha 2/9<br>
+          45-015 Opole<br>
+          Poland
+        </div>
+      </div>
+      <div class="cell">
+        <div class="k">Registry</div>
+        <div class="v">
+          NIP (tax ID)<br><span class="mono">7543370963</span><br>
+          <span style="display:inline-block;height:2mm"></span><br>
+          KRS (court register)<br><span class="mono">0001117764</span>
+        </div>
+      </div>
+      <div class="cell">
+        <div class="k">Contact</div>
+        <div class="v">
+          Bogdan Czarnecki<br>
+          <span class="mono" style="font-size:8.4pt">bogdan.czarnecki@cfi.pl</span><br>
+          <span class="mono" style="font-size:8.4pt">+48&nbsp;668&nbsp;814&nbsp;400</span><br>
+          <span style="display:inline-block;height:2mm"></span><br>
+          Web<br><span class="mono">ikrystyna.pl</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
