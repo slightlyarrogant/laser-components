@@ -38,3 +38,7 @@ demo/ACCESS.local.md
 # watchdog credentials (local only)
 deploy/watchdog.env
 deploy/*.log
+# Watchdog runtime: rotated logs, timestamps, ngrok restart counter
+deploy/*.log.*
+deploy/watchdog.*.ts
+deploy/watchdog.ngrok_restarts*

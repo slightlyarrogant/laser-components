@@ -1,5 +1,5 @@
 [Unit]
-Description=LC Connect watchdog (full login flow via public URL)
+Description=LC Connect watchdog (local full login flow every run; public ngrok probe every 30 min)
 [Service]
 Type=oneshot
 ExecStart=/home/bogdan/Desktop/Projects/laser_components/lc-connect/deploy/watchdog.sh
