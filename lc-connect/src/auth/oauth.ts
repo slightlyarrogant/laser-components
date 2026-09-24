@@ -1,5 +1,6 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { createRequire } from "node:module";
+import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { config } from "../config.js";
@@ -15,6 +16,7 @@ import {
   issueRefreshToken,
   registerClient,
   touchClient,
+  type StoredClient,
 } from "./store.js";
 
 // Re-exported so the shape of this module's public surface is unchanged for
@@ -29,6 +31,152 @@ const bcrypt = require("bcryptjs") as typeof import("bcryptjs");
 // registered redirect_uri, a verbatim one is enough to start a flow — and this
 // log is read by more people than the client registry is.
 const log = child({ mod: "oauth" });
+
+// ---------------------------------------------------------------------------
+// Request IP — first X-Forwarded-For entry (the live deploy sits behind ngrok),
+// socket address as the fallback for direct connections.
+// ---------------------------------------------------------------------------
+
+export function clientIp(c: Context): string {
+  const forwarded = c.req.header("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  try {
+    return getConnInfo(c as never).remote.address ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rejection logging
+//
+// EVERY refusal on /authorize and /token logs one `oauth-rejected` line. Before
+// this, an unknown client_id was answered with a bare 400 and nothing else, so a
+// customer's connector could be locked out while monitoring saw nothing.
+// deploy/watchdog.sh counts the unknown_client / redirect_mismatch reasons.
+// The full redirect_uri is deliberately NOT logged — only its host.
+// ---------------------------------------------------------------------------
+
+export type RejectReason =
+  | "unknown_client"
+  | "redirect_mismatch"
+  | "missing_param"
+  | "malformed_body"
+  | "unsupported_response_type"
+  | "unsupported_grant_type"
+  | "pkce_method"
+  | "pkce_format"
+  | "pkce_missing_verifier"
+  | "pkce_mismatch"
+  | "client_mismatch"
+  | "invalid_grant";
+
+function hostOf(uri: string | undefined): string | undefined {
+  if (!uri) return undefined;
+  try {
+    return new URL(uri).host;
+  } catch {
+    return "(unparseable)";
+  }
+}
+
+function logRejection(
+  c: Context,
+  endpoint: "authorize" | "token",
+  reason: RejectReason,
+  clientId: string | undefined,
+  redirectUri: string | undefined,
+  detail?: string
+): void {
+  log.warn({
+    evt: "oauth-rejected",
+    endpoint,
+    method: c.req.method,
+    reason,
+    ...(detail ? { detail } : {}),
+    client: clientId ? hashId(clientId) : undefined,
+    redirectHost: hostOf(redirectUri),
+    ip: clientIp(c),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Auto-registration for trusted assistant hosts
+//
+// A connector keeps the client_id it registered via /register. If the registry
+// loses that row (re-clone, DB restore), /authorize used to refuse the client
+// forever and the customer had to delete and re-add the connector. For the
+// hosted assistants we serve, /authorize now re-creates the registration on the
+// fly, bound to the ONE redirect_uri presented.
+//
+// Why this does not reopen audit C3 (open redirect / code theft):
+//  - The client_id was never a secret: token_endpoint_auth_method is "none" and
+//    anyone can mint one via POST /register. Knowing or inventing a client_id
+//    grants nothing.
+//  - What protects the code is WHERE it is delivered. Auto-registration only
+//    happens for an https redirect_uri whose host is EXACTLY one of
+//    TRUSTED_REDIRECT_HOSTS (no subdomains, no http, no non-default port, no
+//    userinfo), so the code can only ever land on the assistant's own callback,
+//    never on an attacker-chosen URL.
+//  - The code stays bound to that exact redirect_uri (re-checked at /token) and
+//    to the PKCE challenge, so it cannot be redeemed by anyone who did not start
+//    the flow.
+//  - An EXISTING client is never widened: a known client_id presented with an
+//    unregistered redirect_uri is still rejected as redirect_mismatch.
+// ---------------------------------------------------------------------------
+
+export const TRUSTED_REDIRECT_HOSTS: ReadonlySet<string> = new Set([
+  "claude.ai",
+  "chatgpt.com",
+  "chat.openai.com",
+]);
+
+/**
+ * Returns the trusted host when `redirectUri` is an https URL on exactly one of
+ * TRUSTED_REDIRECT_HOSTS (default port, no credentials), otherwise null. The
+ * path and query are irrelevant.
+ */
+export function trustedRedirectHost(redirectUri: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(redirectUri);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:") return null;
+  if (url.username || url.password || url.port) return null;
+  const host = url.hostname.toLowerCase();
+  return TRUSTED_REDIRECT_HOSTS.has(host) ? host : null;
+}
+
+// Client ids we issue are UUIDs; accept any conservative token so a connector
+// holding some other id format still recovers, but never an arbitrary blob.
+const AUTO_CLIENT_ID_RE = /^[A-Za-z0-9._~:-]{1,200}$/;
+
+/**
+ * Looks the client up; when unknown and the redirect_uri is on a trusted
+ * assistant host, registers it with that single redirect_uri. Returns null when
+ * the client is unknown and may not be auto-registered.
+ */
+async function resolveClient(clientId: string, redirectUri: string): Promise<StoredClient | null> {
+  const existing = await getClient(clientId);
+  if (existing) return existing;
+  const host = trustedRedirectHost(redirectUri);
+  if (!host || !AUTO_CLIENT_ID_RE.test(clientId)) return null;
+  try {
+    const created = await registerClient(clientId, [redirectUri], `auto-registered (${host})`);
+    log.info({ evt: "oauth-client-autoregistered", client: hashId(clientId), host });
+    return created;
+  } catch (err) {
+    // A concurrent request (GET + POST, or a double-click) may have inserted it.
+    const again = await getClient(clientId);
+    if (again) return again;
+    throw err;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // OAuth state
@@ -277,34 +425,40 @@ async function handleAuthorizeGet(c: Context) {
     c.req.query();
 
   if (response_type !== "code") {
+    logRejection(c, "authorize", "unsupported_response_type", client_id, redirect_uri);
     return c.text("unsupported_response_type: only 'code' is supported", 400);
   }
-  // One lookup serves both the "is this client registered?" and the
-  // "is this redirect_uri registered for it?" gates below.
-  const client = client_id ? await getClient(client_id) : null;
-  if (!client) {
-    return c.text("unauthorized_client: unknown client_id", 400);
+  if (!client_id) {
+    logRejection(c, "authorize", "missing_param", client_id, redirect_uri, "client_id");
+    return c.text("invalid_request: client_id is required", 400);
   }
   if (!redirect_uri) {
+    logRejection(c, "authorize", "missing_param", client_id, redirect_uri, "redirect_uri");
     return c.text("invalid_request: redirect_uri is required", 400);
+  }
+  // One lookup (plus auto-registration for trusted assistant hosts) serves both
+  // the "is this client registered?" and the "is this redirect_uri registered
+  // for it?" gates below.
+  const client = await resolveClient(client_id, redirect_uri);
+  if (!client) {
+    logRejection(c, "authorize", "unknown_client", client_id, redirect_uri);
+    return c.text("unauthorized_client: unknown client_id", 400);
   }
   // Checked BEFORE the login form is rendered: an unvalidated redirect_uri
   // turns this page into a credential-harvest / code-theft vector even if the
   // user never submits it.
   if (!client.redirectUris.includes(redirect_uri)) {
-    log.warn({
-      evt: "oauth-redirect-rejected",
-      method: "GET",
-      client: hashId(client_id),
-      redirectUri: redirect_uri,
-    });
+    logRejection(c, "authorize", "redirect_mismatch", client_id, redirect_uri);
     return c.text(
       "invalid_request: redirect_uri does not match a redirect URI registered for this client",
       400
     );
   }
   const pkceError = validatePkceRequest(code_challenge, code_challenge_method, client_id);
-  if (pkceError) return c.text(pkceError, 400);
+  if (pkceError) {
+    logRejection(c, "authorize", pkceError.reason, client_id, redirect_uri);
+    return c.text(pkceError.message, 400);
+  }
 
   const authUrl = new URL("/authorize", config.PUBLIC_BASE_URL);
   authUrl.searchParams.set("client_id", client_id);
@@ -329,23 +483,26 @@ async function handleAuthorizeGet(c: Context) {
 
 /**
  * Shared PKCE gate for GET and POST /authorize. Returns an error string when
- * the request must be refused, or undefined when it may proceed (including the
+ * the request must be refused (with its log reason), or undefined when it may proceed (including the
  * no-PKCE case, which only warns — Phase 1 turns that into a rejection).
  */
 function validatePkceRequest(
   codeChallenge: string | undefined,
   codeChallengeMethod: string | undefined,
   clientId: string
-): string | undefined {
+): { reason: RejectReason; message: string } | undefined {
   if (!codeChallenge) {
     warnMissingPkce(clientId);
     return undefined;
   }
   if (codeChallengeMethod !== "S256") {
-    return "invalid_request: code_challenge_method must be S256";
+    return { reason: "pkce_method", message: "invalid_request: code_challenge_method must be S256" };
   }
   if (!/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge)) {
-    return "invalid_request: code_challenge must be a base64url-encoded SHA-256 digest";
+    return {
+      reason: "pkce_format",
+      message: "invalid_request: code_challenge must be a base64url-encoded SHA-256 digest",
+    };
   }
   return undefined;
 }
@@ -359,6 +516,7 @@ async function handleAuthorizePost(c: Context) {
   try {
     body = (await c.req.parseBody()) as Record<string, string>;
   } catch {
+    logRejection(c, "authorize", "malformed_body", undefined, undefined);
     return c.text("invalid_request: could not parse form body", 400);
   }
 
@@ -377,29 +535,33 @@ async function handleAuthorizePost(c: Context) {
       status
     );
 
-  const client = client_id ? await getClient(client_id) : null;
-  if (!client) {
-    return c.text("unauthorized_client", 400);
+  if (!client_id) {
+    logRejection(c, "authorize", "missing_param", client_id, redirect_uri, "client_id");
+    return c.text("invalid_request: client_id is required", 400);
   }
   if (!redirect_uri) {
+    logRejection(c, "authorize", "missing_param", client_id, redirect_uri, "redirect_uri");
     return c.text("invalid_request: redirect_uri is required", 400);
+  }
+  const client = await resolveClient(client_id, redirect_uri);
+  if (!client) {
+    logRejection(c, "authorize", "unknown_client", client_id, redirect_uri);
+    return c.text("unauthorized_client", 400);
   }
   // Re-checked on the POST: the hidden field is attacker-controllable, so the
   // GET-time check alone would not stop a forged form post.
   if (!client.redirectUris.includes(redirect_uri)) {
-    log.warn({
-      evt: "oauth-redirect-rejected",
-      method: "POST",
-      client: hashId(client_id),
-      redirectUri: redirect_uri,
-    });
+    logRejection(c, "authorize", "redirect_mismatch", client_id, redirect_uri);
     return c.text(
       "invalid_request: redirect_uri does not match a redirect URI registered for this client",
       400
     );
   }
   const pkceError = validatePkceRequest(code_challenge, code_challenge_method, client_id);
-  if (pkceError) return c.text(pkceError, 400);
+  if (pkceError) {
+    logRejection(c, "authorize", pkceError.reason, client_id, redirect_uri);
+    return c.text(pkceError.message, 400);
+  }
   if (!email || !password) {
     return fail("Email and password are required", 400);
   }
@@ -473,32 +635,45 @@ async function handleTokenPost(c: Context) {
     try {
       params = (await c.req.json()) as Record<string, string>;
     } catch {
+      logRejection(c, "token", "malformed_body", undefined, undefined);
       return c.json({ error: "invalid_request", error_description: "malformed JSON body" }, 400);
     }
   } else {
     try {
       params = (await c.req.parseBody()) as Record<string, string>;
     } catch {
+      logRejection(c, "token", "malformed_body", undefined, undefined);
       return c.json({ error: "invalid_request", error_description: "malformed form body" }, 400);
     }
   }
 
   const { grant_type, code, redirect_uri, client_id, refresh_token, code_verifier } = params;
 
-  if (!client_id || !(await getClient(client_id))) {
+  const reject = (reason: RejectReason, detail?: string) =>
+    logRejection(c, "token", reason, client_id, redirect_uri, detail);
+
+  if (!client_id) {
+    reject("missing_param", "client_id");
+    return c.json({ error: "unauthorized_client" }, 401);
+  }
+  if (!(await getClient(client_id))) {
+    reject("unknown_client");
     return c.json({ error: "unauthorized_client" }, 401);
   }
 
   // -- Refresh token grant --
   if (grant_type === "refresh_token") {
     if (!refresh_token) {
+      reject("missing_param", "refresh_token");
       return c.json({ error: "invalid_request", error_description: "refresh_token is required" }, 400);
     }
     const entry = await consumeRefreshToken(refresh_token);
     if (!entry) {
+      reject("invalid_grant", "refresh_token");
       return c.json({ error: "invalid_grant", error_description: "refresh_token is invalid or expired" }, 400);
     }
     if (entry.clientId !== client_id) {
+      reject("client_mismatch", "refresh_token");
       return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
     }
     // LC has no backend ERP session to refresh — the "ensure backend session"
@@ -517,9 +692,11 @@ async function handleTokenPost(c: Context) {
 
   // -- Authorization code grant --
   if (grant_type !== "authorization_code") {
+    reject("unsupported_grant_type");
     return c.json({ error: "unsupported_grant_type" }, 400);
   }
   if (!code) {
+    reject("missing_param", "code");
     return c.json({ error: "invalid_request", error_description: "code is required" }, 400);
   }
 
@@ -527,6 +704,7 @@ async function handleTokenPost(c: Context) {
   // it MUST be sent here and MUST match. It was previously optional, which let
   // a stolen code be redeemed without knowing the original callback.
   if (!redirect_uri) {
+    reject("missing_param", "redirect_uri");
     return c.json(
       { error: "invalid_request", error_description: "redirect_uri is required" },
       400
@@ -535,22 +713,27 @@ async function handleTokenPost(c: Context) {
 
   const entry = await consumeAuthCode(code);
   if (!entry) {
+    reject("invalid_grant", "code");
     return c.json({ error: "invalid_grant", error_description: "code is invalid or expired" }, 400);
   }
   if (entry.clientId !== client_id) {
+    reject("client_mismatch", "code");
     return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
   }
   if (entry.redirectUri !== redirect_uri) {
+    reject("redirect_mismatch");
     return c.json({ error: "invalid_grant", error_description: "redirect_uri mismatch" }, 400);
   }
   if (entry.codeChallenge) {
     if (!code_verifier) {
+      reject("pkce_missing_verifier");
       return c.json(
         { error: "invalid_request", error_description: "code_verifier is required" },
         400
       );
     }
     if (!verifyPkceChallenge(code_verifier, entry.codeChallenge)) {
+      reject("pkce_mismatch");
       return c.json(
         { error: "invalid_grant", error_description: "code_verifier does not match code_challenge" },
         400

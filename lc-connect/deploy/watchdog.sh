@@ -3,6 +3,9 @@
 #  a) LOCAL full login flow every run against $LOCAL_URL (register-once → /authorize with PKCE → /token →
 #     /mcp whoami). Zero ngrok requests. Fail → restart lc-connect.service (≤1 per 30 min);
 #     Pushover after 2 consecutive failures (once per incident) + recovery message.
+#  c) OAUTH REJECTIONS every run: count `oauth-rejected` lines in server.log from the last 10 min with
+#     reason unknown_client|redirect_mismatch (a connector locked out). >0 → Pushover, max once per hour.
+#     Reads the local log only — no requests.
 #  b) PUBLIC probe every 30 min: ONE GET $PUBLIC_URL/health (≤1,500 ngrok requests/month).
 #     200 ok | 403 (ERR_NGROK_xxxx = account limit/billing) → alert only, never restart |
 #     000/502/404 with local healthy → restart ngrok.service (≤1 per 30 min, ≤3 per 6 h, then alert only) |
@@ -20,6 +23,9 @@ NGROK_RESTARTS=$D/watchdog.ngrok_restarts  # one epoch per ngrok restart (6-h ca
 PUBLIC_EVERY=1740        # 30 min minus timer jitter slack
 RESTART_GAP=1800         # min seconds between restarts of the same layer
 NGROK_CAP=3; NGROK_WINDOW=21600
+SERVER_LOG=$APP/server.log
+TS_REJ_ALERT=$D/watchdog.rejections_alert.ts  # last oauth-rejection alert (epoch)
+REJ_WINDOW=600; REJ_ALERT_GAP=3600
 
 DRY=0; PUBLIC_NOW=0
 for a in "$@"; do case "$a" in
@@ -88,6 +94,37 @@ else
     else systemctl --user restart lc-connect.service; wr "$TS_LOCAL_RESTART" "$NOW"; log "action: restarted lc-connect.service"; fi
   else action="none (lc-connect restarted $(( (NOW-last)/60 )) min ago, limit 1/30 min)"; log "action: $action"; fi
   if [ "$alerted" = 0 ] && [ "$fails" -ge 2 ]; then push "DOWN (local): step '$r' failed ${fails}x. Did: $action." 1; [ "$DRY" = 1 ] || alerted=1; fi
+fi
+
+# --- c) OAuth rejections that lock a connector out (server.log, last 10 min) ---
+# Scans only the log tail (≤5 MB); pino time is ISO UTC. Prints "<count> <endpoint:reason xN, ...>".
+rej=$(python3 - "$SERVER_LOG" "$REJ_WINDOW" <<'PY' 2>/dev/null
+import sys, json, time, datetime, collections
+path, win = sys.argv[1], int(sys.argv[2]); cutoff = time.time() - win; cnt = collections.Counter()
+try:
+    with open(path, "rb") as f:
+        f.seek(0, 2); f.seek(max(0, f.tell() - 5_000_000)); data = f.read().decode("utf-8", "replace")
+except OSError:
+    data = ""
+for line in data.splitlines():
+    if '"oauth-rejected"' not in line: continue
+    try: o = json.loads(line)
+    except ValueError: continue
+    if o.get("evt") != "oauth-rejected" or o.get("reason") not in ("unknown_client", "redirect_mismatch"): continue
+    try: t = datetime.datetime.fromisoformat(str(o.get("time", "")).replace("Z", "+00:00")).timestamp()
+    except ValueError: continue
+    if t >= cutoff: cnt[f"{o.get('endpoint', '?')}:{o['reason']}"] += 1
+print(sum(cnt.values()), ", ".join(f"{k} x{v}" for k, v in cnt.most_common()))
+PY
+); rej=${rej:-0}
+rej_n=${rej%% *}; rej_why=${rej#* }
+if [ "${rej_n:-0}" -gt 0 ] 2>/dev/null; then
+  log "oauth rejections (last 10 min): $rej_n — $rej_why"
+  lastr=$(rd "$TS_REJ_ALERT"); lastr=${lastr:-0}
+  if [ $((NOW-lastr)) -ge $REJ_ALERT_GAP ]; then
+    push "OAuth rejections in last 10 min: $rej_n ($rej_why). A connector may be locked out — check server.log for evt oauth-rejected." 0
+    wr "$TS_REJ_ALERT" "$NOW"
+  else log "oauth rejection alert suppressed (last alert $(( (NOW-lastr)/60 )) min ago, max 1/h)"; fi
 fi
 
 # --- b) public probe (every 30 min) ---

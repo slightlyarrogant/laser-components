@@ -4,7 +4,6 @@ import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { dirname, join, normalize, extname } from "node:path";
 import { serve } from "@hono/node-server";
-import { getConnInfo } from "@hono/node-server/conninfo";
 import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
@@ -16,7 +15,7 @@ import {
 } from "@cfi/mcp-widgets";
 import { config } from "./config.js";
 import { VERSION } from "./version.js";
-import { oauthRouter, requireBearerToken } from "./auth/oauth.js";
+import { clientIp, oauthRouter, requireBearerToken } from "./auth/oauth.js";
 import { importLegacyOAuthState, startOAuthStateSweeper } from "./auth/store.js";
 import { createMcpServer, tenantContext } from "./server.js";
 import { datasetCsvHandler } from "./datasets.js";
@@ -108,19 +107,6 @@ setInterval(() => {
     else rateBuckets.set(key, kept);
   }
 }, RATE_WINDOW_MS).unref?.();
-
-function clientIp(c: Context): string {
-  const forwarded = c.req.header("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  try {
-    return getConnInfo(c as never).remote.address ?? "unknown";
-  } catch {
-    return "unknown";
-  }
-}
 
 function rateLimit(bucket: string, limit: number): MiddlewareHandler {
   return async (c, next) => {
