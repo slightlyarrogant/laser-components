@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { buildGeoProductFilters } from "./lead-filters.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAppTool } from "@modelcontextprotocol/ext-apps/server";
 import {
@@ -167,6 +168,10 @@ export function registerLeadsTools(
         "first; status must be one of NEW/CONTACTED/QUALIFIED/LOST/WON. Summarize large",
         "result sets analytically. Visibility is OPEN — everyone sees every lead; use",
         "mine=true or ownerUserId to narrow to a person's book; unowned=true for leads nobody owns yet.",
+        "GOTCHAS: country/countryId only see leads that HAVE a country assigned (currently",
+        "~150 of 396; the rest are being backfilled). country + productName (e.g.",
+        "country='Poland', productName='905') is the intended one-call way to answer",
+        "'who in <country> uses <product>'.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -183,6 +188,15 @@ export function registerLeadsTools(
           .optional()
           .describe("Filter by lead status (LeadStatus enum)."),
         productId: z.number().optional().describe("Filter by associated product ID."),
+        productName: z
+          .string()
+          .optional()
+          .describe("Filter by product name (case-insensitive contains, e.g. 'Pulsed Laser Diodes' or '905') — no ID lookup needed."),
+        country: z
+          .string()
+          .optional()
+          .describe("Filter by country name (case-insensitive contains, e.g. 'Poland'). Only leads with a country assigned match."),
+        countryId: z.number().optional().describe("Filter by country ID (get_regions)."),
         applicationId: z.number().optional().describe("Filter by associated application ID."),
         mine: z
           .boolean()
@@ -247,6 +261,14 @@ export function registerLeadsTools(
           ],
         });
       }
+      // productId is already handled above (legacy truthy check) — don't repeat it.
+      and.push(
+        ...buildGeoProductFilters({
+          country: a.country,
+          countryId: a.countryId,
+          productName: a.productName,
+        })
+      );
       if (and.length > 0) whereConditions.AND = and;
 
       const leads = await prisma.lead.findMany({
@@ -683,6 +705,10 @@ export function registerLeadsTools(
         "industry/country/status/owner/region filters narrow the result (ANDed with the",
         "phrase). Visibility is OPEN — everyone sees every lead; mine=true narrows to",
         "the leads you own or created.",
+        "GOTCHAS: country/countryId only see leads that HAVE a country assigned (currently",
+        "~150 of 396; the rest are being backfilled). country + productName (e.g.",
+        "country='Poland', productName='Pulsed Laser Diodes') is the intended one-call way",
+        "to answer 'who in <country> uses <product>'.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -706,6 +732,12 @@ export function registerLeadsTools(
           .string()
           .optional()
           .describe("Filter by country name (case-insensitive contains)."),
+        countryId: z.number().optional().describe("Filter by country ID (get_regions)."),
+        productId: z.number().optional().describe("Filter by associated product ID."),
+        productName: z
+          .string()
+          .optional()
+          .describe("Filter by product name (case-insensitive contains, e.g. 'Pulsed Laser Diodes' or '905') — no ID lookup needed."),
         status: z
           .string()
           .optional()
@@ -774,11 +806,14 @@ export function registerLeadsTools(
       if (a.status) {
         and.push({ status: a.status.toUpperCase() });
       }
-      if (a.country) {
-        and.push({
-          country: { is: { name: { contains: a.country, mode: "insensitive" } } },
-        });
-      }
+      and.push(
+        ...buildGeoProductFilters({
+          country: a.country,
+          countryId: a.countryId,
+          productId: a.productId,
+          productName: a.productName,
+        })
+      );
       if (a.mine) {
         and.push({ OR: [{ ownerUserId: me.id }, { createdByUserId: me.id }] });
       }
@@ -846,6 +881,9 @@ export function registerLeadsTools(
             tags: a.tags,
             industry: a.industry,
             country: a.country,
+            countryId: a.countryId,
+            productId: a.productId,
+            productName: a.productName,
             status: a.status,
             mine: a.mine,
             ownerUserId: a.ownerUserId,
