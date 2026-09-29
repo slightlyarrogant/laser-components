@@ -291,6 +291,62 @@ export function datasetCsvHandler(id: string): Response | null {
 }
 
 // ---------------------------------------------------------------------------
+// Model-facing compact rows.
+//
+// The widget rows travel only in `_meta` (host-rendered, invisible to the
+// model). Without a copy in `structuredContent` the model cannot list, filter or
+// count anything — measured 2026-09-29: asked for "name, city, product per
+// company", Claude rendered the card and wrote no answer. So every dataset
+// envelope also carries a capped, column-trimmed `rows` array for the model.
+// ---------------------------------------------------------------------------
+
+/** Max rows handed to the model in `structuredContent.rows`. */
+export const MODEL_ROWS_MAX = 50;
+/** Long free-text cells are clipped so 50 rows cannot blow the context. */
+const MODEL_CELL_MAX = 200;
+
+/**
+ * Project rows onto `columns` (only those present on at least one row, in the
+ * given order), strip sensitive keys, clip long strings, cap at `max`.
+ */
+export function compactRows(
+  rows: unknown[],
+  columns: string[],
+  max: number = MODEL_ROWS_MAX
+): DatasetRow[] {
+  const safe = stripSensitive(rows) as DatasetRow[];
+  const present = new Set<string>();
+  for (const r of safe) {
+    if (r && typeof r === "object") for (const k of Object.keys(r)) present.add(k);
+  }
+  const cols = columns.filter((c) => present.has(c) && !SENSITIVE_KEY_RE.test(c));
+  return safe.slice(0, max).map((r) => {
+    const out: DatasetRow = {};
+    for (const c of cols) {
+      const v = (r as Record<string, unknown>)[c];
+      out[c] =
+        typeof v === "string" && v.length > MODEL_CELL_MAX
+          ? v.slice(0, MODEL_CELL_MAX - 1) + "…"
+          : (v as DatasetRow[string]);
+    }
+    return out;
+  });
+}
+
+/** Options for the model-facing view of a dataset envelope. */
+export interface ModelView {
+  /** Compact column set for `structuredContent.rows` (default: keyColumns). */
+  columns?: string[];
+  /** Applied filters, echoed as `structuredContent.filters` (undefined keys dropped). */
+  filters?: Record<string, unknown>;
+  /**
+   * Source rows for the model view when they carry fields the widget rows do
+   * not (e.g. lead `location`). Same order as the widget rows. Default: widget rows.
+   */
+  rows?: unknown[];
+}
+
+// ---------------------------------------------------------------------------
 // okList — the DATASET-widget envelope helper.
 // ---------------------------------------------------------------------------
 
@@ -301,19 +357,23 @@ export function datasetCsvHandler(id: string): Response | null {
  *  - Non-collection or small (<= threshold rows): return compact inline JSON
  *    (the model reads it directly — no widget needed for a handful of rows).
  *  - Large (> threshold rows): return a `buildDatasetEnvelope` with the full
- *    rows in `_meta`, a curated initial column set, an `exportUrl` pointing at
- *    the CSV route, and a Polish brevity steer. The model only sees the slim
- *    structuredContent (dataset_id, row_count, a 3-row sample, export_url).
+ *    rows in `_meta`, a curated initial column set and an `exportUrl` pointing
+ *    at the CSV route. The model's `structuredContent` carries the envelope
+ *    summary plus a compact `rows` array (<= MODEL_ROWS_MAX, compact columns)
+ *    and `total` / `returned` / `truncated` / `filters`.
  *
  * @param keyColumns curated initial columns (display order); the "all columns"
  *                   view falls back to the full key superset.
+ * @param modelView  compact column set / filter echo / source rows for the
+ *                   model-facing `rows`.
  */
 export function okList(
   data: unknown,
   title: string,
   baseUrl: string,
   threshold = 10,
-  keyColumns?: string[]
+  keyColumns?: string[],
+  modelView: ModelView = {}
 ): WidgetEnvelope | { content: [{ type: "text"; text: string }] } {
   const rows = Array.isArray(data)
     ? data
@@ -362,13 +422,39 @@ export function okList(
     exportUrl,
   };
 
-  const steer =
-    `[PRESENTATION] ${title}: ${count} records in the widget (interactive table with sorting, ` +
-    `search and CSV export). The widget IS the answer — do NOT list rows in text, ` +
-    `do not build tables or lists. Summarize briefly (record count, key items from the sample). ` +
-    `The full set is available via CSV export in the widget. dataset_id: ${datasetId}.`;
+  const modelRows = compactRows(
+    modelView.rows ?? safeRows,
+    modelView.columns ?? csvOrder
+  );
+  const truncated = count > modelRows.length;
+  const filters: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(modelView.filters ?? {})) {
+    if (v !== undefined && v !== null && v !== "") filters[k] = v;
+  }
 
-  return buildDatasetEnvelope(meta, steer);
+  const steer =
+    `[PRESENTATION] ${title}: ${count} records; the card shows the full result. ` +
+    `If the user asked to show/list/see the data, reply with at most one sentence. ` +
+    `If they asked for specific fields per item, a written list, a comparison, a count, ` +
+    `or which items match a condition, ANSWER IN TEXT from structuredContent.rows` +
+    (truncated
+      ? ` (${modelRows.length} of ${count} rows — say the card holds the complete set).`
+      : ".") +
+    ` dataset_id: ${datasetId}.`;
+
+  const envelope = buildDatasetEnvelope(meta, steer);
+  // `sample` (3 full rows, incl. email/phone) and `schema` are superseded by the
+  // compact `rows` and would push a 50-row lead result past ~12 KB.
+  const { sample: _sample, schema: _schema, ...summary } = envelope.structuredContent;
+  envelope.structuredContent = {
+    ...summary,
+    total: count,
+    returned: modelRows.length,
+    truncated,
+    filters,
+    rows: modelRows,
+  };
+  return envelope;
 }
 
 export { DATASET_WIDGET_URI };

@@ -57,8 +57,9 @@ export function registerProductsTools(
         "matching -> use search_products; the user wants to create/delete a product",
         "-> use create_product/delete_product.",
         "RETURNS: a small result inline as { success, data[], pagination, filters }; a",
-        "LARGE result (> threshold) as an interactive DATASET widget (sortable/searchable",
-        "table + CSV export) — present that widget, do not re-list rows.",
+        "LARGE result (> threshold) as an interactive DATASET card (sortable/searchable",
+        "table + CSV export) plus structuredContent { rows (<= 50, compact columns), total,",
+        "returned, truncated, filters } for answering in text.",
         "GOTCHAS: categoryId/subcategoryId/applicationId must be resolved first (get_categories,",
         "get_applications) — never guess IDs. Summarize large result sets with counts and top",
         "items rather than dumping every row.",
@@ -198,7 +199,10 @@ export function registerProductsTools(
         "Products",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
-        ["id", "name", "sku", "price", "subcategory", "category"]
+        ["id", "name", "sku", "price", "subcategory", "category"],
+        {
+          filters: { categoryId, subcategoryId, applicationId, search, sortBy, sortOrder, limit, offset },
+        }
       );
       // Inline path (small set): return the rich original payload, not the flat
       // projection, so callers keep pagination/filters context.

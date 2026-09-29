@@ -1,7 +1,8 @@
-// Appended to data-widget tool descriptions: steer the model to let the widget
-// be the answer instead of restating its contents in prose. See server.ts
-// "Presentation rule" for the umbrella guidance.
+// Appended to data-widget tool descriptions. The card shows the full result;
+// the model answers in text only when the user asked for more than "show me".
+// See server.ts "Presentation rule" for the umbrella guidance.
 export const PRESENT_BRIEFLY =
-  "PRESENTATION: this renders an interactive widget that already shows every value — " +
-  "reply with at most ONE short sentence and do NOT restate the data as prose, a table, " +
-  "or a list. Add analysis only if the user explicitly asks for it.";
+  "PRESENTATION: the card shows the full result. If the user asked to show/list/see the " +
+  "data, reply with at most one sentence. If the user asked for specific fields per item, " +
+  "a written list, a comparison, a count, or which items match a condition, ANSWER IN TEXT " +
+  "from structuredContent.rows (when truncated=true, say the card holds the complete set).";

@@ -25,6 +25,8 @@ import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
 const DATASET_THRESHOLD = 10;
+// Compact per-lead columns handed to the model in structuredContent.rows.
+const LEAD_MODEL_COLUMNS = ["id", "name", "country", "location", "industry", "product", "status", "owner", "website"];
 
 /**
  * Sales lead domain: list/search, single + batch CRUD, and notes.
@@ -162,8 +164,9 @@ export function registerLeadsTools(
         "DO NOT USE WHEN: the user has a company/person/tag phrase -> use search_leads;",
         "the user wants to create/update/delete a lead -> use the matching write tool.",
         "RETURNS: a small result inline as { success, data[], count }; a LARGE result",
-        "(> threshold) as an interactive DATASET widget (sortable/searchable table +",
-        "CSV export) — present that widget, do not re-list rows.",
+        "(> threshold) as an interactive DATASET card (sortable/searchable table + CSV",
+        "export) plus structuredContent { rows (<= 50, compact columns), total, returned,",
+        "truncated, filters } for answering in text.",
         "GOTCHAS: resolve productId/applicationId with search_products/get_applications",
         "first; status must be one of NEW/CONTACTED/QUALIFIED/LOST/WON. Summarize large",
         "result sets analytically. Visibility is OPEN — everyone sees every lead; use",
@@ -172,6 +175,10 @@ export function registerLeadsTools(
         "~150 of 396; the rest are being backfilled). country + productName (e.g.",
         "country='Poland', productName='905') is the intended one-call way to answer",
         "'who in <country> uses <product>'.",
+        "PRESENTATION: when the question names a product or technology, filter with productName",
+        "(or productId) together with country in ONE call rather than pulling the whole country.",
+        "GOTCHAS: a lead's link to a product means sales fit (prospect for that product), not",
+        "confirmed use; say so when the user asks who 'uses' something.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -310,7 +317,24 @@ export function registerLeadsTools(
         "Leads",
         config.PUBLIC_BASE_URL,
         DATASET_THRESHOLD,
-        ["id", "name", "status", "industry", "product", "country", "owner"]
+        ["id", "name", "status", "industry", "product", "country", "owner"],
+        {
+          columns: LEAD_MODEL_COLUMNS,
+          rows: rows.map((r: any, i: number) => ({ ...r, location: leads[i].location ?? null })),
+          filters: {
+            status: a.status,
+            productId: a.productId,
+            productName: a.productName,
+            country: a.country,
+            countryId: a.countryId,
+            applicationId: a.applicationId,
+            mine: a.mine,
+            ownerUserId: a.ownerUserId,
+            unowned: a.unowned,
+            regionId: a.regionId,
+            limit,
+          },
+        }
       );
       if (!("structuredContent" in widget)) return ok(payload);
       return widget as any;
@@ -698,9 +722,10 @@ export function registerLeadsTools(
         "records or IDs.",
         "DO NOT USE WHEN: the user wants all leads with structured filters -> use",
         "get_leads.",
-        "RETURNS: matching rows as an interactive DATASET widget (sortable/searchable",
-        "table + CSV export). The card IS the answer — do not re-list rows. An empty",
-        "result is returned inline as { success, data[], count, searchCriteria }.",
+        "RETURNS: matching rows as an interactive DATASET card (sortable/searchable",
+        "table + CSV export) plus structuredContent { rows (<= 50, compact columns), total,",
+        "returned, truncated, filters } for answering in text. An empty result is",
+        "returned inline as { success, data[], count, searchCriteria }.",
         "GOTCHAS: tags use hasEvery (a lead must carry ALL provided tags); the",
         "industry/country/status/owner/region filters narrow the result (ANDed with the",
         "phrase). Visibility is OPEN — everyone sees every lead; mine=true narrows to",
@@ -709,6 +734,10 @@ export function registerLeadsTools(
         "~150 of 396; the rest are being backfilled). country + productName (e.g.",
         "country='Poland', productName='Pulsed Laser Diodes') is the intended one-call way",
         "to answer 'who in <country> uses <product>'.",
+        "PRESENTATION: when the question names a product or technology, filter with productName",
+        "(or productId) together with country in ONE call rather than pulling the whole country.",
+        "GOTCHAS: a lead's link to a product means sales fit (prospect for that product), not",
+        "confirmed use; say so when the user asks who 'uses' something.",
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -871,7 +900,26 @@ export function registerLeadsTools(
         "Leads — search",
         config.PUBLIC_BASE_URL,
         0,
-        ["id", "name", "status", "industry", "country", "product", "application", "owner"]
+        ["id", "name", "status", "industry", "country", "product", "application", "owner"],
+        {
+          columns: LEAD_MODEL_COLUMNS,
+          rows: rows.map((r: any, i: number) => ({ ...r, location: leads[i].location ?? null })),
+          filters: {
+            query: a.query,
+            tags: a.tags,
+            industry: a.industry,
+            country: a.country,
+            countryId: a.countryId,
+            productId: a.productId,
+            productName: a.productName,
+            status: a.status,
+            mine: a.mine,
+            ownerUserId: a.ownerUserId,
+            unowned: a.unowned,
+            regionId: a.regionId,
+            limit: a.limit || 20,
+          },
+        }
       );
       if (!("structuredContent" in widget)) {
         return ok({
