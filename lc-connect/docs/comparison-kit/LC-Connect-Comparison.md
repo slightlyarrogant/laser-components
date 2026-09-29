@@ -1,6 +1,6 @@
 # LC Connect: Assistant Comparison Kit
 
-**Status: DRAFT, 2026-09-29 (assistant runs done 15:18–15:55 CEST).** All eight assistant runs are now complete. The first four ("Claude"/"ChatGPT" without the connector, plus the first *Claude + LC* attempt) were done 15:18–15:31 CEST. The first *Claude + LC* attempt found the connector switched on but **not called**, because the account had a personal standing instruction to use no connector other than Vendo; that instruction was then lifted and both *Claude + LC* runs were repeated (15:44–15:49 CEST, files suffixed `-v2`) with the connector actually invoked. LC Connect was also installed in the test ChatGPT account (there named "LC Connector") and both *ChatGPT + LC* runs were completed 15:51–15:55 CEST. All answers below are copied from the chats; nothing was invented or estimated.
+**Status: DRAFT, 2026-09-29 (assistant runs done 15:18–15:55 CEST; one post-fix re-verification added at 22:17:59 CEST).** All eight assistant runs behind the comparison in Sections 3–5 are complete. The first four ("Claude"/"ChatGPT" without the connector, plus the first *Claude + LC* attempt) were done 15:18–15:31 CEST. The first *Claude + LC* attempt found the connector switched on but **not called**, because the account had a personal standing instruction to use no connector other than Vendo; that instruction was then lifted and both *Claude + LC* runs were repeated (15:44–15:49 CEST, files suffixed `-v2`) with the connector actually invoked. LC Connect was also installed in the test ChatGPT account (there named "LC Connector") and both *ChatGPT + LC* runs were completed 15:51–15:55 CEST. All answers below are copied from the chats; nothing was invented or estimated. **Separately, after two server fixes landed the same day (commits `d16086e`, `a0dfd53`), the Claude + LC Poland question was re-run at 22:17:59 CEST to verify the fix; that run, plus an intermediate broken check at 16:03 CEST, is added as Section 3.4.**
 
 Prepared for: the Laser Components sales and research team
 Prepared by: AutoOffice (LC Connect provider)
@@ -166,6 +166,39 @@ Overlap is computed against the current 25-lead Poland list (2026-09-29 15:39 CE
 
 Not matched: Claude named Dezamet, Advanced Protection Systems, Delta Optical and Łukasiewicz – Instytut Mikroelektroniki i Fotoniki, none of which are in the base. Claude + LC named none unmatched — its answer is the full database list by construction (25 of 25 matched). ChatGPT named TOYA/YATO and AiQ robotics, neither in the base. ChatGPT + LC named no company outside the base — all 9 it listed are of the 25. These are possible new leads to check, not errors — no website was verified in this test.
 
+### 3.4 Claude + LC Connect after the server fix (same prompt, 22:18 CEST)
+
+**Run:** claude.ai, new chat, same Q1 prompt as above, LC Connect on. Sent **2026-09-29 22:17:59 CEST**. Model label (UI): Opus 5.5 · Medium. Response completed in **~31 s** (excluding the one "Always allow" permission dialog, granted immediately, ~10 s into the run). Chat: https://claude.ai/chat/a9a3efd2-6cbc-4c67-b228-266dda251994.
+
+**What changed on the server first.** Two commits landed after the 15:44 CEST run used in Section 3.1: `d16086e` (compact rows in the tool result's `structuredContent`, plus a presentation rule asking the connected assistant to answer per-item fields in text) and `a0dfd53` (rows are now *also* rendered as plain text in the tool result — because claude.ai forwards only a tool result's text part to the model, not `structuredContent`; `search_leads`'s free-text query was also made to match product names, not just company names). An intermediate check at **16:03 CEST** (`raw/claude-with-Q1-v3.md`, after `d16086e` but before `a0dfd53`) still failed: `search_leads` reported 25 Polish leads, 9 of them matching "rangefinder," and the widget card rendered, but — in Claude's words — "the rows never reached me." Claude could read only 3 of the 25 leads (via `advanced_search` calls that happened to return few enough rows to appear inline) and asked the user to paste a CSV to finish the table.
+
+**Tool calls (22:18 run):**
+1. `search_leads` — `{"country": "Poland", "productName": "Pulsed Laser Diodes", "limit": 100}` → 16 of 16 PLD-linked Polish leads, in one call.
+2. `search_leads` — a free-text "Poland" search, to catch leads without a country assigned → 1 of 1 record (Perspectiva Solutions), already among the 16 — found nothing new.
+
+**Claude's answer (verbatim table, `raw/claude-with-Q1-v4.md`).** Claude stated that a product link in LC Connect means "sales fit," not confirmed use, and labelled the city, product/application and confidence columns as its own general knowledge — unverified, since LC Connect stores no city field for these leads. It also flagged, unprompted, that PCO S.A. — Poland's best-known maker of laser rangefinders — is not among the 16 PLD-linked leads.
+
+| Lead (LC Connect) | PLD fit (LC Connect) | City (unverified) | Likely product / application (unverified) | Confidence of actual PLD use (unverified) |
+|---|---|---|---|---|
+| Instytut Optoelektroniki WAT | 1550 nm | Warsaw | R&D on laser rangefinders, LiDAR, laser warning | High |
+| WB Electronics (WB Group) | 1550 nm | Ożarów Mazowiecki | Fire control, UAV and loitering munition sensors | Medium |
+| Etronika | 1550 nm | Warsaw area | Defence optoelectronics, observation devices | Medium |
+| Mesko S.A. | 905 nm | Skarżysko-Kamienna | Ammunition and missiles (proximity fuzes are the plausible fit) | Medium |
+| WITU | 905 nm | Zielonka | Weapons and ammunition test and R&D | Medium |
+| Semicon Sp. z o.o. | 905 nm | Komorów (near Warsaw) | Laser modules | Medium |
+| Autocomp Management | 905 nm | Szczecin | Simulators (fits only if they build laser engagement systems) | Low–medium |
+| Huta Stalowa Wola (HSW) | 1550 nm | Stalowa Wola | Vehicles and turrets; rangefinders more likely bought in as subsystems | Low–medium |
+| ZMT Tarnów | 905 nm | Tarnów | Weapons systems, possibly fire control | Low–medium |
+| CTL Laserinstruments | 905 nm | ? | Medical and industrial lasers (905 nm pulsed therapy devices fit) | Low–medium |
+| OEM Tech | 905 nm | ? | Laser electronics | Low |
+| Perspectiva Solutions | 905 nm | ? | Photonics manufacturing | Low |
+| Solaris Optics S.A. | 1550 nm | Nadarzyn | Optical components, not light sources | Low |
+| FIBRAIN | pigtailed PLD | Zaczernie (Rzeszów) | Fibre optics, possibly OTDR-type test gear | Low |
+| Fluence Technology | 905 nm | Warsaw | Femtosecond fibre lasers, so a different technology | Low |
+| TopGaN | 905 nm | Warsaw | GaN laser diode maker, more likely a competitor than a user | Low |
+
+**Compared with the earlier runs.** The 15:44 CEST run (Section 3.1, marked †) returned the same kind of widget but no per-company text at all — Claude pointed at the card and offered to pull detail on request. The 16:03 CEST v3 run had text but could read only 3 of 25 rows, because the rows lived only in `structuredContent`, which claude.ai does not forward to the model. The 22:18 CEST run, after both fixes, read and wrote out all 16 PLD-linked rows in two calls total, with a per-company table matching the format the original question asked for.
+
 ## 4. Q2: Czech Republic
 
 ### 4.1 Comparison table
@@ -285,7 +318,8 @@ Measured results only:
 
 - **Without the connector, the assistants and the database name mostly different companies.** Poland: Claude named 12 companies (8 matched). ChatGPT named 6 (4 matched). Czech Republic: Claude named 10 (4 matched, counting Primoco and Workswell as two). ChatGPT named 5 (0 matched).
 - **With the connector, both assistants returned only companies present in the base.** Claude + LC returned the entire country list both times (25 of 25 Poland, 29 of 29 Czech Republic) — a 100% match by construction, since it did not filter or select at all. ChatGPT + LC named 9 of 25 Poland leads and 14 of 29 Czech leads, and every single one of those 23 names is in the base — it selected a genuine, non-trivial subset and named zero companies outside the database in either question.
-- **Claude answered with the card only.** In both *Claude + LC* runs Claude wrote no text answer naming individual companies, did not filter to pulsed-laser-diode users as the question asked, and gave no city, product/application or confidence per company — it pointed to the "Leads — search" widget and offered to re-run the search or pull per-lead detail on request. This is a presentation defect, not a data problem: the server was changed today, after the runs, to add a presentation rule asking the connected assistant to answer per-item fields in text (see "Server changes" in Section 1) — none of the eight runs in this document benefit from that fix.
+- **Claude's card-only defect was fixed and re-verified the same day.** The 15:44 CEST runs in this document predate the fix and show it (widget only, no per-company text). After two server fixes (commits `d16086e`, `a0dfd53`), a same-day re-run of the Poland question at 22:17:59 CEST produced a full per-company text table for all 16 PLD-linked Polish leads (Section 3.4).
+- **With the combined country + product filter, a single call answers the question.** The 22:18 CEST re-run used `search_leads` with `country` and `productName` together and got the 16 PLD-linked Polish leads directly in one call (plus one free-text check that found nothing new) — instead of pulling the whole 25-row country list and filtering by hand, which is what made the original Claude + LC and ChatGPT + LC runs (Section 3.1) either unfiltered or 30 calls deep.
 - **ChatGPT worked around the missing combined filter with 30 calls per question.** Before answering, ChatGPT called the connector's tools 30 times per question (`search_leads`, `get_leads`, `enrich_lead` — see 3.1/4.1 for the breakdown), plus an unprompted web search for Q1. That is roughly 3x the number of calls a person doing the same lookup by hand would need even before the 15:35 CEST combined country+product filter (Section 1) existed for it to use.
 - **The enrichment feature was unavailable during the runs.** All 21 `enrich_lead` calls ChatGPT made (8 in Q1, 13 in Q2) failed with "PERPLEXITY_API_KEY environment variable is not set" — a server configuration gap, being fixed. ChatGPT reported the failure to the user in the Czech Republic answer; it is not reflected in the answer quality shown here, which relied on the database fields plus, for Q1, ChatGPT's own web search.
 - **Naming.** ChatGPT calls the data source "Łącznik Vendo" throughout both "+ LC" runs — its own custom-instruction wording — even though the data came from LC Connect (named "LC Connector" in ChatGPT's app picker), not Vendo Connect.
@@ -355,5 +389,11 @@ Visible-window captures, 2026-09-29. The complete answer text for each run is in
 ![ChatGPT + LC, Q2 (Czech Republic): a "Regions" widget from a get_regions call, mid-answer](raw/chatgpt-with-Q2.jpg)
 
 ![ChatGPT + LC, Q2 (Czech Republic), end of answer: 14-company table and the reported enrich_lead/Perplexity failure](raw/chatgpt-with-Q2-end.jpg)
+
+### Post-fix re-verification (Section 3.4)
+
+![Claude + LC, Q1, connector menu: LC Connect on — post-fix re-verification, 22:18 CEST](raw/claude-with-Q1-v4-connectors.jpg)
+
+![Claude + LC, Q1 (Poland), post-fix re-verification, 22:18 CEST: full 16-row per-company text table](raw/claude-with-Q1-v4.jpg)
 
 Superseded session checks from the first draft, made with the automation profiles, not the owner's browser: `raw/session-check_*.png`.
