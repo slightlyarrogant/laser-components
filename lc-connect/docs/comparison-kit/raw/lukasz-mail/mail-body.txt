@@ -1,0 +1,48 @@
+Do wiadomosci
+
+Von: Lukasz Abramek
+Gesendet: Dienstag, 29. September 2026 23:10
+An: Fredrik Wikfeldt <f.wikfeldt@lasercomponents.se>; Andrew Larsen <A.Larsen@lasercomponents.com>; Dan Barlow <d.barlow@lasercomponents.com>; Florian Blobner <F.Blobner@photona.com>; Christian Merry <c.merry@lasercomponents.com>; Alice Wanjiku Njoroge <a.njoroge@photona.com>; Alexander Faulstroh <a.faulstroh@photona.com>; Sven Schreiber <s.schreiber@lasercomponents.com>; Claudia Michalke <c.michalke@photona.com>
+Betreff: LC Connect – first examples and AI concept
+Priorität: Hoch
+
+Hi all,
+
+Following our last meeting, I am sending you an additional PDF with some examples of how the LC Connect add-on can be used.
+
+This is still the first, basic version. After implementation within our company, it can be expanded significantly and enriched with data from our internal systems. This should give us much stronger possibilities for identifying, qualifying and finding new potential customers.
+
+Some of the companies identified are already known to us, while others are new. I have already contacted several of the new companies, and we are currently at the stage of first contacts and discussions. The first results are interesting, but I will not go into details here. I will include these developments in my regular reports as the contacts and projects progress.
+
+The attached PDF gives a basic overview of the concept and some ideas on how we could approach AI from this direction and develop it further within LC.
+
+As another example, I have included a map generated quickly for one of my upcoming business trips. This is still a raw version and will be developed further, including a more detailed evaluation of the potential of each company.
+
+I have also included an example of a potential-customer map generated during a trade fair. The system suggested which companies to visit, where to find them in the exhibition halls and who might be interesting to speak with.
+
+The analysis combined the official exhibitor information with company and contact profiles and information available from many public sources. This included not only company websites, but also government contracts, tenders, industry information, forums and other relevant sources.
+
+A large proportion of the companies I visited turned out to be very interesting, and I will continue discussions with several of them. Some companies had a smaller presence at the stands than the official exhibition information suggested, but overall the approach worked very well.
+
+I see this as another interesting use of AI: making a trade-fair day much more efficient and helping to identify valuable companies and contacts that would otherwise be difficult to find and prioritise within the limited time available.
+
+Thank you and best regards,
+
+
+M. Sc. Eng.
+Lukasz Abramek
+
+
+Business Development Manager
+Mobile: +49152 09 089 629
+
+b  e  y  o  n  d    b  o  r  d  e  r  s
+LASER COMPONENTS Germany GmbH
+Werner-von-Siemens-Str. 15 / 82140 Olching
+
+www.lasercomponents.com<http://www.lasercomponents.com/>
+Geschäftsführer/CEO: Patrick Paul
+Handelsregisternummer/Trade Register Number: HRB 267436, Amtsgericht München/Local Court Munich
+Die Auswahl der Informationen in dieser E-Mail erfolgte mit größter Sorgfalt. Eine Haftung für die Richtigkeit kann nicht übernommen werden. Diese E-Mail einschließlich ihrer Anhänge ist vertraulich und daher allein für den Gebrauch durch den vorgesehenen Empfänger bestimmt. /
+The information contained in this e-mail has been carefully selected. However, no liability is assumed as to the accuracy of this information. This e-mail including all attachments is confidential and intended for the sole use of the recipient.
+

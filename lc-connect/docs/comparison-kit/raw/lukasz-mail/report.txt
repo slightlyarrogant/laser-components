@@ -1,0 +1,136 @@
+       AI-Enhanced Market Intelligence & LC Connect
+ Concise strategic report for Laser Components
+ Purpose: demonstrate how public AI research, LC Connect-type internal intelligence and CRM/report data can be combined into a
+ persistent commercial intelligence layer for prospecting, cross-selling and account development.
+
+ Key conclusion: public AI research provides broad market coverage; LC Connect adds
+ company-specific commercial context and long-tail opportunities. A permanent, expanded internal AI
+ layer could turn fragmented knowledge across the company into an actively searchable and reusable
+ sales asset.
+
+ 1. Demonstrated value - Czech Republic
+ The Czech Republic is a strong example because the public-web sweep identified the visible photonics and defence players, while
+ LC-specific intelligence revealed a second layer of highly relevant OEMs in simulation, UAVs, LiDAR, industrial sensing and
+ optoelectronics.
+
+    Company                        Application / relevance                                Likely LC fit                   Status
+
+    VR Group                       Laser combat simulation                                905 nm emitters, Si detectors   LC addition
+
+    Argotech                       Photonics assembly / LiDAR                             VCSEL, LD, photodiodes          LC addition
+
+    Primoco UAV                    UAV payloads with LRF/LiDAR                            PLD, APD/InGaAs                 LC addition
+
+    LPP Holding                    Defence EO / laser designators                         PLD, APD, filters               LC addition
+
+    SQS Vláknová optika            Laser drivers / optical assemblies                     LD, optics                      LC addition
+
+    Micro-Epsilon Czech            Laser triangulation / distance sensing                 LD, PIN detectors               LC addition
+
+    Lightigo                       LIBS instrumentation                                   Laser sources, detectors        LC addition
+
+    EVPÚ Defence                   EO / own LRF systems                                   PLD, APD, InGaAs                Web + LC
+
+    Meopta                         Military / industrial optics                           Optics, detectors, lasers       Web + LC
+
+
+
+
+ Figure 1. Illustrative opportunity map. It is a strategic visualisation, not a GIS or navigation map.
+
+
+
+
+Strategic working report - AI / LC Connect                                                                                              Page 1
+ 2. Additional qualified companies identified in other markets
+    Country               Examples surfaced / strengthened by LC-specific intelligence     Commercial relevance
+
+    Poland                TopGaN; Fluence Technology; Inframet; Autocomp; ■ukasiewicz-PIAP
+                                                                                        Laser diodes, femtosecond lasers, EO test, simulation, robotics/LiDAR
+
+    Slovakia              Photoneo; Metrodat / LAWAREC; KONŠTRUKTA-Defence                 3D vision, laser warning, fire-control
+
+    Hungary               Mediso; ZerLux; CE Optics                                        APD/SiPM imaging, industrial lasers, ultrafast diagnostics
+
+    Serbia                Yugoimport-SDPR; EDePro; Vlatacom                                Eye-safe LRF, guided weapons, multisensor EO
+
+    Slovenia              Valhalla Turrets; Guardiaris; Cosylab; Optacore                  RCWS/LRF, simulation, laser control, specialty fibre
+
+    Croatia               AntiLaser / AL Priority; SpeedLab / G-Zona; DOK-ING              905 nm emitters/detectors, LiDAR/UGV
+
+    Lithuania             Optogama; Aktyvus Photonics; Astrolight; Integrated Optics; LIDARIS1.54 µm lasers, designators, laser comms, OEM modules, LIDT
+
+    Estonia               DefSecIntel; Milrem Robotics; ESTLA                              C-UAS EO/LRF, robotics, scientific lasers
+
+    Ukraine               Ukrspecsystems; Archer; FRDM Group; Fulltime Robotics            UAV LRF, military sights, designators, directed-energy development
+
+
+ 3. Example: AI-assisted MSPO Kielce visit planning
+ A previous MSPO workflow combined company profiles, technical relevance, fair/exhibitor information and stand locations into a
+ prioritised visit route. The reconstructed route below includes Creotech, Transactor, PREXER, Vertigo/NES, SpaceForest, CTech,
+ Creotech Quantum/PPTF, WB, Deep Trekker, BELMA, MESKO, PCO and PIT-RADWAR.
+
+
+
+
+ Figure 2. Schematic reconstruction of the AI-assisted MSPO 2026 visit map. Stand references are based on the prior working list; this is not the official
+ venue floor plan.
+
+
+
+
+Strategic working report - AI / LC Connect                                                                                                              Page 2
+ 4. Why a permanent expanded 'LC Connect+' capability matters
+ Institutional memory. Sales reports, CRM entries, product knowledge, past quotations, visits and market research become
+ reusable company knowledge instead of remaining in separate people, folders or systems.
+
+ Cross-selling. AI can detect that a customer buying one component family has an application that is also relevant to another LC
+ product line, even when the responsible sales teams or databases are organisationally separated.
+
+ Relationship graph. Contacts, subsidiaries, integrators, OEMs, universities, distributors and end users can be linked across
+ countries and business units, exposing connections that are difficult to see manually.
+
+ Prospecting tuned to LC. With access to historical reports and CRM data, additional retrieval/classification skills could be
+ configured around LC-specific patterns: applications, wavelengths, detector technologies, OEM architecture, buying signals and
+ customer similarity.
+
+ Event intelligence. Exhibitor lists can be automatically ranked by technical fit, likely component demand, known contacts and
+ geographic/stand efficiency before a trade fair.
+
+ Account preparation. Before a meeting, AI can produce a short account brief: known projects, relevant LC products, open
+ quotations, internal contacts, likely cross-sell and recommended questions.
+
+ Management intelligence. Repeated field observations can be aggregated into country trends, competitor signals, technology
+ shifts and product-demand patterns without requiring manual consolidation.
+
+ A practical architecture would combine a secure internal retrieval layer, CRM connectors,
+ report/document ingestion, product taxonomy, permission controls and an AI reasoning layer. It
+ should augment existing systems rather than require a single monolithic IT migration.
+
+ 5. Human impact
+ AI will automate a growing share of research, reporting, data consolidation and routine commercial analysis. This does not imply
+ that commercial expertise becomes irrelevant; rather, the competitive advantage shifts toward employees who can combine
+ domain knowledge, customer judgement and relationship skills with effective use of AI. In many roles, the distinction will
+ increasingly be between people who work with AI and those who perform the same information work manually.
+
+ 6. Innovative extensions
+ Further extensions could include lead scoring, similarity-based prospect discovery, automatic cross-selling suggestions, tender and
+ project monitoring, competitor mapping, product-gap detection, meeting preparation and follow-up drafting. Public professional
+ information may also be used to prioritise likely decision-makers using job-relevant signals such as role, technical responsibility,
+ publications, patents, project history and professional activity. Personality or behavioural profiling from social-media activity is more
+ sensitive and should only be considered with an appropriate external data provider, legal/privacy review and clear controls;
+ job-relevant professional signals are generally the more robust starting point.
+
+ 7. Recommendation
+ Laser Components should evaluate retaining and expanding an LC Connect-like AI capability as a
+ permanent internal commercial-intelligence platform. The highest-value version is not merely a
+ search assistant: it is a secure company knowledge graph that continuously connects customers,
+ contacts, applications, products, reports, CRM history, events and external market signals. The
+ objective is faster discovery, better cross-selling, stronger account preparation and preservation of
+ institutional knowledge.
+
+
+
+
+Strategic working report - AI / LC Connect                                                                                           Page 3
+

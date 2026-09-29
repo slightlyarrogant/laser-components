@@ -70,6 +70,13 @@ Verdict: connector core = current standard (Hono + McpServer + OAuth 2.1 DCR/PKC
 - [ ] Sign-in page is the old dark template (green button, "Laser Components MCP Server") — restyle to the brand
 - [ ] Landing page: Claude moved connectors to Customize → Connectors (was Settings → Connectors) — update the install steps + screenshot
 
+## From Łukasz's own report + trip/fair maps (2026-09-29, sent to 9 LC colleagues)
+- [ ] Trip planner from real base data: `plan_visits(country|region, days)` → route + list of leads with owner/status/notes, rendered on the existing map widget (replaces AI-drawn maps with invented detail like "100% local production")
+- [ ] Trade-fair mode: import an exhibitor list (CSV/URL) → match against the base + candidates → hall route with stand numbers, flagged as approximate where the plan is not official
+- [ ] "Today vs LC Connect+" one-liner in every customer doc: today = curated lead base + public-source enrichment; CRM history, quotations, internal contacts = after ERP integration
+- [ ] Germany as first server-side discovery job (Exa/Tavily + Claude extraction → candidate leads with evidence, human approval)
+- [ ] Restore Bogdan's personal instructions in claude.ai and ChatGPT after the evaluation period
+
 ## Later / decision-gated
 - [ ] Lithuania (and other backlog countries) missing from `countries` — seed when the customer confirms geography blocks
 - [ ] `themeDark` config surface upstream in @cfi/mcp-widgets so LC amber survives dark mode
