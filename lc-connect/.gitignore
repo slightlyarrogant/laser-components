@@ -42,3 +42,4 @@ deploy/*.log
 deploy/*.log.*
 deploy/watchdog.*.ts
 deploy/watchdog.ngrok_restarts*
+demo/.claude-profile/

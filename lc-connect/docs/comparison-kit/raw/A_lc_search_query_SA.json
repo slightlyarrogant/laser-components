@@ -1,0 +1,343 @@
+{
+ "result": {
+  "_meta": {
+   "rows": [
+    {
+     "id": 347,
+     "name": "CONSULAR S.A. (Argentina)",
+     "status": "NEW",
+     "industry": "Survey & Mapping",
+     "product": "InGaAs Photodiodes 500 - 2600 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.consularsa.com.ar"
+    },
+    {
+     "id": 213,
+     "name": "SDS Optic S.A.",
+     "status": "NEW",
+     "industry": "Medical Photonics",
+     "product": "Silicon-PIN Photodiodes 200 - 1100 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://sdsoptic.com"
+    },
+    {
+     "id": 209,
+     "name": "Solaris Optics S.A.",
+     "status": "NEW",
+     "industry": "Optical Components",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://solarisoptics.eu"
+    },
+    {
+     "id": 206,
+     "name": "Huta Stalowa Wola S.A. (HSW)",
+     "status": "NEW",
+     "industry": "Defense Vehicles & Turrets",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.hsw.pl"
+    },
+    {
+     "id": 205,
+     "name": "Zakłady Mechaniczne Tarnów S.A. (ZMT)",
+     "status": "NEW",
+     "industry": "Defense Weapons Systems",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://zmt.tarnow.pl"
+    },
+    {
+     "id": 203,
+     "name": "WB Electronics S.A. (WB Group)",
+     "status": "NEW",
+     "industry": "Defense Electronics",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.wbgroup.pl"
+    },
+    {
+     "id": 201,
+     "name": "Mesko S.A.",
+     "status": "NEW",
+     "industry": "Defense Ammunition & Missiles",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.mesko.com.pl"
+    },
+    {
+     "id": 173,
+     "name": "ThetaMetrisis S.A.",
+     "status": "NEW",
+     "industry": "Scientific Instruments - Metrology",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://thetametrisis.com"
+    },
+    {
+     "id": 172,
+     "name": "Optronics Technologies S.A.",
+     "status": "NEW",
+     "industry": "Fiber Optics & Photonics",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.optronics.gr"
+    },
+    {
+     "id": 166,
+     "name": "Miltech Hellas S.A.",
+     "status": "NEW",
+     "industry": "Defense Electronics - EO",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://miltech.gr"
+    },
+    {
+     "id": 84,
+     "name": "Romaero S.A.",
+     "status": "NEW",
+     "industry": "Aerospace & Defense",
+     "product": "Si Avalanche Photodiodes",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.romaero.ro"
+    },
+    {
+     "id": 82,
+     "name": "Pro Optica S.A.",
+     "status": "NEW",
+     "industry": "Defense & Security",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://prooptica.ro"
+    },
+    {
+     "id": 79,
+     "name": "PIT-RADWAR S.A.",
+     "status": "NEW",
+     "industry": "Defense Electronics",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://en.pitradwar.com/"
+    },
+    {
+     "id": 76,
+     "name": "VIGO Photonics S.A.",
+     "status": "NEW",
+     "industry": "Photonics Manufacturing",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://vigophotonics.com/"
+    },
+    {
+     "id": 75,
+     "name": "PCO S.A.",
+     "status": "NEW",
+     "industry": "Defense Electro-Optics",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://pcosa.com.pl/"
+    }
+   ],
+   "capped": false,
+   "cap": 5000,
+   "incomplete": false,
+   "columns": [
+    "id",
+    "name",
+    "status",
+    "industry",
+    "product",
+    "application",
+    "owner"
+   ],
+   "views": [
+    {
+     "id": "kluczowe",
+     "label": "Key",
+     "columns": [
+      "id",
+      "name",
+      "status",
+      "industry",
+      "product",
+      "application",
+      "owner"
+     ]
+    },
+    {
+     "id": "wszystkie",
+     "label": "All",
+     "columns": [
+      "id",
+      "name",
+      "status",
+      "industry",
+      "product",
+      "application",
+      "owner",
+      "ownerUserId",
+      "email",
+      "website"
+     ]
+    }
+   ],
+   "allColumns": [
+    "id",
+    "name",
+    "status",
+    "industry",
+    "product",
+    "application",
+    "owner",
+    "ownerUserId",
+    "email",
+    "website"
+   ],
+   "ui": {
+    "resourceUri": "ui://cfi-widgets/dataset-v1"
+   }
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "[PRESENTATION] Leads — search: 15 records in the widget (interactive table with sorting, search and CSV export). The widget IS the answer — do NOT list rows in text, do not build tables or lists. Summarize briefly (record count, key items from the sample). The full set is available via CSV export in the widget. dataset_id: 54738e82fc64454fa71106916123dfbf."
+   }
+  ],
+  "structuredContent": {
+   "dataset_id": "54738e82fc64454fa71106916123dfbf",
+   "title": "Leads — search",
+   "row_count": 15,
+   "schema": {
+    "columns": [
+     {
+      "name": "id",
+      "type": "number"
+     },
+     {
+      "name": "name",
+      "type": "string"
+     },
+     {
+      "name": "status",
+      "type": "string"
+     },
+     {
+      "name": "industry",
+      "type": "string"
+     },
+     {
+      "name": "product",
+      "type": "string"
+     },
+     {
+      "name": "application",
+      "type": "string"
+     },
+     {
+      "name": "owner",
+      "type": "string"
+     },
+     {
+      "name": "ownerUserId",
+      "type": "string"
+     },
+     {
+      "name": "email",
+      "type": "string"
+     },
+     {
+      "name": "website",
+      "type": "string"
+     }
+    ]
+   },
+   "sample": [
+    {
+     "id": 347,
+     "name": "CONSULAR S.A. (Argentina)",
+     "status": "NEW",
+     "industry": "Survey & Mapping",
+     "product": "InGaAs Photodiodes 500 - 2600 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.consularsa.com.ar"
+    },
+    {
+     "id": 213,
+     "name": "SDS Optic S.A.",
+     "status": "NEW",
+     "industry": "Medical Photonics",
+     "product": "Silicon-PIN Photodiodes 200 - 1100 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://sdsoptic.com"
+    },
+    {
+     "id": 209,
+     "name": "Solaris Optics S.A.",
+     "status": "NEW",
+     "industry": "Optical Components",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://solarisoptics.eu"
+    }
+   ],
+   "widget_type": "list",
+   "export_url": "https://lasercomponents.ngrok.app/datasets/54738e82fc64454fa71106916123dfbf.csv"
+  }
+ },
+ "jsonrpc": "2.0",
+ "id": 945889708
+}

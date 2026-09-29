@@ -1,0 +1,12 @@
+{
+ "result": {
+  "content": [
+   {
+    "type": "text",
+    "text": "{\n  \"success\": true,\n  \"data\": [],\n  \"count\": 0,\n  \"searchCriteria\": {\n    \"country\": \"Germany\"\n  }\n}"
+   }
+  ]
+ },
+ "jsonrpc": "2.0",
+ "id": 992144892
+}

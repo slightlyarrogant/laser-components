@@ -1,0 +1,403 @@
+{
+ "result": {
+  "_meta": {
+   "rows": [
+    {
+     "id": 237,
+     "name": "Ray Service a.s.",
+     "status": "NEW",
+     "industry": "Defense Electronics / Cable Harnesses",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.rayservice.com"
+    },
+    {
+     "id": 230,
+     "name": "Aero Vodochody Aerospace a.s.",
+     "status": "NEW",
+     "industry": "Defense / Aerospace",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.aero.cz"
+    },
+    {
+     "id": 229,
+     "name": "Tatra Defence Vehicle a.s.",
+     "status": "NEW",
+     "industry": "Defense / Armored Vehicles",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://tatradv.cz"
+    },
+    {
+     "id": 227,
+     "name": "VUTS a.s. Liberec",
+     "status": "NEW",
+     "industry": "Research & Engineering / Laser Applications",
+     "product": "Silicon-PIN Photodiodes 200 - 1100 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.vuts.cz"
+    },
+    {
+     "id": 221,
+     "name": "LPP Holding a.s.",
+     "status": "NEW",
+     "industry": "Defense Electronics / Optoelectronics",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.lpp-holding.com"
+    },
+    {
+     "id": 217,
+     "name": "VR Group a.s.",
+     "status": "NEW",
+     "industry": "Defense Training & Simulation",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.vrg.cz"
+    },
+    {
+     "id": 199,
+     "name": "DMD Group a.s. (Parent Company)",
+     "status": "NEW",
+     "industry": "Defense / Holding",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.dmdgroup.sk"
+    },
+    {
+     "id": 198,
+     "name": "Way Industries a.s.",
+     "status": "NEW",
+     "industry": "Defense / Demining",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://way.sk"
+    },
+    {
+     "id": 195,
+     "name": "Kerametal a.s.",
+     "status": "NEW",
+     "industry": "Defense / Systems Integration",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "http://www.kerametal.eu"
+    },
+    {
+     "id": 194,
+     "name": "ZTS-Special a.s.",
+     "status": "NEW",
+     "industry": "Defense / Manufacturing",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.ztsspecial.sk"
+    },
+    {
+     "id": 193,
+     "name": "KONSTRUKTA-Defence a.s. (DMD Group)",
+     "status": "NEW",
+     "industry": "Defense / Weapons Systems",
+     "product": "Pulsed Laser Diodes at 1550 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://kotadef.sk"
+    },
+    {
+     "id": 153,
+     "name": "Savronik A.S.",
+     "status": "NEW",
+     "industry": "Defense - Simulation & Electronics",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.savronik.com.tr"
+    },
+    {
+     "id": 152,
+     "name": "HAVELSAN A.S.",
+     "status": "NEW",
+     "industry": "Defense - Simulation & Software",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://havelsan.com"
+    },
+    {
+     "id": 147,
+     "name": "Roketsan A.S.",
+     "status": "NEW",
+     "industry": "Defense - Missiles & Munitions",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.roketsan.com.tr"
+    },
+    {
+     "id": 146,
+     "name": "Aselsan A.S.",
+     "status": "NEW",
+     "industry": "Defense & Aerospace",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.aselsan.com.tr"
+    },
+    {
+     "id": 72,
+     "name": "RETIA a.s.",
+     "status": "NEW",
+     "industry": "Defense Electronics",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.retia.eu"
+    },
+    {
+     "id": 70,
+     "name": "OPTOKON a.s.",
+     "status": "NEW",
+     "industry": "Fiber Optics/Defense",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.optokon.com"
+    },
+    {
+     "id": 67,
+     "name": "SQS Vlaknova optika a.s.",
+     "status": "NEW",
+     "industry": "Fiber Optics/Laser Systems",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.sqs-fiberoptics.com"
+    },
+    {
+     "id": 66,
+     "name": "Argotech a.s.",
+     "status": "NEW",
+     "industry": "Semiconductor Photonics",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.argotech.cz"
+    },
+    {
+     "id": 65,
+     "name": "EVPU Defence a.s.",
+     "status": "NEW",
+     "industry": "Defense/Electro-Optics",
+     "product": "LiDAR",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.evpudefence.com"
+    }
+   ],
+   "capped": false,
+   "cap": 5000,
+   "incomplete": false,
+   "columns": [
+    "id",
+    "name",
+    "status",
+    "industry",
+    "product",
+    "application",
+    "owner"
+   ],
+   "views": [
+    {
+     "id": "kluczowe",
+     "label": "Key",
+     "columns": [
+      "id",
+      "name",
+      "status",
+      "industry",
+      "product",
+      "application",
+      "owner"
+     ]
+    },
+    {
+     "id": "wszystkie",
+     "label": "All",
+     "columns": [
+      "id",
+      "name",
+      "status",
+      "industry",
+      "product",
+      "application",
+      "owner",
+      "ownerUserId",
+      "email",
+      "website"
+     ]
+    }
+   ],
+   "allColumns": [
+    "id",
+    "name",
+    "status",
+    "industry",
+    "product",
+    "application",
+    "owner",
+    "ownerUserId",
+    "email",
+    "website"
+   ],
+   "ui": {
+    "resourceUri": "ui://cfi-widgets/dataset-v1"
+   }
+  },
+  "content": [
+   {
+    "type": "text",
+    "text": "[PRESENTATION] Leads — search: 20 records in the widget (interactive table with sorting, search and CSV export). The widget IS the answer — do NOT list rows in text, do not build tables or lists. Summarize briefly (record count, key items from the sample). The full set is available via CSV export in the widget. dataset_id: 079183df9d304a33a18b9725eaa48f2e."
+   }
+  ],
+  "structuredContent": {
+   "dataset_id": "079183df9d304a33a18b9725eaa48f2e",
+   "title": "Leads — search",
+   "row_count": 20,
+   "schema": {
+    "columns": [
+     {
+      "name": "id",
+      "type": "number"
+     },
+     {
+      "name": "name",
+      "type": "string"
+     },
+     {
+      "name": "status",
+      "type": "string"
+     },
+     {
+      "name": "industry",
+      "type": "string"
+     },
+     {
+      "name": "product",
+      "type": "string"
+     },
+     {
+      "name": "application",
+      "type": "string"
+     },
+     {
+      "name": "owner",
+      "type": "string"
+     },
+     {
+      "name": "ownerUserId",
+      "type": "string"
+     },
+     {
+      "name": "email",
+      "type": "string"
+     },
+     {
+      "name": "website",
+      "type": "string"
+     }
+    ]
+   },
+   "sample": [
+    {
+     "id": 237,
+     "name": "Ray Service a.s.",
+     "status": "NEW",
+     "industry": "Defense Electronics / Cable Harnesses",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.rayservice.com"
+    },
+    {
+     "id": 230,
+     "name": "Aero Vodochody Aerospace a.s.",
+     "status": "NEW",
+     "industry": "Defense / Aerospace",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://www.aero.cz"
+    },
+    {
+     "id": 229,
+     "name": "Tatra Defence Vehicle a.s.",
+     "status": "NEW",
+     "industry": "Defense / Armored Vehicles",
+     "product": "Pulsed Laser Diodes at 905 nm",
+     "application": null,
+     "owner": null,
+     "ownerUserId": null,
+     "email": null,
+     "website": "https://tatradv.cz"
+    }
+   ],
+   "widget_type": "list",
+   "export_url": "https://lasercomponents.ngrok.app/datasets/079183df9d304a33a18b9725eaa48f2e.csv"
+  }
+ },
+ "jsonrpc": "2.0",
+ "id": 902405102
+}
