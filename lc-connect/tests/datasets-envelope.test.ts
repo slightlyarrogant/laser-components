@@ -74,3 +74,26 @@ test("size: 50 lead rows in structuredContent stay under 12 KB", () => {
   const bytes = JSON.stringify(env.structuredContent).length;
   assert.ok(bytes < 12 * 1024, `structuredContent is ${bytes} bytes`);
 });
+
+test("text block: rows + total line in content[0].text, under 12 KB for 50 lead rows", () => {
+  const env = okList(leadRows(120), "Leads — search", "https://h", 0, undefined, { columns: LEAD_COLS }) as any;
+  const text: string = env.content[0].text;
+  assert.ok(text.startsWith("[PRESENTATION]"));
+  assert.ok(text.includes("Company 1") && text.includes("Company 50"));
+  assert.ok(!text.includes("Company 51"));
+  assert.ok(!/passwordHash|c0@example\.com|\+48 000/.test(text));
+  const ds = env.structuredContent.dataset_id;
+  assert.ok(text.includes(`total 120 · shown 50 · complete set in the card (dataset ${ds})`));
+  const bytes = Buffer.byteLength(text, "utf8");
+  assert.ok(bytes < 12 * 1024, `text block is ${bytes} bytes`);
+  // structuredContent and _meta unchanged.
+  assert.equal(env.structuredContent.rows.length, 50);
+  assert.equal(env._meta.rows.length, 120);
+});
+
+test("text block: small set has rows and no total line", () => {
+  const env = okList(leadRows(12), "Leads", "https://h", 0, undefined, { columns: LEAD_COLS }) as any;
+  const text: string = env.content[0].text;
+  assert.ok(text.includes("Company 12"));
+  assert.ok(!text.includes("total 12 · shown"));
+});

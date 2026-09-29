@@ -25,7 +25,7 @@ import { PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
 const DATASET_THRESHOLD = 10;
-// Compact per-lead columns handed to the model in structuredContent.rows.
+// Compact per-lead columns handed to the model (structuredContent.rows + text table).
 const LEAD_MODEL_COLUMNS = ["id", "name", "country", "location", "industry", "product", "status", "owner", "website"];
 
 /**
@@ -745,7 +745,7 @@ export function registerLeadsTools(
           .string()
           .optional()
           .describe(
-            "Free-text phrase matched against name, description, email, and industry/sector."
+            "Free-text phrase matched against name, description, email, industry/sector, and linked product name."
           ),
         tags: z
           .array(z.string())
@@ -822,7 +822,10 @@ export function registerLeadsTools(
           { name: { contains: a.query, mode: "insensitive" } },
           { description: { contains: a.query, mode: "insensitive" } },
           { email: { contains: a.query, mode: "insensitive" } },
-          { industry: { contains: a.query, mode: "insensitive" } }
+          { industry: { contains: a.query, mode: "insensitive" } },
+          // "pulsed laser diodes" as free text must find PLD-linked leads even
+          // when the model does not use productName.
+          { product: { is: { name: { contains: a.query, mode: "insensitive" } } } }
         );
       }
       if (a.tags && Array.isArray(a.tags) && a.tags.length > 0) {

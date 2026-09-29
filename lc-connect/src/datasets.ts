@@ -333,6 +333,32 @@ export function compactRows(
   });
 }
 
+/** Flatten a cell to a single line of text (null/undefined -> empty). */
+function cellText(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+  return s.replace(/[\r\n\t]+/g, " ").trim();
+}
+
+/**
+ * Render compact rows as text for `content[0].text` — claude.ai feeds the model
+ * the text content of a tool result, NOT `structuredContent` (measured
+ * 2026-09-29: "the rows never reached me, only a count and a dataset ID").
+ * Emits a markdown table or TSV, whichever is smaller.
+ */
+export function rowsAsText(rows: DatasetRow[]): string {
+  if (!rows.length) return "";
+  const cols = Object.keys(rows[0]);
+  const cells = rows.map((r) => cols.map((c) => cellText(r[c])));
+  const tsv = [cols.join("\t"), ...cells.map((r) => r.map((v) => v.replace(/\t/g, " ")).join("\t"))].join("\n");
+  const md = [
+    `| ${cols.join(" | ")} |`,
+    `|${cols.map(() => "---").join("|")}|`,
+    ...cells.map((r) => `| ${r.map((v) => v.replace(/\|/g, "\\|")).join(" | ")} |`),
+  ].join("\n");
+  return md.length <= tsv.length ? md : tsv;
+}
+
 /** Options for the model-facing view of a dataset envelope. */
 export interface ModelView {
   /** Compact column set for `structuredContent.rows` (default: keyColumns). */
@@ -436,13 +462,22 @@ export function okList(
     `[PRESENTATION] ${title}: ${count} records; the card shows the full result. ` +
     `If the user asked to show/list/see the data, reply with at most one sentence. ` +
     `If they asked for specific fields per item, a written list, a comparison, a count, ` +
-    `or which items match a condition, ANSWER IN TEXT from structuredContent.rows` +
+    `or which items match a condition, ANSWER IN TEXT from the rows below` +
     (truncated
       ? ` (${modelRows.length} of ${count} rows — say the card holds the complete set).`
       : ".") +
     ` dataset_id: ${datasetId}.`;
 
-  const envelope = buildDatasetEnvelope(meta, steer);
+  // claude.ai hands the model only content[].text — the rows must be there too.
+  const table = rowsAsText(modelRows);
+  const text =
+    steer +
+    (table ? `\n\n${table}` : "") +
+    (truncated
+      ? `\n\ntotal ${count} · shown ${modelRows.length} · complete set in the card (dataset ${datasetId})`
+      : "");
+
+  const envelope = buildDatasetEnvelope(meta, text);
   // `sample` (3 full rows, incl. email/phone) and `schema` are superseded by the
   // compact `rows` and would push a 50-row lead result past ~12 KB.
   const { sample: _sample, schema: _schema, ...summary } = envelope.structuredContent;

@@ -5,4 +5,4 @@ export const PRESENT_BRIEFLY =
   "PRESENTATION: the card shows the full result. If the user asked to show/list/see the " +
   "data, reply with at most one sentence. If the user asked for specific fields per item, " +
   "a written list, a comparison, a count, or which items match a condition, ANSWER IN TEXT " +
-  "from structuredContent.rows (when truncated=true, say the card holds the complete set).";
+  "from the rows listed in the tool result text (when it ends with \"total N · shown M\", say the card holds the complete set).";
