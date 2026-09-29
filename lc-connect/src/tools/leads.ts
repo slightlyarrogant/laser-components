@@ -842,6 +842,7 @@ export function registerLeadsTools(
         include: {
           product: { select: { id: true, name: true } },
           application: { select: { id: true, name: true } },
+          country: { select: { id: true, name: true } },
           ownerUser: OWNER_SELECT,
         },
       });
@@ -852,6 +853,7 @@ export function registerLeadsTools(
         name: l.name,
         status: l.status,
         industry: l.industry ?? null,
+        country: l.country?.name ?? null,
         product: l.product?.name ?? null,
         application: l.application?.name ?? null,
         owner: ownerLabel(l),
@@ -869,7 +871,7 @@ export function registerLeadsTools(
         "Leads — search",
         config.PUBLIC_BASE_URL,
         0,
-        ["id", "name", "status", "industry", "product", "application", "owner"]
+        ["id", "name", "status", "industry", "country", "product", "application", "owner"]
       );
       if (!("structuredContent" in widget)) {
         return ok({
