@@ -60,7 +60,7 @@ class PerplexityClient {
     if (context) userMessage = `Context: ${context}\n\nRequest: ${prompt}`;
 
     const body = {
-      model: "llama-3.1-sonar-small-128k-online",
+      model: process.env.PERPLEXITY_MODEL || "sonar-pro", // Perplexity retired the llama-3.1-sonar-* names (2025); "sonar" is the cheaper option
       messages: [
         {
           role: "system",
