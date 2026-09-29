@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LC Connect Comparison</title>
+<!--
+  Sales edition of the LC Connect comparison. Technical source: LC-Connect-Comparison.md + raw/*.md.
+  ChatGPT "with" columns = v2 reruns (22:43-22:46 CEST, after the custom-instruction change).
+  ChatGPT "without" columns = 15:xx runs (the v2 "without" reruns called LC Connect on their own; invalid as baseline).
+  Czech "Claude with" = post-fix v5 rerun (claude-with-Q2-v5, 23:02 CEST): the one-call rule + city backfill (commit
+  fbfd16d) fixed the earlier v4 stall. 24 named (15 PLD-linked, 9 LiDAR-linked); all 24 are real LC Connect records,
+  via override in RUNS.CZ[1] (Metrodat has no country set, so it is not in the 29-country-tagged base list, but it
+  is still an LC Connect record found by the run's free-text search). Rebuild:
+    cd lc-connect && node docs/comparison-kit/build-sales-pdf.mjs
+  All counts (tiles, count rows) are computed from RUNS + BASE, so they follow the swap automatically.
+-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f7f8fa; --surface: #ffffff; --ink: #14213a; --muted: #5b6478;
+    --rule: #d9dde5; --rule-strong: #b9c0cd;
+    --accent: #c9861f; --accent-ink: #8a5a0e; --accent-soft: #fbf1e0;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8;
+      --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8;
+    --rule: #2b3447; --rule-strong: #3d4860; --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.45;
+    padding: 32px 16px 64px;
+  }
+  .pg { max-width: 182mm; margin: 0 auto 48px; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif; font-weight: 600; margin: 0; text-wrap: balance; }
+  h1 { font-size: 25pt; line-height: 1.08; letter-spacing: -0.01em; }
+  h2 { font-size: 17pt; line-height: 1.15; padding-top: 8px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 11.5pt; margin-top: 16px; }
+  p { margin: 8px 0 0; }
+  .eyebrow { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8pt; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .eyebrow + h1, .eyebrow + h2 { margin-top: 8px; }
+  .muted { color: var(--muted); }
+  .src { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 6.8pt; color: var(--muted); margin-top: 5px; }
+  .pending { display: inline-block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 6.8pt; letter-spacing: 0.04em; text-transform: uppercase; background: var(--accent-soft); color: var(--accent-ink); padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+  .banner { margin-top: 10px; padding: 6px 10px; border-left: 3px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-size: 8.6pt; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); vertical-align: 1px; margin-right: 5px; flex: none; }
+  .ring { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--rule-strong); vertical-align: 1px; margin-right: 5px; flex: none; }
+
+  /* page 1 */
+  .question { font-size: 13pt; margin-top: 12px; color: var(--muted); max-width: 60ch; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+  .tile { padding: 16px 14px 16px 0; }
+  .tile + .tile { border-left: 1px solid var(--rule); padding-left: 14px; }
+  .tile .big { font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif; font-size: 48pt; line-height: 1; font-weight: 600; color: var(--accent-ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap; }
+  .tile .big small { font-size: 22pt; color: var(--muted); font-weight: 500; }
+  .tile .cap { margin-top: 10px; font-size: 10pt; font-weight: 500; }
+  .tile .sub { margin-top: 4px; font-size: 8.4pt; color: var(--muted); }
+  ol.means { list-style: none; counter-reset: m; padding: 0; margin: 10px 0 0; }
+  ol.means li { counter-increment: m; display: grid; grid-template-columns: 2.2em 1fr; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 10.5pt; }
+  ol.means li::before { content: counter(m, decimal-leading-zero); font-family: "IBM Plex Mono", monospace; color: var(--accent); font-weight: 500; }
+
+  /* tables */
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 9pt; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px 5px 0; border-bottom: 1px solid var(--rule); }
+  th { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 7.4pt; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+  tr { break-inside: avoid; }
+  td.empty { color: var(--muted); font-style: italic; background: repeating-linear-gradient(135deg, transparent 0 6px, var(--rule) 6px 7px); }
+
+  /* comparison columns */
+  .cmp { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 12px; border-top: 1px solid var(--rule-strong); }
+  .col { padding: 0 6px 0 0; }
+  .col + .col { border-left: 1px solid var(--rule); padding-left: 6px; }
+  .col.base { background: var(--accent-soft); padding-right: 6px; }
+  .colhead { font-family: "IBM Plex Mono", monospace; font-size: 7pt; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); min-height: 30px; padding: 6px 0 4px; border-bottom: 1px solid var(--rule-strong); }
+  .colhead b { display: block; color: var(--ink); font-weight: 500; }
+  .col ul { list-style: none; padding: 0; margin: 0; }
+  .col li { display: flex; align-items: baseline; font-size: 8.2pt; line-height: 1.25; padding: 3px 0; border-bottom: 1px solid var(--rule); min-height: 18px; }
+  .col li.out { color: var(--muted); }
+  .col .note { font-size: 8.2pt; padding: 6px 0; color: var(--muted); }
+  .count { margin-top: 0; padding: 6px 0; border-top: 1px solid var(--rule-strong); font-family: "IBM Plex Mono", monospace; font-size: 7.4pt; line-height: 1.5; }
+  .count .n { font-size: 13pt; font-weight: 500; color: var(--ink); font-family: "IBM Plex Sans Condensed", sans-serif; }
+  .count .n.acc { color: var(--accent-ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-size: 8pt; color: var(--muted); }
+  .reading { margin-top: 12px; padding: 8px 12px; border-left: 3px solid var(--ink); background: var(--surface); font-size: 10pt; }
+
+  /* excerpts */
+  .excerpt { margin-top: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--rule); }
+  .excerpt table { margin-top: 4px; font-size: 8.3pt; }
+  .excerpt p { font-size: 9pt; }
+  .cap { font-size: 9.5pt; font-weight: 500; margin-top: 16px; }
+
+  ul.plain { margin: 8px 0 0; padding-left: 1.1em; }
+  ul.plain li { margin-top: 5px; }
+  ol.asks { list-style: none; padding: 0; margin: 8px 0 0; counter-reset: ask; }
+  ol.asks li { counter-increment: ask; display: grid; grid-template-columns: 2.2em 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+  ol.asks li::before { content: counter(ask, decimal-leading-zero); font-family: "IBM Plex Mono", monospace; font-size: 13pt; line-height: 1.1; color: var(--accent); font-weight: 500; }
+  ol.asks li b { display: block; font-weight: 500; }
+  ol.asks li span { display: block; font-size: 8.8pt; color: var(--muted); }
+
+  /* discovery strip */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 16px; border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+  .step { padding: 12px 12px 12px 0; }
+  .step + .step { border-left: 1px solid var(--rule); padding-left: 12px; }
+  .step .num { font-family: "IBM Plex Mono", monospace; font-size: 8pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-ink); }
+  .step b { display: block; font-family: "IBM Plex Sans Condensed", "IBM Plex Sans", sans-serif; font-size: 13pt; font-weight: 600; margin-top: 4px; }
+  .step p { font-size: 9pt; margin-top: 6px; }
+  .note-honest { margin-top: 12px; font-size: 9pt; color: var(--muted); }
+
+  /* appendix */
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; margin-top: 12px; }
+  .shots figure { margin: 0; }
+  .shots img { width: 100%; display: block; border: 1px solid var(--rule); }
+  .shots figcaption { font-size: 8pt; color: var(--muted); margin-top: 4px; }
+
+  @media (max-width: 640px) {
+    .tiles { grid-template-columns: 1fr; }
+    .tile + .tile { border-left: 0; border-top: 1px solid var(--rule); padding-left: 0; }
+    .cmp { grid-template-columns: 1fr 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .step + .step { border-left: 0; border-top: 1px solid var(--rule); padding-left: 0; }
+    .shots { grid-template-columns: 1fr; }
+    .tablewrap { overflow-x: auto; }
+  }
+  @page { size: A4; margin: 14mm 14mm 16mm; }
+  @media print {
+    :root { --bg: #fff; --surface: #fff; --ink: #14213a; --muted: #5b6478; --rule: #d9dde5; --rule-strong: #b9c0cd; --accent: #c9861f; --accent-ink: #8a5a0e; --accent-soft: #fbf1e0; }
+    body { padding: 0; background: #fff; }
+    .pg { max-width: none; margin: 0; break-after: page; }
+    .pg:last-child { break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section class="pg">
+  <div class="eyebrow">LC Connect · Comparison · Laser Components sales · 29 September 2026</div>
+  <h1>Same question, same day: what does an AI assistant find with and without LC Connect?</h1>
+  <p class="question">We asked Claude and ChatGPT to list companies in Poland and the Czech Republic that use pulsed laser diodes. Once with LC Connect switched off, once with it switched on.</p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="big" id="t1">16</div>
+      <div class="cap">Polish PLD prospects from our lead base, in one question</div>
+      <div class="sub">Claude with LC Connect listed every Polish lead linked to pulsed laser diodes, as a table, in about 30 seconds. ChatGPT with LC Connect named 16 Polish companies too, all from our base.</div>
+    </div>
+    <div class="tile">
+      <div class="big" id="t2">0</div>
+      <div class="cap">companies named with LC Connect that are not in our base</div>
+      <div class="sub" id="t2sub">Across all four "with LC Connect" answers (Claude and ChatGPT, Poland and Czech Republic), every company named is a record you can open.</div>
+    </div>
+    <div class="tile">
+      <div class="big" id="t3">12<small> → </small>8</div>
+      <div class="cap">Polish companies Claude named from memory → how many are in our base</div>
+      <div class="sub" id="t3sub"></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:22px">What this means</h3>
+  <ol class="means">
+    <li>Without LC Connect, the assistant answers from memory or the open web: the famous defence names, plausible guesses, and firms it says itself it cannot confirm.</li>
+    <li>With LC Connect, it answers from our lead base. Every company it names is one of our leads, with product fit, status and owner.</li>
+    <li>One question gives the full Polish PLD prospect list (16). By hand, that means filtering a spreadsheet.</li>
+    <li>The assistant says what the base does not know. Claude marked city as "unverified" because our base has none stored; ChatGPT wrote "not recorded" instead of guessing.</li>
+    <li>Answers are only as good as the base: Germany is not in it yet, and 219 of 396 leads still have no country. That is the next research step.</li>
+  </ol>
+  <div class="src">sources: raw/claude-with-Q1-v4.md, raw/chatgpt-with-Q1-v2.md (16) · raw/claude-with-Q1-v4.md, raw/claude-with-Q2-v5.md, raw/chatgpt-with-Q1-v2.md, raw/chatgpt-with-Q2-v2.md (0) · raw/claude-without-Q1.md, raw/chatgpt-without-Q1/Q2.md, raw/claude-without-Q2.md vs LC base lists in LC-Connect-Comparison.md §3.2/§4.2 (12 → 8 etc.)</div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="pg">
+  <div class="eyebrow">Method</div>
+  <h2>How we tested</h2>
+
+  <h3>The two questions (word for word)</h3>
+  <p><b>Poland.</b> "List companies in Poland that use pulsed laser diodes (PLD, 905 nm or 1550 nm) in their products, for example laser rangefinders, LiDAR or proximity fuzes. For each company give: name, city, the product or application, and how confident you are."</p>
+  <p><b>Czech Republic.</b> The same question, with "Poland" replaced by "the Czech Republic".</p>
+
+  <h3>When</h3>
+  <p>29 September 2026, CEST (times per run in the table below). Claude's Poland run with LC Connect came after a same-day fix to how results reach Claude. ChatGPT's runs with LC Connect came after the account owner replaced ChatGPT custom instructions that had pointed it at a different connector.</p>
+
+  <h3>With and without</h3>
+  <ul class="plain">
+    <li><b>Without LC Connect:</b> a new chat with the LC Connect connection switched off. The assistant uses its own knowledge, and ChatGPT also searched the web on its own.</li>
+    <li><b>With LC Connect:</b> a new chat with the connection switched on, so the assistant can look up our lead base.</li>
+  </ul>
+  <p><b>Why the ChatGPT "without" answers are from the afternoon.</b> Evening reruns with no app selected are not a fair "without": LC Connect was installed by then, and ChatGPT used it on its own (both answers open "I checked LC Connect first"). We use the afternoon runs, made before the app existed in the account.</p>
+  <div class="banner">Tip for your own test: to see a true "without" in ChatGPT, use a temporary chat or disconnect the app. An installed app may be used automatically, even when it is not selected.</div>
+
+  <h3>Assistants</h3>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th style="width:22%">Assistant</th><th>Without LC Connect</th><th>With LC Connect</th></tr></thead>
+    <tbody>
+      <tr><td><b>Claude</b><br><span class="muted">claude.ai, web search off</span></td><td>Poland and Czech Republic (15:18–15:21)</td><td>Poland: after the fix (22:18).<br>Czech Republic: after the fix, re-verified (23:02).</td></tr>
+      <tr><td><b>ChatGPT</b><br><span class="muted">Free plan, Thinking mode</span></td><td>Poland and Czech Republic (15:28–15:31), before the app was installed</td><td>Poland and Czech Republic (22:43–22:46)</td></tr>
+      <tr><td><b>Microsoft Copilot</b><br><span class="muted">Laser Components' own platform</span></td><td class="empty">To be run by Laser Components with the same question</td><td class="empty">To be run by Laser Components with the same question</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Honest limitations</h3>
+  <ul class="plain">
+    <li><b>Coverage.</b> The base holds leads in 34 countries, but <b>not yet Germany</b> (a search for Germany returns 0 leads).</li>
+    <li><b>Missing countries.</b> 219 of the 396 leads still have no country, so a country question can miss some real prospects.</li>
+    <li><b>What "linked to PLD" means.</b> It means "a prospect for that product", found by our researchers. It does not confirm that the company buys PLDs today.</li>
+  </ul>
+  <div class="src">sources: raw/*.md (prompt, time, settings per run) · raw/chatgpt-without-Q1-v2.md, raw/chatgpt-without-Q2-v2.md (evening "without" reruns that called LC Connect) · raw/A_lc_leads_by_country.json (34 countries) · raw/A_lc_search_leads_Germany.json (0) · LC-Connect-Comparison.md §2 (396 leads, 219 without country)</div>
+</section>
+
+<!-- PAGE 3 -->
+<section class="pg">
+  <div class="eyebrow">Result 1 of 2</div>
+  <h2>Poland: which companies each assistant named</h2>
+  <div class="legend"><span><span class="dot"></span>in our lead base</span><span><span class="ring"></span>not in our lead base</span><span>Last column: our base, Polish leads linked to pulsed laser diodes (16 of 25 Polish leads)</span></div>
+  <div class="cmp" id="cmp-PL"></div>
+  <div class="reading" id="read-PL">Without LC Connect, both assistants reach for the well-known defence names; about two in three are in our base, and the rest has to be checked by hand. With LC Connect, Claude returned exactly the 16 Polish PLD prospects in one question. ChatGPT named 16 as well, all of them leads in our base: 12 PLD prospects and 4 LiDAR prospects. It answered in 9 seconds, in Polish.</div>
+  <p class="muted" style="font-size:8.4pt">PCO, CRW Telesystem-Mesko, PIT-RADWAR, VIGO Photonics and LiDAR3D are in the base as LiDAR prospects, not PLD prospects. That is why they carry a dot but are not in the last column.</p>
+  <div class="src">sources: raw/claude-without-Q1.md · raw/claude-with-Q1-v4.md · raw/chatgpt-without-Q1.md · raw/chatgpt-with-Q1-v2.md · LC base: LC-Connect-Comparison.md §3.2 (live pull 15:39 CEST), raw/A_lc_groundtruth_Poland.tsv</div>
+</section>
+
+<!-- PAGE 4 -->
+<section class="pg">
+  <div class="eyebrow">Result 2 of 2</div>
+  <h2>Czech Republic: which companies each assistant named</h2>
+  <div class="legend"><span><span class="dot"></span>in our lead base</span><span><span class="ring"></span>not in our lead base</span><span>Last column: our base, Czech leads linked to pulsed laser diodes (14 of 29 Czech leads)</span></div>
+  <div class="cmp" id="cmp-CZ"></div>
+  <div class="reading" id="read-CZ">From memory or the web, the assistants named mostly different Czech firms: 4 of Claude's 11 and none of ChatGPT's 5 are in our base. Some of those, such as ARCHER-LPP or SEFOR Solutions, may be worth a look by the research team. With LC Connect, ChatGPT named exactly the 14 Czech PLD prospects in our base, and wrote "not recorded" for city and confidence instead of guessing. Claude's first post-fix attempt stalled and never answered; a same-night repeat, after a one-call-rule fix, returned 24 Czech leads in two tables (15 linked to 905 nm pulsed laser diodes, 9 to LiDAR) with a confidence judgement on every row, in about 90 seconds.</div>
+  <div class="src">sources: raw/claude-without-Q2.md · raw/claude-with-Q2-v5.md (post-fix, 23:02 CEST; an earlier post-fix attempt, raw/claude-with-Q2-v4.md, did not complete) · raw/chatgpt-without-Q2.md · raw/chatgpt-with-Q2-v2.md · LC base: LC-Connect-Comparison.md §4.2 (live pull 15:39 CEST), raw/A_lc_groundtruth_Czech.tsv</div>
+</section>
+
+<!-- PAGE 5 -->
+<section class="pg">
+  <div class="eyebrow">In their own words</div>
+  <h2>What the assistant answered</h2>
+
+  <p class="cap">With LC Connect: Claude, Poland. The first 8 of 16 rows, exactly as Claude wrote them.</p>
+  <div class="excerpt">
+    <p>"LC Connect has 16 Polish leads linked to pulsed laser diodes. All have status NEW and none has an owner. […] A product link in LC Connect means "sales fit", not confirmed use. […] The city, product and confidence columns below come from my general knowledge and are unverified."</p>
+    <table>
+      <thead><tr><th>Lead (LC Connect)</th><th>PLD fit (LC Connect)</th><th>City (unverified)</th><th>Likely product / application (unverified)</th><th>Confidence of actual PLD use (unverified)</th></tr></thead>
+      <tbody>
+        <tr><td>Instytut Optoelektroniki WAT</td><td>1550 nm</td><td>Warsaw</td><td>R&amp;D on laser rangefinders, LiDAR, laser warning</td><td>High</td></tr>
+        <tr><td>WB Electronics (WB Group)</td><td>1550 nm</td><td>Ożarów Mazowiecki</td><td>Fire control, UAV and loitering munition sensors</td><td>Medium</td></tr>
+        <tr><td>Etronika</td><td>1550 nm</td><td>Warsaw area</td><td>Defence optoelectronics, observation devices</td><td>Medium</td></tr>
+        <tr><td>Mesko S.A.</td><td>905 nm</td><td>Skarżysko-Kamienna</td><td>Ammunition and missiles (proximity fuzes are the plausible fit)</td><td>Medium</td></tr>
+        <tr><td>WITU</td><td>905 nm</td><td>Zielonka</td><td>Weapons and ammunition test and R&amp;D</td><td>Medium</td></tr>
+        <tr><td>Semicon Sp. z o.o.</td><td>905 nm</td><td>Komorów (near Warsaw)</td><td>Laser modules</td><td>Medium</td></tr>
+        <tr><td>Autocomp Management</td><td>905 nm</td><td>Szczecin</td><td>Simulators (fits only if they build laser engagement systems)</td><td>Low–medium</td></tr>
+        <tr><td>Huta Stalowa Wola (HSW)</td><td>1550 nm</td><td>Stalowa Wola</td><td>Vehicles and turrets; rangefinders more likely bought in as subsystems</td><td>Low–medium</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="font-size:8.6pt">Every name comes from our base. Where the base has no data, Claude says so instead of guessing silently.</p>
+  <div class="src">source: raw/claude-with-Q1-v4.md (asked 22:17:59 CEST, after the fix)</div>
+
+  <p class="cap" style="margin-top:22px">Without LC Connect: Claude, Czech Republic. A plausible row that the assistant admits it cannot confirm.</p>
+  <div class="excerpt">
+    <table>
+      <thead><tr><th>Company</th><th>City</th><th>Product / application using PLD</th><th>Wavelength (likely)</th><th>Confidence</th></tr></thead>
+      <tbody>
+        <tr><td>Prototypa-ZM</td><td>Brno</td><td>Ammunition and fuze development; laser proximity fuzes would fit the portfolio, but I can't confirm they exist</td><td>905 nm typical for laser fuzes</td><td>Low</td></tr>
+      </tbody>
+    </table>
+    <p>"Several entries (Prototypa, MESIT, Varroc, Camea) are inferences from what the company does, not known PLD designs."</p>
+  </div>
+  <p class="muted" style="font-size:8.6pt">Sounds convincing, but none of these four is in our base, and the assistant itself calls them inferences. Each one has to be checked by hand.</p>
+  <div class="src">source: raw/claude-without-Q2.md (asked 15:20 CEST)</div>
+</section>
+
+<!-- PAGE 6: discovery + why -->
+<section class="pg">
+  <div class="eyebrow">Where the leads come from</div>
+  <h2>How new leads get into the base: discovery, not just storage</h2>
+  <p>The base is not a bought list. LC Connect has research tools that search the web for companies that fit a Laser Components product. The 396 companies in the base were found this way, country by country, then qualified and linked to a product. That is why a question like the one in this test is a quick filter, not a fresh web search, and why the answer comes back as records the team can work with.</p>
+  <div class="steps">
+    <div class="step"><div class="num">Step 1</div><b>Research</b><p>Research tools scan the web for companies that fit a product: market analysis, application discovery, competitor analysis and lead enrichment.</p></div>
+    <div class="step"><div class="num">Step 2</div><b>Qualify</b><p>Each candidate is linked to the LC product it fits, with sector, country, status and owner.</p></div>
+    <div class="step"><div class="num">Step 3</div><b>Work</b><p>The team asks the assistant, assigns owners, adds notes and exports. Every change is logged.</p></div>
+  </div>
+  <p class="note-honest">Web research runs through an external research service and needs its key configured. The web-research step was switched off during these tests; the service was configured and verified later the same night (2026-09-29, ~23:1x CEST), after every run in this comparison.</p>
+
+  <h2 style="margin-top:16px">Why the base beats reading websites</h2>
+  <ul class="plain">
+    <li><b>It is the result of that discovery work, not the LC website.</b> 396 prospect companies in 34 countries, found and qualified for Laser Components products, each with sector, country, status and owner.</li>
+    <li><b>The assistant answers only from what is in the base</b> and says when something is missing.</li>
+    <li><b>Structured data means filter, count and compare in one question:</b> "Polish leads for PLDs, by status" instead of an afternoon of browsing.</li>
+    <li><b>Each user has their own account and role, and every change is logged.</b></li>
+    <li><b>Results come as interactive tables and maps, with CSV export.</b></li>
+    <li><b>This is the lead layer.</b> Connecting the ERP and contact history is the next step.</li>
+  </ul>
+
+  <h2 style="margin-top:16px">Five questions to try in the meeting</h2>
+  <ol class="asks">
+    <li><div><b>"Show Polish leads linked to pulsed laser diodes as a table with city, product, status and owner."</b><span>The question from this test, asked as a table.</span></div></li>
+    <li><div><b>"Which leads in Europe have no owner yet? Group them by sector."</b><span>Finds prospects nobody is working on.</span></div></li>
+    <li><div><b>"Give me lead analytics by sector and by country."</b><span>Where the base is strong, and where it is thin.</span></div></li>
+    <li><div><b>"Add a note to Etronika: 'call back after the trade fair'. Then show me all notes on that lead."</b><span>Writes to the base from the chat. The change is logged under your name.</span></div></li>
+    <li><div><b>"Which industries in Poland could use our 1550 nm pulsed laser diodes? Use discover_applications."</b><span>Discovery: finds new application areas and candidate companies. <em class="pending" style="display:inline-block;font-style:normal">requires research service enabled</em></span></div></li>
+  </ol>
+  <div class="src">sources: LC-Connect-Comparison.md §2 (396 leads, fields) · raw/A_lc_leads_by_country.json (34 countries) · lc-connect-blueprint.html (roles, audit trail, widgets) · lc-connect/src/tools/ai.ts (analyze_product_market, discover_applications, analyze_competition, enrich_lead) · server log 2026-09-29 (enrich_lead: research key not set)</div>
+</section>
+
+<!-- PAGE 7 -->
+<section class="pg">
+  <div class="eyebrow">Appendix A</div>
+  <h2>Screenshots: Claude</h2>
+  <div class="shots">
+    <figure><img src="raw/claude-without-Q1-connectors.jpg" alt=""><figcaption>Connector menu, LC Connect switched off (Poland question, 15:18).</figcaption></figure>
+    <figure><img src="raw/claude-with-Q1-v4-connectors.jpg" alt=""><figcaption>Connector menu, LC Connect switched on (Poland question, 22:18).</figcaption></figure>
+    <figure><img src="raw/claude-without-Q1.jpg" alt=""><figcaption>Answer without LC Connect: from memory, web search off.</figcaption></figure>
+    <figure><img src="raw/claude-with-Q1-v4.jpg" alt=""><figcaption>Answer with LC Connect: the 16 Polish PLD leads as a table.</figcaption></figure>
+    <figure><img src="raw/claude-with-Q2-v5.jpg" alt=""><figcaption>Czech Republic with LC Connect, post-fix (23:02 CEST): 24 leads across two per-company tables (15 PLD, 9 LiDAR).</figcaption></figure>
+  </div>
+  <div class="src">sources: raw/claude-*.jpg (visible window only; full answer text in the matching raw/*.md)</div>
+</section>
+
+<!-- PAGE 8 -->
+<section class="pg">
+  <div class="eyebrow">Appendix B</div>
+  <h2>Screenshots: ChatGPT</h2>
+  <div class="shots" id="shots-chatgpt">
+    <figure><img src="raw/chatgpt-without-Q1-connectors.jpg" alt=""><figcaption>"+" menu, no app selected; LC Connect not yet installed (Poland question, 15:28).</figcaption></figure>
+    <figure><img src="raw/chatgpt-with-Q1-v2-connectors.jpg" alt=""><figcaption>LC Connect selected for the chat (in ChatGPT it is named "LC Connector"), 22:43.</figcaption></figure>
+    <figure><img src="raw/chatgpt-without-Q1.jpg" alt=""><figcaption>Answer without LC Connect: ChatGPT searched the web on its own.</figcaption></figure>
+    <figure><img src="raw/chatgpt-with-Q1-v2-end.jpg" alt=""><figcaption>Answer with LC Connect (in Polish): the last rows of 16 companies, all from our base; source named "LC Connect".</figcaption></figure>
+    <figure><img src="raw/chatgpt-with-Q2-v2-end.jpg" alt=""><figcaption>Czech Republic with LC Connect: 14 PLD prospects; city and confidence "not recorded" instead of guessed.</figcaption></figure>
+  </div>
+  <div class="src">sources: raw/chatgpt-*.jpg (visible window only; full answer text in the matching raw/*.md)</div>
+</section>
+
+<script>
+/* ---- Data. BASE = LC lead base per country (live pull 2026-09-29 15:39 CEST), key -> PLD-linked? ---- */
+const BASE = {
+  PL: { autocomp:1, crw:0, ctl:1, etronika:1, fibrain:1, fluence:1, hsw:1, inframet:0, wat:1, lidar3d:0, piap:0, mesko:1,
+        oem:1, optlasers:0, pco:0, perspectiva:1, pitradwar:0, sds:0, semicon:1, solaris:1, topgan:1, vigo:0, wb:1, witu:1, zmt:1 },
+  CZ: { aero:1, argotech:0, crytur:0, elya:1, evpu:0, excalibur:1, frentech:0, genevo:0, glomex:1, ipg:1, lasertech:1, lightigo:1,
+        lpp:1, meopta:0, microepsilon:0, narran:1, optaglio:0, optokon:0, pramacom:0, primoco:1, ray:1, retia:0, saab:1, sqs:0,
+        tatra:1, urc:0, vr:1, vuts:0, workswell:0 }
+};
+/* names: [label as the assistant wrote it (shortened), base key or null] */
+const RUNS = {
+  PL: [
+    { head: "Claude", sub: "without LC Connect", src: "claude-without-Q1", pending: false, names: [
+      ["PCO S.A.","pco"],["CRW Telesystem-Mesko","crw"],["Mesko S.A.","mesko"],["Dezamet S.A.",null],["WB Group (WB Electronics)","wb"],
+      ["PIT-RADWAR","pitradwar"],["Huta Stalowa Wola","hsw"],["Advanced Protection Systems",null],["Delta Optical",null],
+      ["Łukasiewicz – Inst. of Microelectronics and Photonics",null],["WAT, Institute of Optoelectronics","wat"],["VIGO Photonics","vigo"]]},
+    { head: "Claude", sub: "with LC Connect", src: "claude-with-Q1-v4", pending: false, names: [
+      ["Instytut Optoelektroniki WAT","wat"],["WB Electronics (WB Group)","wb"],["Etronika","etronika"],["Mesko S.A.","mesko"],["WITU","witu"],
+      ["Semicon Sp. z o.o.","semicon"],["Autocomp Management","autocomp"],["Huta Stalowa Wola (HSW)","hsw"],["ZMT Tarnów","zmt"],
+      ["CTL Laserinstruments","ctl"],["OEM Tech","oem"],["Perspectiva Solutions","perspectiva"],["Solaris Optics S.A.","solaris"],
+      ["FIBRAIN","fibrain"],["Fluence Technology","fluence"],["TopGaN","topgan"]]},
+    { head: "ChatGPT", sub: "without LC Connect", src: "chatgpt-without-Q1", pending: false, names: [
+      ["CRW Telesystem-Mesko","crw"],["TOYA S.A. / YATO",null],["AiQ robotics P.S.A.",null],["MESKO S.A.","mesko"],["PCO S.A.","pco"],
+      ["WB Electronics / WB Group","wb"]]},
+    { head: "ChatGPT", sub: "with LC Connect", src: "chatgpt-with-Q1-v2", pending: false, names: [
+      ["Semicon Sp. z o.o.","semicon"],["WITU","witu"],["Perspectiva Solutions","perspectiva"],["CTL Laserinstruments","ctl"],["OEM Tech","oem"],
+      ["Zakłady Mechaniczne Tarnów (ZMT)","zmt"],["Autocomp Management","autocomp"],["Mesko S.A.","mesko"],["Instytut Optoelektroniki WAT","wat"],
+      ["Huta Stalowa Wola (HSW)","hsw"],["WB Electronics / WB Group","wb"],["Etronika","etronika"],["PIT-RADWAR","pitradwar"],["PCO S.A.","pco"],
+      ["CRW Telesystem-Mesko","crw"],["LiDAR3D","lidar3d"]]},
+    { head: "Our lead base", sub: "PLD-linked", base: true, names: [
+      ["Autocomp Management","autocomp"],["CTL Laserinstruments","ctl"],["Etronika","etronika"],["FIBRAIN","fibrain"],["Fluence Technology","fluence"],
+      ["Huta Stalowa Wola (HSW)","hsw"],["Instytut Optoelektroniki WAT","wat"],["Mesko S.A.","mesko"],["OEM Tech","oem"],["Perspectiva Solutions","perspectiva"],
+      ["Semicon","semicon"],["Solaris Optics","solaris"],["TopGaN","topgan"],["WB Electronics (WB Group)","wb"],["WITU","witu"],["ZMT Tarnów","zmt"]]}
+  ],
+  CZ: [
+    { head: "Claude", sub: "without LC Connect", src: "claude-without-Q2", pending: false, names: [
+      ["Meopta – optika","meopta"],["Optokon","optokon"],["Safibra",null],["Valeo (R&D centre, Prague)",null],["Camea",null],["Prototypa-ZM",null],
+      ["MESIT (defence division)",null],["Varroc Lighting Systems",null],["Primoco UAV","primoco"],["Workswell","workswell"],["VTÚ (Military Technical Institute)",null]]},
+    { head: "Claude", sub: "with LC Connect", src: "claude-with-Q2-v5", pending: false, override: { named: 24, inBase: 24, pld: 15 }, names: [
+      ["Saab Czech Rep. (Training Systems)","saab"],["VR Group a.s.","vr"],["Metrodat s.r.o.","metrodat"],["LPP Holding a.s.","lpp"],["Elya Solutions s.r.o.","elya"],
+      ["Primoco UAV SE","primoco"],["Excalibur Army","excalibur"],["Tatra Defence Vehicle","tatra"],["Aero Vodochody","aero"],["Glomex Military Supplies","glomex"],
+      ["Ray Service a.s.","ray"],["Lightigo s.r.o.","lightigo"],["Narran s.r.o.","narran"],["LASER-TECH","lasertech"],["IPG Photonics (Czech Rep.)","ipg"],
+      ["Meopta – optika","meopta"],["EVPU Defence","evpu"],["RETIA a.s.","retia"],["Pramacom-HT","pramacom"],["OPTOKON a.s.","optokon"],
+      ["Argotech a.s.","argotech"],["CRYTUR","crytur"],["SQS Vláknová optika","sqs"],["Frentech Aerospace","frentech"]]},
+    { head: "ChatGPT", sub: "without LC Connect", src: "chatgpt-without-Q2", pending: false, names: [
+      ["ARCHER-LPP s.r.o.",null],["SEFOR Solutions s.r.o.",null],["OptiDynex / Night Pearl",null],["Abacus Electric / EVOLVEO",null],["FOMEI s.r.o.",null]]},
+    { head: "ChatGPT", sub: "with LC Connect", src: "chatgpt-with-Q2-v2", pending: false, names: [
+      ["Ray Service a.s.","ray"],["Lightigo s.r.o.","lightigo"],["LASER-TECH spol. s r.o.","lasertech"],["Saab Czech Rep. (Training Systems)","saab"],
+      ["IPG Photonics (Czech Rep.)","ipg"],["Aero Vodochody Aerospace","aero"],["Tatra Defence Vehicle","tatra"],["Excalibur Army","excalibur"],
+      ["Narran s.r.o.","narran"],["Glomex Military Supplies","glomex"],["LPP Holding a.s.","lpp"],["Elya Solutions","elya"],["Primoco UAV SE","primoco"],
+      ["VR Group a.s.","vr"]]},
+    { head: "Our lead base", sub: "PLD-linked", base: true, names: [
+      ["Aero Vodochody Aerospace","aero"],["Elya Solutions","elya"],["Excalibur Army","excalibur"],["Glomex Military Supplies","glomex"],
+      ["IPG Photonics (Czech Rep.)","ipg"],["LASER-TECH","lasertech"],["Lightigo","lightigo"],["LPP Holding","lpp"],["Narran","narran"],
+      ["Primoco UAV","primoco"],["Ray Service","ray"],["Saab Czech Rep. (Training)","saab"],["Tatra Defence Vehicle","tatra"],["VR Group","vr"]]}
+  ]
+};
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function stats(cc, run){
+  const b = BASE[cc];
+  if (run.override) return run.override;
+  if (run.shown) { const n = run.shown; return { named: n, inBase: n, pld: Object.values(b).filter(Boolean).length }; }
+  const named = run.names.length;
+  const inBase = run.names.filter(([,k]) => k && k in b).length;
+  const pld = run.names.filter(([,k]) => k && b[k]).length;
+  return { named, inBase, pld };
+}
+function render(cc){
+  const el = document.getElementById("cmp-" + cc);
+  el.innerHTML = RUNS[cc].map(run => {
+    const s = stats(cc, run);
+    const head = `<div class="colhead"><b>${esc(run.head)}</b>${esc(run.sub)}${run.pending ? ' <span class="pending">to be updated</span>' : ''}</div>`;
+    const body = run.note
+      ? `<div class="note">${esc(run.note)}</div>`
+      : `<ul>${run.names.map(([n,k]) => `<li class="${k ? '' : 'out'}"><span class="${k ? 'dot' : 'ring'}"></span><span>${esc(n)}</span></li>`).join("")}</ul>`;
+    const count = run.base
+      ? `<div class="count"><span class="n acc">${s.named}</span> PLD-linked leads</div>`
+      : run.shown
+        ? `<div class="count"><span class="n">${s.named}</span> shown<br><span class="n acc">${s.inBase}</span> in base, not narrowed to PLD</div>`
+        : `<div class="count"><span class="n">${s.named}</span> named<br><span class="n acc">${s.inBase}</span> in base · ${s.pld} PLD-linked</div>`;
+    return `<div class="col${run.base ? ' base' : ''}">${head}${body}${count}</div>`;
+  }).join("");
+}
+render("PL"); render("CZ");
+
+/* tiles computed from the same data */
+(function(){
+  const r = (cc, i) => stats(cc, RUNS[cc][i]);
+  const cPL = r("PL",0), gPL = r("PL",2), cCZ = r("CZ",0), gCZ = r("CZ",2);
+  document.getElementById("t1").textContent = r("PL",1).named;
+  const outside = ["PL","CZ"].flatMap(cc => [1,3].map(i => RUNS[cc][i]))
+    .filter(run => !run.shown).reduce((a, run) => a + run.names.filter(([,k]) => !k).length, 0);
+  document.getElementById("t2").textContent = outside;
+  const withRuns = ["PL","CZ"].flatMap(cc => [1,3].map(i => RUNS[cc][i])).length;
+  document.getElementById("t2sub").textContent = `Across all ${withRuns} "with LC Connect" answers (Claude and ChatGPT, Poland and Czech Republic), every company named is a record you can open.`;
+  document.getElementById("t3").innerHTML = `${cPL.named}<small> → </small>${cPL.inBase}`;
+  document.getElementById("t3sub").innerHTML =
+    `ChatGPT, Poland: ${gPL.named} → ${gPL.inBase}. Czech Republic: Claude ${cCZ.named} → ${cCZ.inBase}, ChatGPT ${gCZ.named} → ${gCZ.inBase}. Without LC Connect, every company outside our base has to be checked by hand.`;
+  const anyPending = ["PL","CZ"].some(cc => RUNS[cc].some(x => x.pending));
+  if (!anyPending) document.querySelectorAll(".js-pending, .js-pending-banner").forEach(e => e.remove());
+})();
+</script>
+</body>
+</html>

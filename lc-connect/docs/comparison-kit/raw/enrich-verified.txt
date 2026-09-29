@@ -1,0 +1,1 @@
+enrich_lead verified OK on lead 394 (Semicon) at 23:07 CEST via live server; Perplexity model sonar-pro; 23.6 s; cited sources returned.
