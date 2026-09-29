@@ -21,7 +21,7 @@ import {
   type LeadAccessFields,
 } from "../core/access.js";
 import { audit, capIdList, diffFields } from "../core/audit.js";
-import { PRESENT_BRIEFLY } from "./_present.js";
+import { ONE_CALL_RULE, PRESENT_BRIEFLY } from "./_present.js";
 
 // Row count above which get_leads emits a DATASET widget instead of inline JSON.
 const DATASET_THRESHOLD = 10;
@@ -179,6 +179,7 @@ export function registerLeadsTools(
         "(or productId) together with country in ONE call rather than pulling the whole country.",
         "GOTCHAS: a lead's link to a product means sales fit (prospect for that product), not",
         "confirmed use; say so when the user asks who 'uses' something.",
+        ONE_CALL_RULE,
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
@@ -738,6 +739,7 @@ export function registerLeadsTools(
         "(or productId) together with country in ONE call rather than pulling the whole country.",
         "GOTCHAS: a lead's link to a product means sales fit (prospect for that product), not",
         "confirmed use; say so when the user asks who 'uses' something.",
+        ONE_CALL_RULE,
         PRESENT_BRIEFLY,
       ].join("\n"),
       inputSchema: {
