@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LC Connect — rozmowa 3.10</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #ffffff; --surface: #ffffff; --ink: #14213a; --muted: #5b6478;
+    --rule: #d9dde5; --rule-strong: #b9c0cd; --accent: #c9861f; --accent-ink: #8a5a0e;
+    --accent-soft: #fbf1e0; --ok: #2f7d4f; --ok-soft: #e6f3ea; --blue-soft: #e8edf6; --blue-ink: #2a4a80;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8; --rule: #2b3447; --rule-strong: #3d4860;
+      --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619; --ok: #7fcf9c; --ok-soft: #1c2d24;
+      --blue-soft: #1d2840; --blue-ink: #9db8e8; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a26; --surface: #1b2232; --ink: #e6eaf2; --muted: #9aa4b8; --rule: #2b3447; --rule-strong: #3d4860;
+    --accent: #e8a33d; --accent-ink: #f1c26e; --accent-soft: #2c2619; --ok: #7fcf9c; --ok-soft: #1c2d24;
+    --blue-soft: #1d2840; --blue-ink: #9db8e8; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif; font-size: 17px; line-height: 1.5;
+    padding: 32px 16px 64px; }
+  .page { max-width: 820px; margin: 0 auto; }
+  h1, h2, h3 { font-family: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; margin: 0; text-wrap: balance; }
+  h1 { font-size: 36px; font-weight: 600; line-height: 1.1; }
+  h2 { font-size: 25px; font-weight: 600; line-height: 1.2; margin-top: 36px; padding-top: 12px; border-top: 2px solid var(--ink); break-after: avoid; }
+  h2 .n { color: var(--accent); font-family: "IBM Plex Mono", monospace; font-weight: 500; margin-right: 10px; }
+  h3 { font-size: 19px; font-weight: 600; margin-top: 20px; break-after: avoid; }
+  p { margin: 10px 0 0; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 15px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 500; }
+  .lede { font-size: 19px; margin-top: 14px; }
+  .sheet { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 16px; }
+  .sheet th, .sheet td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); }
+  .sheet th { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 12.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+  .sheet td:first-child { font-weight: 500; }
+  .sheet, .sheet tr, ul.b li, .note { break-inside: avoid; }
+  .num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  .note { margin-top: 12px; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); font-size: 16px; }
+  ul.b { margin: 10px 0 0; padding-left: 1.2em; }
+  ul.b li { margin-top: 7px; }
+  ol.asks { list-style: none; padding: 0; margin: 10px 0 0; counter-reset: a; }
+  ol.asks li { counter-increment: a; display: grid; grid-template-columns: 2.2em 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); break-inside: avoid; }
+  ol.asks li::before { content: counter(a, decimal-leading-zero); font-family: "IBM Plex Mono", monospace; font-size: 18px; color: var(--accent); font-weight: 500; }
+  ol.asks li b { font-weight: 600; }
+  ol.asks.agenda li { grid-template-columns: 2.2em 1fr auto; }
+  .agenda .t { font-family: "IBM Plex Mono", monospace; font-size: 14px; color: var(--muted); white-space: nowrap; }
+  /* cards */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .card { border: 1px solid var(--rule-strong); border-radius: 6px; padding: 12px 14px; background: var(--surface); break-inside: avoid; display: flex; flex-direction: column; }
+  .card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .card .id { font-family: "IBM Plex Mono", monospace; font-size: 20px; color: var(--accent); font-weight: 500; }
+  .card h3 { margin: 2px 0 0; font-size: 18.5px; line-height: 1.2; }
+  .card p { font-size: 15px; line-height: 1.42; margin-top: 6px; }
+  .card p b { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin-right: 4px; }
+  .card .foot { margin-top: auto; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tag { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .tag.l { background: var(--accent-soft); color: var(--accent-ink); }
+  .tag.a { background: var(--blue-soft); color: var(--blue-ink); }
+  .effort { font-family: "IBM Plex Mono", monospace; font-size: 13px; font-weight: 500; border: 1px solid var(--rule-strong); border-radius: 3px; padding: 1px 7px; }
+  .legend { font-size: 15px; color: var(--muted); margin-top: 8px; }
+  .closing { margin-top: 14px; font-size: 21px; line-height: 1.45; font-style: italic; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+  .pb { break-before: page; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 30px; } }
+  @page { size: A4; margin: 14mm 14mm 14mm 14mm; }
+  @media print {
+    body { padding: 0; font-size: 15.5px; background: #fff; }
+    .page { max-width: none; }
+    h2 { margin-top: 22px; }
+    .sheet { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">AutoOffice · materiał roboczy na spotkanie</div>
+  <h1>LC Connect — punkty do rozmowy, 3.10.2026</h1>
+  <div class="meta">
+    <span><b>Kto:</b> Bogdan (AutoOffice) · Łukasz Abramek (Laser Components)</span>
+    <span><b>Kiedy:</b> sobota 3.10, 14:00</span>
+    <span><b>Czas:</b> 60–90 min</span>
+  </div>
+</header>
+
+<h2><span class="n">1</span>Cel rozmowy i agenda</h2>
+<p class="lede">Wyjść z rozmowy z uzgodnioną ścieżką od pakietu serwisowego do partnerstwa AI dla grupy, listą pomysłów do roadmapy i planem pokazów na Monachium 10–11.11.</p>
+<ol class="asks agenda">
+  <li><span><b>Skala kontraktu:</b> dwie liczby na stole i jak je połączyć.</span><span class="t">15 min</span></li>
+  <li><span><b>Trzy kroki i daty:</b> pilot → projekt wdrożeniowy → partnerstwo od 1.01.2027.</span><span class="t">15 min</span></li>
+  <li><span><b>Pomysły do roadmapy:</b> Twoje i nasze, co wchodzi najpierw.</span><span class="t">25 min</span></li>
+  <li><span><b>Monachium 10–11.11:</b> trzy pokazy i kto jest w sali.</span><span class="t">15 min</span></li>
+  <li><span><b>Następne kroki:</b> kto ma budżet 2027, którędy idzie oferta, termin.</span><span class="t">10 min</span></li>
+</ol>
+
+<h2><span class="n">2</span>Dwie liczby i most</h2>
+<div class="tablewrap">
+<table class="sheet">
+  <tr><th></th><th>pakiet (16.09)</th><th>model Łukasza (30.09)</th></tr>
+  <tr><td>opłata stała</td><td><span class="num">1 800 €/mies.</span> (15 h) = 21 600 €/rok</td><td><span class="num">8 000 €/mies.</span> = 96 000 €/rok</td></tr>
+  <tr><td>dodatkowo</td><td><span class="num">3 500 €</span> wdrożenie; 85 €/h poza zakresem</td><td>budżet innowacji <span class="num">30–50 k€/rok</span>, uruchamiany projektami</td></tr>
+  <tr><td>co komunikuje</td><td>„abonament na narzędzie od małego dostawcy"</td><td>„partner AI dla grupy, z pojemnością i odpowiedzialnością"</td></tr>
+  <tr><td>kto kupuje</td><td>kierownik działu z własnego budżetu</td><td>zarząd, w budżecie rocznym, po przeglądzie IT</td></tr>
+</table>
+</div>
+<p>Różnica nie jest cenowa, tylko kategoryjna. Most to zmiana kategorii, a nie targowanie się o środek przedziału.</p>
+
+<h3>Trzy kroki, każdy z własnym powodem</h3>
+<div class="tablewrap">
+<table class="sheet">
+  <tr><th>krok</th><th>kiedy · kwota</th><th>co się zmienia</th><th>wyzwalacz</th></tr>
+  <tr><td>0. Pilot</td><td>do końca 2026 · pakiet, ewentualnie <span class="num">3 000–3 500 €/mies.</span> od listopada</td><td>konektor, baza, discovery, SLA</td><td>już działa; Łukasz używa</td></tr>
+  <tr><td>1. Projekt wdrożeniowy</td><td>listopad–grudzień · <span class="num">25–35 k€</span> jednorazowo</td><td>SSO z kontami LC, wdrożenie w ich Azure, umowa powierzenia, pakiet bezpieczeństwa dla IT, discovery Niemcy, szkolenie sprzedaży 6–7.12</td><td>wizyta 10–11.11 + decyzja po sesji technicznej</td></tr>
+  <tr><td>2. Partnerstwo dla grupy</td><td>od 1.01.2027 · <span class="num">8 000 €/mies.</span> + <span class="num">30–50 k€</span> innowacji</td><td>6 dni/mies. rozwoju; nowy kraj co kwartał; kwartalny przegląd z zarządem; roadmapa</td><td>budżet 2027; sukces pilota i wdrożenia</td></tr>
+</table>
+</div>
+<div class="note">Nikt nie musi tłumaczyć, czemu 1 800 zamieniło się w 8 000: krok 0 to pilot jednego działu, krok 1 to projekt z konkretnymi dostawami, krok 2 to nowy zakres na nowy rok. Każda kwota ma inny przedmiot.</div>
+
+<h2><span class="n">3</span>Jak Łukasz radzi to rozegrać</h2>
+<p>Z jego tekstów ze środy 30.09. Pisze z pozycji kupującego, który chce, żeby dostawca miał „bardzo dobrą marżę nawet przy cenie atrakcyjnej dla LC" — sojusznik, nie negocjator.</p>
+<ul class="b">
+  <li><b>Nazwa i rama:</b> „Strategic AI Development &amp; Transformation Partnership", nie „utrzymanie LC Connect". Zarząd dostaje inne uzasadnienie wydatku.</li>
+  <li><b>Konstrukcja:</b> stały retainer ok. 8 000 €/mies. (utrzymanie, pula rozwoju, integracje danych, nowe modele i agenci, kwartalny przegląd technologii, szukanie zastosowań w działach, konsultacje z zarządem) <b>plus</b> budżet innowacji 30–50 k€/rok na większe projekty.</li>
+  <li><b>Przedziały:</b> 80–100 k€/rok bardzo atrakcyjne dla LC, 100–130 k€ fair dla obu stron, sufit ok. 150 k€ bez wykazania dodatkowego zwrotu.</li>
+  <li><b>Uzasadnienie:</b> business case 500–800 k€ wartości rocznie po pełnym wdrożeniu. Przykłady: 20 dodatkowych szans × 25 k€ × 40 % marży = 200 k€; 50 osób × 1 h/tydz. × 45 tyg. × 60 € = 135 k€.</li>
+  <li><b>Bez procentu od sprzedaży:</b> dostawca szybko zacząłby żądać premii za dużego klienta — konflikt później.</li>
+  <li><b>IP i dane w LC:</b> dane, baza wiedzy, prompty i przepływy agentów oraz prawo zmiany dostawcy zostają po stronie LC. To buduje zaufanie do nas.</li>
+</ul>
+
+<h2><span class="n">4</span>Pomysły do dyskusji</h2>
+<p>Każdy pomysł stoi na czymś, co już działa w LC Connect albo w innym naszym wdrożeniu — dlatego czas dostawy liczymy w tygodniach.</p>
+<p class="legend"><span class="tag l">pomysł Łukasza</span> &nbsp; <span class="tag a">AutoOffice</span> &nbsp; nakład: <span class="effort">S</span> małe · <span class="effort">M</span> średnie · <span class="effort">L</span> duże</p>
+<div class="grid">
+
+<div class="card"><div class="top"><h3>Zdjęcie listy → plan wizyt</h3><span class="id">A</span></div>
+<p><b>Co to</b>Zdjęcie listy wystawców lub prospektów telefonem; asystent układa trasę, priorytety i pytania na stoisko, a LC Connect dokłada, kto już jest leadem i kto jest jego właścicielem.</p>
+<p><b>Dla LC</b>Handlowiec na targach w kilka minut wie, do kogo iść najpierw i czego nie dublować z kolegą.</p>
+<p><b>Stoi na</b>baza + mapa + notatki</p>
+<div class="foot"><span class="tag l">pomysł Łukasza</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>Brief przed spotkaniem</h3><span class="id">B</span></div>
+<p><b>Co to</b>Jedna strona o firmie przed wizytą: co robią, które produkty LC pasują, ostatnie notatki, publiczne sygnały o decydencie.</p>
+<p><b>Dla LC</b>Każda wizyta zaczyna się od przygotowania, które dziś zajmuje handlowcowi godzinę researchu.</p>
+<p><b>Stoi na</b>enrich_lead, notatki, baza</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>Głosówka po wizycie → notatka i zadania</h3><span class="id">C</span></div>
+<p><b>Co to</b>Nagranie w aucie zamienia się w notatkę przy leadzie, follow-upy i zmianę statusu; audyt pamięta, kto i kiedy.</p>
+<p><b>Dla LC</b>Wiedza z wizyty trafia do systemu tego samego dnia, a nie ginie w głowie handlowca.</p>
+<p><b>Stoi na</b>notatki, audyt; transkrypcja lokalna</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>Planer terytorium</h3><span class="id">D</span></div>
+<p><b>Co to</b>„Mam 3 dni w Rumunii" → trasa po leadach z bazy, nie po kraju; mapa z właścicielem i statusem zamiast rysowanej przez AI.</p>
+<p><b>Dla LC</b>Wyjazd planowany na prawdziwych danych, z widocznym, kto już kim się zajmuje.</p>
+<p><b>Stoi na</b>leads_by_country, 177 miast uzupełnionych</p>
+<div class="foot"><span><span class="tag l">pomysł Łukasza</span> <span class="tag a">AutoOffice</span></span><span class="effort">S/M</span></div></div>
+
+<div class="card"><div class="top"><h3>Discovery nowych rynków</h3><span class="id">E</span></div>
+<p><b>Co to</b>Potok serwerowy: wyszukiwarka dla maszyn + ekstrakcja + kandydaci z dowodami, zatwierdzani w czacie; Niemcy jako pierwsze zadanie (nie ma ich w bazie).</p>
+<p><b>Dla LC</b>Nowy kraj co kwartał zamiast ręcznego researchu — rynek macierzysty LC na start.</p>
+<p><b>Stoi na</b>metoda, którą zbudowano 396 firm; wzbogacanie działa</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">M</span></div></div>
+
+<div class="card"><div class="top"><h3>Obserwacja przetargów i programów</h3><span class="id">F</span></div>
+<p><b>Co to</b>EDF, EDIP, Brave EU, AGILE — alerty o konkursach i konsorcjach, w których komponenty LC pasują (z notatek Łukasza z konferencji).</p>
+<p><b>Dla LC</b>Wejście do projektów obronnych i kosmicznych zanim lista dostawców się zamknie.</p>
+<p><b>Stoi na</b>discovery + baza wiedzy</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">M</span></div></div>
+
+<div class="card"><div class="top"><h3>Nowe zastosowania produktów</h3><span class="id">G</span></div>
+<p><b>Co to</b>„Jakie branże w Polsce mogą użyć PLD 1550 nm" → kandydaci i konkretne firmy.</p>
+<p><b>Dla LC</b>Pokazuje zastosowania, których handlowiec sam by nie zauważył.</p>
+<p><b>Stoi na</b>discover_applications (działa)</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>CAD fit-check</h3><span class="id">H</span></div>
+<p><b>Co to</b>Klient wgrywa STEP urządzenia; LC Connect rozbiera złożenie, mierzy gniazda i proponuje komponenty LC, które pasują mechanicznie, z wymiarowanym rzutem.</p>
+<p><b>Dla LC</b>Efekt „wow" dla firmy technicznej. Demo tylko na publicznym modelu lub produkcie LC.</p>
+<p><b>Stoi na</b>gotowy potok CAD z innego wdrożenia (konwersja, 3D, rozbiórka z wymiarami, rzuty)</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">M</span></div></div>
+
+<div class="card"><div class="top"><h3>Rysunki wymiarowe i dobór parametryczny</h3><span class="id">I</span></div>
+<p><b>Co to</b>„Obudowa PLD 905 nm 75 W" → rzut z wymiarami; „APD na 1064 nm, 0,5 mm" → krótka lista produktów.</p>
+<p><b>Dla LC</b>Odpowiedź inżynierska w czacie, bez szukania po kartach katalogowych.</p>
+<p><b>Stoi na</b>katalog 245 produktów + potok CAD</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S/M</span></div></div>
+
+<div class="card"><div class="top"><h3>Zapytanie klienta → produkty i podobne leady</h3><span class="id">J</span></div>
+<p><b>Co to</b>Wklejony tekst zapytania ofertowego → pasujące produkty LC i firmy z bazy o podobnym profilu.</p>
+<p><b>Dla LC</b>Jedno zapytanie zamienia się w ofertę i kilka nowych adresów o tym samym profilu.</p>
+<p><b>Stoi na</b>wyszukiwanie produktów i leadów</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>Sieć klientów i cross-selling</h3><span class="id">K</span></div>
+<p><b>Co to</b>Graf: kto co kupuje i kto czego używa; gdzie dwóch klientów może sobie pomóc.</p>
+<p><b>Dla LC</b>LC staje się łącznikiem między klientami, a nie tylko dostawcą części.</p>
+<p><b>Stoi na</b>model leadów i produktów; wymaga danych z CRM</p>
+<div class="foot"><span class="tag l">pomysł Łukasza</span><span class="effort">M/L</span></div></div>
+
+<div class="card"><div class="top"><h3>„Zasypana wiedza"</h3><span class="id">L</span></div>
+<p><b>Co to</b>Raporty z wyjazdów, stare oferty, notatki wczytane do bazy wiedzy; pytania w języku naturalnym.</p>
+<p><b>Dla LC</b>Wiedza o klientach, odkładana „do rogu", zaczyna generować pomysły i nowy biznes.</p>
+<p><b>Stoi na</b>baza wiedzy + wersje + audyt</p>
+<div class="foot"><span class="tag l">pomysł Łukasza</span><span class="effort">M</span></div></div>
+
+<div class="card"><div class="top"><h3>Sygnały o decydentach</h3><span class="id">M</span></div>
+<p><b>Co to</b>Profil publiczny osoby przed spotkaniem (Humantic); test tygodniowy na wyjeździe do Rumunii i Bułgarii.</p>
+<p><b>Dla LC</b>Handlowiec wie, jak rozmawiać z nową osobą. Zastrzeżenie: RODO.</p>
+<p><b>Stoi na</b>enrich_lead, pakiet bezpieczeństwa</p>
+<div class="foot"><span class="tag l">pomysł Łukasza</span><span class="effort">S test</span></div></div>
+
+<div class="card"><div class="top"><h3>Kokpit zarządu</h3><span class="id">N</span></div>
+<p><b>Co to</b>Tygodniowy przegląd: nowe leady, zmiany statusów, kraje, właściciele, co utknęło.</p>
+<p><b>Dla LC</b>Zarząd widzi efekt partnerstwa co tydzień, bez proszenia o raport.</p>
+<p><b>Stoi na</b>analityka + audyt</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S</span></div></div>
+
+<div class="card"><div class="top"><h3>Integracja ERP/CRM LC</h3><span class="id">O</span></div>
+<p><b>Co to</b>Historia ofert i zamówień jako kontekst asystenta; projekt z budżetu innowacji.</p>
+<p><b>Dla LC</b>Asystent podpowiada, co zaoferować istniejącemu klientowi na podstawie jego historii.</p>
+<p><b>Stoi na</b>wzorzec Vendo Connect (105 operacji, transakcje i uprawnienia z ERP)</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">L</span></div></div>
+
+<div class="card"><div class="top"><h3>Copilot, języki, SSO, hosting w ich Azure</h3><span class="id">P</span></div>
+<p><b>Co to</b>Ten sam konektor w Microsoft 365, odpowiedzi po niemiecku i szwedzku, konta firmowe, dane w ich tenancie.</p>
+<p><b>Dla LC</b>Odpowiedź na pytania IT o bezpieczeństwo i dostęp dla spółek w Niemczech i Szwecji.</p>
+<p><b>Stoi na</b>otwarty protokół, pakiet bezpieczeństwa</p>
+<div class="foot"><span class="tag a">AutoOffice</span><span class="effort">S/M</span></div></div>
+
+</div>
+
+<h2 class="pb"><span class="n">5</span>Monachium 10–11.11: trzy pokazy</h2>
+<ol class="asks">
+  <li><span><b>H · CAD fit-check.</b> Sala widzi plik STEP rozebrany w czacie na części z wymiarami i dobrane do gniazd komponenty LC z rzutem — na publicznym modelu lub produkcie LC.</span></li>
+  <li><span><b>A/D · Zdjęcie listy → plan, planer terytorium.</b> Sala widzi zdjęcie listy zamienione w trasę i mapę po prawdziwych leadach LC, z właścicielem i statusem.</span></li>
+  <li><span><b>E · Discovery Niemcy na żywo.</b> Sala widzi nowe niemieckie firmy pojawiające się z dowodami i zatwierdzane w czacie do bazy.</span></li>
+</ol>
+
+<h2><span class="n">6</span>Szczupły zespół jako argument</h2>
+<ul class="b">
+  <li><b>Kadencja i rezultaty zamiast etatów:</b> dni w miesiącu zapisane w umowie, kwartalny przegląd z zarządem, kod w repozytorium LC, każda zmiana w dzienniku audytu.</li>
+  <li><b>Dowody tempa z ostatnich dwóch tygodni:</b> audyt, poprawki bezpieczeństwa i model ról w jeden dzień; dossier firmy w jeden wieczór; zestaw porównawczy i trzy poprawki serwera w jedno popołudnie; wzbogacanie naprawione między dwiema wiadomościami Łukasza.</li>
+  <li><b>Zaplecze:</b> podwykonawcy na projekty z budżetu innowacji; ten sam szkielet w trzech konektorach, więc elementy się powtarzają.</li>
+  <li><b>Słowo, którego nie używać: „zespół"</b> (ani „dział", ani „24/7 ludzie"). Łukasz sam napisał, że przy 200 k€ oczekiwałby zespołu; przy 96 k€ oczekuje partnera, który dowozi.</li>
+</ul>
+
+<h2 class="pb"><span class="n">7</span>Pytania do Łukasza</h2>
+<ol class="asks">
+  <li><span>Czy zgadzasz się na trzy kroki i daty: podniesienie pilota od listopada, projekt wdrożeniowy listopad–grudzień, partnerstwo od stycznia?</span></li>
+  <li><span>Kto w LC jest właścicielem budżetu 2027 i do kiedy musi mieć ofertę na biurku, żeby weszła do planu?</span></li>
+  <li><span>Które trzy pozycje pokazujemy w Monachium 10–11.11? Propozycja: CAD fit-check, planer wizyt na prawdziwych danych, discovery Niemcy na żywo.</span></li>
+  <li><span>Pakiet bezpieczeństwa dla IT: co dokładnie Alex i IT chcą zobaczyć, żeby przestali „grzebać"? Hosting w ich Azure rozwiązuje większość.</span></li>
+  <li><span>Twoje dwa pomysły (sieć klientów, zasypana wiedza): jakie dane LC może udostępnić i kiedy — bez CRM to tylko slajdy.</span></li>
+  <li><span>Humantic: bierzemy tydzień próbny i testujemy na Twoim wyjeździe do Rumunii i Bułgarii; podajesz 10–20 osób, które znasz.</span></li>
+  <li><span>Czy nowa oferta ma iść przez Ciebie do zarządu, czy od nas do Alice z Tobą w kopii?</span></li>
+</ol>
+
+<h2><span class="n">8</span>Zdanie na koniec</h2>
+<p class="closing">„Pilot pokazał, że to działa. Wdrożenie załatwia bezpieczeństwo i konta firmowe. Partnerstwo od stycznia to roadmapa, której połowę mamy już zbudowaną u innego klienta — dlatego możemy obiecać tempo, którego nie da duża firma."</p>
+
+</div>
+</body>
+</html>
