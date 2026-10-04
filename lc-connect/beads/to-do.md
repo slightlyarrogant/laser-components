@@ -1,5 +1,15 @@
 # LC Connect — beads (2026-09-15)
 
+## HANDOFF 2026-10-04 (read first after compaction)
+- [ ] Monday 5.10: meeting with Alice (photona) — agenda draft given in chat 3.10 (status, answers to Alice/Alex technical session: hosting option, IdP, DPA, security pack; data-before-NDA answer; 3-step path + dates; owners/budget 2027). Offer standing: 1-page English "security pack" for IT by Sunday evening — needs Bogdan's "tak".
+- [ ] UNKNOWN: outcome of Bogdan+Łukasz kitchen meeting 3.10 14:00 on contract scale (bridge doc: docs/pricing/2026-10-03-most-od-pakietu-do-partnerstwa.md; talking points PDF: docs/pricing/LC-Connect-rozmowa-z-Lukaszem-2026-10-03.pdf). Next deliverable after his answer: new 3-step package for Alice (pilot → implementation project 25–35 k → partnership 8 k/mo from 1.01.2027).
+- [ ] Łukasz's 24.09 WhatsApp batch (11 photos + 8 videos) LOST (bridge purge). Ask Bogdan to export from phone to docs/comparison-kit/raw/lukasz-mail/2026-09-24/ or ask Łukasz to resend; then transcribe.
+- [ ] Munich visit 10–11.11 (two days; fly together, Łukasz continues to Sofia): demos planned = CAD fit-check, photo-of-list → visit plan on real data, Germany discovery live. Sales training on site after 6–7.12.
+- [ ] Humantic AI: take 7-day trial, test on Łukasz's Romania/Bulgaria trip (10–20 known people), compare prompts.
+- [ ] Restore Bogdan's personal instructions in claude.ai ("only Vendo") and ChatGPT custom instructions after the evaluation period.
+- [ ] Majordomo: Hermes media retention fix (saved in majordomo memory f5).
+
+
 Source: docs/audit-2026-09-15.md. Decisions (Bogdan, 2026-09-15): internal single-company; per-user ownership + roles by region;
 open visibility (everyone reads everything); hosting stays on the company server (Sinktank) + ngrok; Phase 0 + ownership repairs today, restart, hand structure to client.
 
