@@ -36,7 +36,7 @@ Laser Components (Alice, probably Alex), 16:30 CET, in English. 9 slides; 8 and 
 - Microsoft 365 Copilot does not use Chinese models according to Microsoft's model documentation of 10 Sep 2026; the opt-in Kimi models exist only in GitHub Copilot and Microsoft Foundry, hosted on Fireworks AI in the US.
 - Microsoft EU Data Boundary caveats: Flex Routing may run inference outside the EU at peak times and has been on by default since April 2026, and Anthropic models inside Copilot are outside the boundary.
 - Anthropic: since June 2026 its newest models carry a mandatory 30-day retention even under zero data retention; a replacement with logs kept in the customer's own cloud was announced on 1 Sep 2026.
-- LC Connect's own call to Perplexity goes to the endpoint covered by Perplexity's no-retention statement.
+- LC Connect calls Perplexity's legacy endpoint, which Perplexity states is not retained; Perplexity ended support for it on 27 Sep 2026 and routes such calls to its new Agent API, which stores state and runs on OpenAI models. We are evaluating a replacement (Parallel) and will fix the research provider before the formal pilot.
 
 ## 7. Seven decisions. Then daily use becomes routine.
 - The confirmation prompt is a feature of the assistant app (Claude and ChatGPT tool approval) and is configurable per tool.
