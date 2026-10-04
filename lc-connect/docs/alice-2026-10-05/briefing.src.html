@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LC Connect Briefing</title>
+<style>
+/*FONTS*/
+@page { size: 1280px 720px; margin: 0; }
+:root {
+  --ink: #24262a; --body: #3c4046; --muted: #71767d; --faint: #9aa0a6;
+  --rule: #d9dbde; --tint: #f5f5f6; --mark: #3a3d42; --dark: #2b2d31;
+  --accent: #c9861f; --accent-ink: #8a5a0e; --accent-soft: #fbf1e0;
+  --ok: #2f7d4f; --ok-soft: #e6f3ea;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #8d9096; color: var(--body);
+  font-family: "Ubuntu", "Segoe UI", Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.slide { position: relative; width: 1280px; height: 720px; margin: 24px auto; background: #fff; overflow: hidden;
+  padding: 50px 84px 80px; display: flex; flex-direction: column; break-after: page; page-break-after: always; }
+.slide:last-child { break-after: auto; page-break-after: auto; }
+@media print { html, body { background: #fff; } .slide { margin: 0; } }
+@media screen and (max-width: 1320px) { .slide { zoom: calc(100vw / 1330px); } }
+
+.eyebrow { font-family: "Ubuntu Mono", monospace; font-size: 17px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-bottom: 14px; }
+h1 { margin: 0; color: var(--ink); font-weight: 300; font-size: 50px; line-height: 1.12; letter-spacing: -.012em; }
+h1 b { font-weight: 500; }
+.lead { font-size: 28px; line-height: 1.4; color: var(--body); margin: 22px 0 0; max-width: 30em; }
+.foot { position: absolute; left: 84px; right: 84px; bottom: 22px; display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 1px solid var(--rule); padding-top: 12px; }
+.foot .wm { font-weight: 300; font-size: 22px; color: var(--mark); letter-spacing: -.01em; }
+.foot .mid, .foot .pn { font-family: "Ubuntu Mono", monospace; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+
+/* title slide */
+.title { background: var(--dark); color: #e9eaec; padding: 84px 96px; justify-content: space-between; }
+.title .wm { font-weight: 300; font-size: 64px; letter-spacing: -.01em; color: #fff; line-height: 1; }
+.title .rule { border-top: 1px solid #5c5f66; margin-top: 30px; }
+.title h1 { color: #fff; font-size: 64px; font-weight: 300; }
+.title h1 span { display: block; color: #c4c6ca; }
+.title .meta { margin-top: 28px; font-size: 26px; color: #c4c6ca; }
+.title .meta b { color: #fff; font-weight: 400; }
+.title .eyebrow { color: #9aa0a6; }
+
+/* two cards */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 30px; }
+.card { border: 2px solid var(--mark); border-radius: 10px; padding: 26px 30px; }
+.card.soft { border: 2px dashed var(--faint); background: var(--tint); }
+.card h2 { margin: 0 0 10px; font-size: 30px; font-weight: 500; color: var(--ink); }
+.card p { margin: 0; font-size: 26px; line-height: 1.4; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; margin-top: 26px; border-top: 2px solid var(--ink); }
+.compare div { padding: 14px 30px 0 0; font-size: 25px; line-height: 1.4; }
+.compare div + div { padding-left: 30px; border-left: 1px solid var(--rule); }
+.compare b { color: var(--ink); font-weight: 500; }
+.k { font-family: "Ubuntu Mono", monospace; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px; }
+
+/* diagram */
+.slide.diagram { padding: 34px 56px 72px; }
+.slide.diagram h1 { font-size: 40px; }
+.slide.diagram .foot { left: 56px; right: 56px; }
+.fig { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 8px; }
+.fig svg { width: 100%; max-height: 560px; height: auto; display: block; }
+
+/* list rows */
+.rows { margin-top: 34px; display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.rows > div { display: grid; grid-template-columns: 300px 1fr; gap: 28px; padding: 16px 0; border-bottom: 1px solid var(--rule); font-size: 25px; line-height: 1.38; align-items: baseline; }
+.rows > div > b { color: var(--ink); font-weight: 500; }
+.callout { margin-top: 28px; padding: 18px 24px; border-left: 5px solid var(--accent); background: var(--accent-soft); font-size: 26px; line-height: 1.38; color: var(--ink); }
+.small { font-size: 19px; color: var(--muted); margin-top: 18px; line-height: 1.4; }
+
+/* results table */
+table.res { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 25px; }
+table.res th { text-align: left; font-family: "Ubuntu Mono", monospace; font-weight: 400; font-size: 15px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 0 16px 10px 0; border-bottom: 2px solid var(--ink); }
+table.res td { padding: 10px 16px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; line-height: 1.3; }
+table.res td:first-child { font-weight: 500; color: var(--ink); width: 260px; }
+table.res .big { font-size: 36px; font-weight: 500; color: var(--ink); letter-spacing: -.01em; }
+table.res tr.with .big { color: var(--ok); }
+table.res .sub { font-size: 19px; color: var(--muted); display: block; margin-top: 2px; }
+.q { font-size: 22px; color: var(--muted); margin-top: 10px; }
+.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 20px; }
+.three div { font-size: 22px; line-height: 1.38; border-top: 2px solid var(--mark); padding-top: 12px; }
+.three b { display: block; color: var(--ink); font-weight: 500; font-size: 23px; margin-bottom: 4px; }
+
+/* not list */
+.nots { margin-top: 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 40px; }
+.nots div { font-size: 28px; color: var(--body); padding: 14px 0 14px 50px; position: relative; border-bottom: 1px solid var(--rule); }
+.nots div::before { content: ""; position: absolute; left: 6px; top: 50%; width: 26px; height: 26px; margin-top: -13px;
+  background: linear-gradient(45deg, transparent 44%, #a33a2b 44%, #a33a2b 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, #a33a2b 44%, #a33a2b 56%, transparent 56%); }
+.is { margin-top: 44px; font-size: 38px; font-weight: 300; color: var(--ink); line-height: 1.25; }
+.is b { font-weight: 500; }
+
+/* outcomes */
+.outs { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
+.outs div { padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 23px; line-height: 1.35; }
+.outs b { display: block; color: var(--ink); font-weight: 500; font-size: 26px; }
+.tag { display: inline-block; font-family: "Ubuntu Mono", monospace; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent); vertical-align: 4px; margin-left: 8px; }
+
+/* asks */
+ol.asks { list-style: none; counter-reset: a; margin: 34px 0 0; padding: 0; }
+ol.asks li { counter-increment: a; display: grid; grid-template-columns: 64px 1fr; align-items: baseline; padding: 15px 0; border-bottom: 1px solid var(--rule); font-size: 29px; color: var(--ink); }
+ol.asks li::before { content: counter(a); font-family: "Ubuntu Mono", monospace; font-size: 26px; color: var(--accent); }
+ol.asks li span { color: var(--muted); font-size: 23px; margin-left: 10px; }
+
+/* security grid */
+.grid5 { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 34px; }
+.grid5 div { padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: 18.5px; line-height: 1.36; }
+.grid5 b { display: block; color: var(--ink); font-weight: 500; font-size: 20px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide title">
+  <div>
+    <div class="wm">autooffice</div>
+    <div class="rule"></div>
+  </div>
+  <div>
+    <div class="eyebrow">Briefing for Laser Components</div>
+    <h1>LC Connect <span>what it is and how it works</span></h1>
+    <div class="meta"><b>Monday, 5 October 2026</b> &nbsp;·&nbsp; prepared by AutoOffice</div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="eyebrow">The idea</div>
+  <h1>We do not train a model.<br><b>We build a harness.</b></h1>
+  <div class="cards">
+    <div class="card soft"><h2>The engine</h2><p>A model from OpenAI or Anthropic. Rented as it is, and replaceable.</p></div>
+    <div class="card"><h2>The harness</h2><p>Tools that give the engine your products, your lead base and your rules. A memory of corrections that grows with daily use.</p></div>
+  </div>
+  <div class="compare">
+    <div><span class="k">Training a model</span>Hundreds of thousands. <b>Frozen</b> the day it is finished.</div>
+    <div><span class="k">Building a harness</span><b>Learns every working day.</b> No GPU purchase needed.</div>
+  </div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">2</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide diagram">
+  <h1>Your data stays with you. <b>The engine is rented.</b></h1>
+  <div class="fig"><!--DIAGRAM--></div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">3</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="eyebrow">Security</div>
+  <h1>Security depends on the <b>contract</b>,<br>not on the tool.</h1>
+  <div class="rows">
+    <div><b>Business plans</b><span>OpenAI and Anthropic: no training on your data, zero data retention by contract. OpenAI offers EU-hosted models.</span></div>
+    <div><b>Copilot · ChatGPT · Claude</b><span>Same question, same answer: it is the contract that protects you.</span></div>
+  </div>
+  <div class="callout"><b>Our rule:</b> the connector runs only in company business accounts, never in private subscriptions.</div>
+  <p class="small">The pilot today holds public data only: website and public registers. No company data has been uploaded.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="eyebrow">Results from the pilot</div>
+  <h1>What it <b>already does</b></h1>
+  <p class="q">Same question to Claude and ChatGPT, 29 Sept: <i>“Which companies use pulsed laser diodes?”</i></p>
+  <table class="res">
+    <thead><tr><th>Found in lead base</th><th>Poland</th><th>Czech Republic</th></tr></thead>
+    <tbody>
+      <tr><td>Without LC Connect</td><td><span class="big">4–8</span><span class="sub">of 6–12 names are in the lead base</span></td><td><span class="big">0–4</span><span class="sub">of 5–11 names are in the lead base</span></td></tr>
+      <tr class="with"><td>With LC Connect</td><td><span class="big">16 of 16</span><span class="sub">all pulsed-diode prospects in the base</span></td><td><span class="big">14 of 14</span><span class="sub">all pulsed-diode prospects in the base</span></td></tr>
+    </tbody>
+  </table>
+  <div class="three">
+    <div><b>Country discovery</b>One question returns a country’s prospects.</div>
+    <div><b>Trade-fair preparation</b>In Łukasz’s own use, about 65 % of suggested contacts confirmed.</div>
+    <div><b>Roles and audit trail</b>Everyone signs in personally. Every change is logged.</div>
+  </div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="eyebrow">Clear boundaries</div>
+  <h1>What it <b>is not</b></h1>
+  <div class="nots">
+    <div>Not a replacement for Copilot for emails</div>
+    <div>Not a CRM</div>
+    <div>Not a fine-tuned model</div>
+    <div>Not a data lake</div>
+  </div>
+  <p class="is">It is a <b>research and knowledge harness for leads.</b></p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">6</span></div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="eyebrow">Next steps, from the user side</div>
+  <h1>Where it <b>could go</b></h1>
+  <div class="outs">
+    <div><b>Know-how out of heads</b>A working knowledge base the whole team can ask.</div>
+    <div><b>Connecting the dots</b>Spot when two customers together will need Laser Components.</div>
+    <div><b>Visit effectiveness by industry <span class="tag">later phase</span></b>Years of visit reports plus ERP data.</div>
+    <div><b>Module fit before design</b>Diode plus optics, suggested for a customer request.</div>
+    <div><b>Trade-fair planning</b>Who to meet, prepared before the fair.</div>
+  </div>
+  <p class="small">Access to ERP or CRM data is a later phase and needs your decision.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="eyebrow">Decisions</div>
+  <h1>What we <b>need from you</b></h1>
+  <ol class="asks">
+    <li><div>Green light to make the pilot formal</div></li>
+    <li><div>Hosting choice <span>A: your Azure · B: AutoOffice EU server</span></div></li>
+    <li><div>Business workspace accounts for pilot users</div></li>
+    <li><div>A named IT contact <span>for data protection and security questions</span></div></li>
+    <li><div>A date in Munich <span>second week of November</span></div></li>
+  </ol>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">8</span></div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="eyebrow">Backup</div>
+  <h1>Security pack <b>in one page</b></h1>
+  <div class="grid5">
+    <div><b>Sign-in</b>OAuth 2.1 with PKCE. One account per person. Session tokens valid 4 hours, silent refresh.</div>
+    <div><b>Roles</b>ADMIN, RESEARCHER, SALES. Editing limited by ownership and region.</div>
+    <div><b>Audit log</b>Every write: who, when, before and after. Refused attempts too.</div>
+    <div><b>Limits</b>Rate limits on sign-in. Size limits on every request.</div>
+    <div><b>Logs</b>Structured, with personal data redacted.</div>
+    <div><b>Transport</b>HTTPS end to end. Passwords stored hashed (bcrypt).</div>
+    <div><b>Backups</b>Nightly, kept 30 days, on-site and off-site.</div>
+    <div><b>Watchdog</b>Full sign-in check every 5 minutes. Restart and alert on failure.</div>
+    <div><b>Research engine</b>Perplexity receives a public company name and website only.</div>
+    <div><b>Hosting</b>A: your Azure tenant. B: AutoOffice-managed server in the EU.</div>
+    <div><b>Data protection</b>Data processing agreement (AVV) as an annex. Personal data stored in the EU.</div>
+    <div><b>Exit</b>Full source in your repository. Data exported and deleted within 30 days.</div>
+  </div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">9</span></div>
+</section>
+
+</body>
+</html>
