@@ -64,7 +64,7 @@ h1 b { font-weight: 500; }
 .slide.diagram .foot { left: 56px; right: 56px; }
 .sp { --bg:#f7f8fa; --surface:#ffffff; --lane:#eef1f5; --ink:#14213a; --muted:#5b6478; --rule:#d9dde5; --rule-strong:#b9c0cd; --accent:#c9861f; --accent-ink:#8a5a0e; }
 .fig.sp svg g, .fig.sp svg text { font-family: "Ubuntu Condensed", "Arial Narrow", sans-serif; }
-.fig.sp svg { width: 100%; max-height: 450px; display: block; }
+.fig.sp svg { width: 100%; max-height: 430px; display: block; }
 .cap { font-size: 20px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 .fig { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 8px; }
 .fig svg { width: 100%; max-height: 520px; height: auto; display: block; }
@@ -145,16 +145,19 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
 .adopt li { font-size: 25px; line-height: 1.3; color: var(--ink); padding: 11px 0; border-bottom: 1px solid var(--rule); }
 .small2 { font-size: 26px !important; margin-top: 34px !important; }
 /* decisions + daily use */
-.dec { display: grid; grid-template-columns: 1.15fr 1fr; gap: 44px; margin-top: 24px; }
+.dec { display: grid; grid-template-columns: 1.45fr 1fr; gap: 36px; margin-top: 18px; }
 .dec ol.asks { margin-top: 0; }
-.dec ol.asks li { font-size: 22px; padding: 8px 0; grid-template-columns: 40px 1fr; }
+.dec ol.asks li { font-size: 20px; padding: 6px 0; grid-template-columns: 40px 1fr; }
 .dec ol.asks li::before { font-size: 21px; }
-.dec ol.asks li span { font-size: 17px; margin-left: 6px; }
+.dec ol.asks li span { font-size: 15px; margin-left: 6px; }
 .dec .use { border-top: 2px solid var(--accent); padding-top: 10px; }
 .dec .use ul { margin: 4px 0 0; padding: 0; list-style: none; }
-.dec .use li { font-size: 22px; line-height: 1.32; color: var(--ink); padding: 10px 0; border-bottom: 1px solid var(--rule); }
-.decline { margin: 22px 0 0; font-size: 24px; color: var(--body); border-left: 5px solid var(--accent); padding: 8px 0 8px 18px; background: var(--accent-soft); }
+.dec .use li { font-size: 20px; line-height: 1.3; color: var(--ink); padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.decline { margin: 14px 0 0; font-size: 20px; color: var(--body); border-left: 5px solid var(--accent); padding: 8px 0 8px 18px; background: var(--accent-soft); }
 .decline b { color: var(--ink); font-weight: 500; }
+.own { font-style: normal; font-family: "Ubuntu Mono", monospace; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 6px; margin-left: 8px; white-space: nowrap; vertical-align: 2px; }
+.contact { margin: 8px 0 0; font-size: 15px; color: var(--muted); text-align: right; }
+.slide.res3 h1 { font-size: 36px; letter-spacing: -.015em; }
 /* security grid */
 .sec2 { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
 .sec2 div { padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 23px; line-height: 1.35; }
@@ -186,15 +189,33 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
   <h1>We do not train a model.<br><b>We build a harness.</b></h1>
   <p class="small" style="margin-top:12px">Harness = the connector in your service package of 15 September.</p>
   <div class="cards">
-    <div class="card soft"><h2>The engine</h2><p>An OpenAI or Anthropic model. Rented by you, under your business plan; replaceable.</p></div>
+    <div class="card soft"><h2>The engine</h2><p>A model from OpenAI or Anthropic, any size you need. Rented by you under your business plan; replaceable.</p></div>
     <div class="card"><h2>The harness</h2><p>Tools for your products, lead base and rules. Designed to learn from every correction.</p></div>
   </div>
-  <div class="compare one"><div><span class="k">Training your own model instead</span>Hundreds of thousands, <b>frozen</b> when finished, and GPUs to buy.</div></div>
+  <div class="compare one"><div><span class="k">Training your own model instead</span>Training <b>freezes</b> the model on the day it finishes. The harness keeps learning: every correction, every day.</div></div>
   <div class="notrow"><span>Not a model fine-tune</span><span>Not a CRM</span><span>Not a data lake</span><span>Not a closed system</span></div>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">2</span></div>
 </section>
 
 <!-- 3 -->
+<section class="slide res3">
+  <h1>With LC Connect the assistant finds <b>all prospects in your base.</b><br>Without it, half or fewer.</h1>
+  <p class="q">Test of 29 Sept, Claude and ChatGPT: <i>“Which companies use pulsed laser diodes?”</i></p>
+  <table class="res">
+    <thead><tr><th>Found in lead base</th><th>Poland</th><th>Czech Republic</th></tr></thead>
+    <tbody>
+      <tr><td>Without LC Connect</td><td><span class="big">4–8</span><span class="sub">of 6–12 names</span></td><td><span class="big">0–4</span><span class="sub">of 5–11 names</span></td></tr>
+      <tr class="with"><td>With LC Connect</td><td><span class="big">16 of 16</span><span class="sub">Claude</span></td><td><span class="big">14 of 14</span><span class="sub">ChatGPT</span></td></tr>
+    </tbody>
+  </table>
+  <div class="three two">
+    <div><b>Trade fairs</b>About 65 % of suggested companies were worth the visit (Łukasz’s test).</div>
+    <div><b>Roles and audit trail</b>Personal sign-in. Every change logged.</div>
+  </div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">3</span></div>
+</section>
+
+<!-- 4 -->
 <section class="slide diagram">
   <h1>Your data stays in one place you choose.<br><b>The engine is rented by you.</b></h1>
   <div class="fig"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 510" role="img" aria-labelledby="hd-title hd-desc">
@@ -264,49 +285,10 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
   </g>
 </svg>
 </div>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">3</span></div>
-</section>
-
-<!-- 4 -->
-<section class="slide zdrs">
-  <h1>Security depends on the <b>contract</b>, not on the tool.</h1>
-  <table class="zdr">
-    <thead><tr><th>Plan</th><th>Trained on your data</th><th>Prompts stored</th><th>Zero data retention</th></tr></thead>
-    <tbody>
-      <tr><td>Claude Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
-      <tr><td>Claude API</td><td>No, default</td><td>≤30 days</td><td>By signed agreement <span class="mtag">contract</span></td></tr>
-      <tr><td>ChatGPT Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
-      <tr><td>OpenAI API</td><td>No, default</td><td>Abuse logs ≤30 days</td><td>By request, EU residency option <span class="mtag">contract</span></td></tr>
-      <tr><td>Microsoft 365 Copilot</td><td>No, default</td><td>Yes, in your tenant</td><td>No such option</td></tr>
-      <tr><td>Grok API (xAI)</td><td>No, default</td><td>30 days</td><td>Admin toggle <span class="mtag">setting</span></td></tr>
-      <tr><td>Perplexity API <small>used by LC Connect</small></td><td>No, default</td><td>Not retained</td><td>Yes, by default <span class="mtag">default</span></td></tr>
-      </tbody>
-  </table>
-  <p class="zfoot"><b>Our rule:</b> company business accounts only; pilot tests so far ran on personal accounts with public data.</p>
-  <p class="zfoot" style="margin-top:4px">Consumer plans train by default. Residency = where data rests + where inference runs.</p>
-  <p class="small" style="margin-top:6px">Vendor pages as of 4 Oct 2026.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4</span></div>
 </section>
 
 <!-- 5 -->
-<section class="slide">
-  <h1>With LC Connect, the assistant finds <b>every prospect in your base</b>.</h1>
-  <p class="q">Test of 29 Sept, Claude and ChatGPT: <i>“Which companies use pulsed laser diodes?”</i></p>
-  <table class="res">
-    <thead><tr><th>Found in lead base</th><th>Poland</th><th>Czech Republic</th></tr></thead>
-    <tbody>
-      <tr><td>Without LC Connect</td><td><span class="big">4–8</span><span class="sub">of 6–12 names</span></td><td><span class="big">0–4</span><span class="sub">of 5–11 names</span></td></tr>
-      <tr class="with"><td>With LC Connect</td><td><span class="big">16 of 16</span><span class="sub">Claude</span></td><td><span class="big">14 of 14</span><span class="sub">ChatGPT</span></td></tr>
-    </tbody>
-  </table>
-  <div class="three two">
-    <div><b>Trade fairs</b>About 65 % of suggested companies were worth the visit (Łukasz’s test).</div>
-    <div><b>Roles and audit trail</b>Personal sign-in. Every change logged.</div>
-  </div>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">5</span></div>
-</section>
-
-<!-- 6 -->
 <section class="slide ecos">
   <h1>One connector in your ecosystem,<br><b>not a system of its own.</b></h1>
   <div class="eco"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="eco-t">
@@ -352,6 +334,27 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
     <div class="chip"><span class="n">4</span>Estimate costs, budget<small>ERP</small></div>
   </div>
   <p class="small">Each step is a connector you own or add later. The assistant does the office work between them.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide zdrs">
+  <h1>Security depends on the <b>contract</b>, not on the tool.</h1>
+  <table class="zdr">
+    <thead><tr><th>Plan</th><th>Trained on your data</th><th>Prompts stored</th><th>Zero data retention</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
+      <tr><td>Claude API</td><td>No, default</td><td>≤30 days</td><td>By signed agreement <span class="mtag">contract</span></td></tr>
+      <tr><td>ChatGPT Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
+      <tr><td>OpenAI API</td><td>No, default</td><td>Abuse logs ≤30 days</td><td>By request, EU residency option <span class="mtag">contract</span></td></tr>
+      <tr><td>Microsoft 365 Copilot</td><td>No, default</td><td>Yes, in your tenant</td><td>No such option</td></tr>
+      <tr><td>Grok API (xAI)</td><td>No, default</td><td>30 days</td><td>Admin toggle <span class="mtag">setting</span></td></tr>
+      <tr><td>Perplexity API <small>used by LC Connect</small></td><td>No, default</td><td>Not retained</td><td>Yes, by default <span class="mtag">default</span></td></tr>
+      </tbody>
+  </table>
+  <p class="zfoot"><b>Our rule:</b> company business accounts only; pilot tests so far ran on personal accounts with public data.</p>
+  <p class="zfoot" style="margin-top:4px">Consumer plans train by default. Residency = where data rests + where inference runs.</p>
+  <p class="small" style="margin-top:6px">Vendor pages as of 4 Oct 2026.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">6</span></div>
 </section>
 
@@ -360,18 +363,19 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
   <h1><b>Seven decisions.</b> Then daily use becomes routine.</h1>
   <div class="dec">
     <div><ol class="asks">
-    <li><div>Green light for the formal pilot <span>terms follow in Munich</span></div></li>
-    <li><div>Hosting choice <span>A: your Azure · B: EU server</span></div></li>
-    <li><div>Identity provider for sign-in <span>Entra ID / Google / Okta</span></div></li>
-    <li><div>NDA and data processing agreement signed <span>before any company data goes in</span></div></li>
-    <li><div>Business workspace accounts for pilot users</div></li>
-    <li><div>Confirm the IT contact <span>for security questions</span></div></li>
-    <li><div>A date in Munich <span>second week of November</span></div></li>
-  </ol></div>
+    <li><div>Green light for the formal pilot <span>terms follow in Munich</span> <em class="own">management</em></div></li>
+    <li><div>Hosting choice <span>A: your Azure · B: EU server</span> <em class="own">management</em></div></li>
+    <li><div>Identity provider for sign-in <span>Entra ID / Google / Okta</span> <em class="own">Alice · Alex</em></div></li>
+    <li><div>NDA and data processing agreement signed <span>before any company data goes in</span> <em class="own">Alice · Alex</em></div></li>
+    <li><div>Business workspace accounts for pilot users <em class="own">management</em></div></li>
+    <li><div>Confirm the IT contact <span>for security questions</span> <em class="own">Alice · Alex</em></div></li>
+    <li><div>A date in Munich <span>second week of November</span> <em class="own">Alice · Alex</em></div></li>
+  </ol><p class="small" style="margin-top:8px">Four of the seven can be settled in this room.</p></div>
     <div class="use"><span class="k">Daily use</span>
       <ul><li>You talk to it, typed or by voice.</li><li>The model is the clerk: speech into facts the system stores.</li><li>Changes are confirmed before saving; confirmation rules per tool.</li><li>Fewer slips: IDs and addresses come from the record.</li></ul></div>
   </div>
   <p class="decline">Like a phone: in use from the first minute, no training course. <b>Use creates demand, and demand decides what we build next.</b> The pilot is measured by it: people connected, questions per week.</p>
+  <p class="contact">Bogdan Czarnecki · AutoOffice · bogdan.czarnecki@cfi.pl · +48 668 814 400</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
 </section>
 
@@ -451,7 +455,7 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
         <line x1="658" y1="150" x2="632" y2="150" stroke="var(--rule-strong)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a1)"></line>
       </g>
     </svg></div>
-  <p class="cap">From the service package of 15 September, unchanged. Slide 3 is its simplified view.</p>
+  <p class="cap">From the service package of 15 September, unchanged. Slide 4 is its simplified view.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">9</span></div>
 </section>
 </body>
