@@ -1,8 +1,9 @@
 # LC Connect — beads (2026-09-15)
 
 ## HANDOFF 2026-10-04 (read first after compaction)
-- [ ] Monday 5.10: meeting with Alice (photona) — agenda draft given in chat 3.10 (status, answers to Alice/Alex technical session: hosting option, IdP, DPA, security pack; data-before-NDA answer; 3-step path + dates; owners/budget 2027). Offer standing: 1-page English "security pack" for IT by Sunday evening — needs Bogdan's "tak".
-- [ ] UNKNOWN: outcome of Bogdan+Łukasz kitchen meeting 3.10 14:00 on contract scale (bridge doc: docs/pricing/2026-10-03-most-od-pakietu-do-partnerstwa.md; talking points PDF: docs/pricing/LC-Connect-rozmowa-z-Lukaszem-2026-10-03.pdf). Next deliverable after his answer: new 3-step package for Alice (pilot → implementation project 25–35 k → partnership 8 k/mo from 1.01.2027).
+- [ ] Monday 5.10, 16:30: meeting with Alice (+ probably Alex). Deliverable agreed with Łukasz 3.10: short English deck + harness diagram "in their language" (not training, harness; contract not tool; ZDR; no private subscriptions; what it does; what we need). Being built in docs/alice-2026-10-05/. Łukasz makes his own version, merge before 16:30. Security one-pager = backup slide in the deck.
+- [x] 3.10 meeting with Łukasz: notes docs/meetings/2026-10-03-piastowska-lukasz-notatka.md (+ transcript). Money: not settled; Łukasz: "small program vs strategy = different money", Alice does not decide. Next: Łukasz at Alice in Munich Fri 9.10; proposes next step 2nd week of November. Swedes asked to test after his presentation — parked until formal green light.
+- [ ] After green light: 3-step package for Alice (pilot → implementation project 25–35 k → partnership 8 k/mo from 1.01.2027), docs/pricing/.
 - [ ] Łukasz's 24.09 WhatsApp batch (11 photos + 8 videos) LOST (bridge purge). Ask Bogdan to export from phone to docs/comparison-kit/raw/lukasz-mail/2026-09-24/ or ask Łukasz to resend; then transcribe.
 - [ ] Munich visit 10–11.11 (two days; fly together, Łukasz continues to Sofia): demos planned = CAD fit-check, photo-of-list → visit plan on real data, Germany discovery live. Sales training on site after 6–7.12.
 - [ ] Humantic AI: take 7-day trial, test on Łukasz's Romania/Bulgaria trip (10–20 known people), compare prompts.

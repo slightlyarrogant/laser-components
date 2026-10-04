@@ -1,0 +1,914 @@
+Transkrypt: Piastowska.m4a (46 min), Whisper large-v3-turbo, 2026-10-04
+
+[00:00] Raz, dwa, trzy, Łukasz, Bogdan, okazjonalnie zdjęcie będzie włączał Maciek, którego się mam, trzeciego, nie?
+[00:07] No, także lecimy.
+[00:09] Przepraszam.
+[00:10] Dobrze.
+[00:10] Czyli temat Black Boxa w takim ujęciu, jak ja to rozumiem, mi to przedstawiam.
+[00:15] Czyli w jednym miejscu gromadzimy nasze dane w sposób bezpieczny i będą nam uciekały.
+[00:19] Czyli jeżeli budujemy swojego agenta, który się będzie na naszej wiedzy szkolił, na naszych danych szkolił,
+[00:27] ten agent wykorzystuje zewnętrznych agentów, typu tam odczata rzeczy Pi przez klauda, przez wszystko, co tam się pojawia na rynku,
+[00:35] zna nas, zna nasze dane, jest zabezpieczony przed wyciekiem danym, cokolwiek to słowo oznacza, do tego tematu jeszcze wrócę.
+[00:43] I tak naprawdę, bazując na naszych danych, jest w stanie sięgnąć głębiej.
+[00:48] I teraz moje rozumienie tego, jak to polega, że on sięga głębiej, jest takie, że w normalnym modelu,
+[00:54] że przechodzisz sobie jako człowiek z ulicy, pyta, że jakiegoś tam czata o coś tam,
+[00:59] to już z samych powodów zasobów, które są potrzebne, on nie wejdzie na przykład na stronę firmy XYZ i nie przeczesze jej,
+[01:05] tylko leci w powierzchni. Co znajdzie, to znajdzie, co nie znajdzie, to nie znajdzie.
+[01:08] Dlatego w momencie, jak my mu wbraliśmy dane ze strony, to on grzebie głębiej i wyniki ma lepsze.
+[01:16] To jest jeszcze prosta konkluzja, tak dla mnie, nie? Na tym etapie.
+[01:20] Dobra.
+[01:20] To jest jeszcze.
+[01:21] To ja teraz może tylko tak uporządkujmy sobie parę rzeczy, kwestie infrastruktury.
+[01:27] Bo mamy tak, OpenAI albo Antropic, albo co-kolwiek, są dostawcy modeli językowych,
+[01:32] czy też powszechnie nazwanych AI.
+[01:34] I oni tu mają, i to jest bardzo drogie, i tak szczerze powiedziawszy, tego nie ruszamy,
+[01:39] bo to po prostu jest.
+[01:40] No to jest, czyli mówimy tutaj o Cloudzie, mówimy o czacie, mówimy o jakimś kopilocie, o czymś tam.
+[01:45] I teraz szkolenie tego, to wchodzi w grę, tylko jeżeli mieliśmy wiadomo, miał yardową firmę.
+[01:50] Dokładnie, i to rozumie Ali, swoje szkolenie, i na tym etapie już mnie rozczarowuje,
+[01:54] że w ogóle o tym myśli, że w ogóle nie czuje ich bazy.
+[01:56] Czyli generalnie nie jest zbyt mądro.
+[01:58] Tak, tak, ale bo to doszło do takiej konfuzji.
+[02:01] My budujemy, coś się nazywa po angielsku harness, po polsku można nazwać upshore,
+[02:05] czyli zestaw takiego, takie narzędzi, które dają robotowi,
+[02:09] temu właśnie, tej sztucznej inteligencji, temu modelowi językowi,
+[02:12] temu narzędzia do tego, żeby rozumiał Twój problem.
+[02:16] Żeby rozumiał Twoją firmę, żeby rozumiał Twoje produkty, żeby rozumiał Twoje...
+[02:19] Dokładnie. Moje trenowanie jego nie polega na jakieś tam wrzucenie mu chmary danych,
+[02:24] tylko polega na tym, że ja mu wie, co ma zrobić,
+[02:26] trzeba mi zapamiętać, a następnie razem zrobił jakiś drobiazg lepiej,
+[02:29] że dokładnie wie, o co mi chodzi, a nie tylko mniej więcej,
+[02:32] i na tym, że go 100 razy skorybuje, on na końcu da mi dokładnie to, co ja chcę wiedzieć,
+[02:37] i na tym polega trening w moim momencie.
+[02:38] I dokładnie. I to jest właśnie, to jest dokładnie to, że trzeba robić to wielokrotnie.
+[02:43] Tak, powinno się nagrywać.
+[02:45] Że próba działania jednorazowego, że woda, że coś zrobił,
+[02:47] kazałem mu, ale wyszło głupotę.
+[02:49] Nie, trzeba wiedzieć, z każdej strony korybować,
+[02:51] on po jakimś czasie jest coraz lepszy, coraz mniej więcej błędów.
+[02:53] Tak, i ten proces takiej nauki tego właśnie,
+[02:57] że on te dane sobie gdzieś zapisuje,
+[02:59] możemy sobie zobaczyć, tak, to zajmuje coraz więcej miejsca,
+[03:02] ale też te modele obecnie są dość duże.
+[03:05] A teraz jest pytanie, które nastąpi,
+[03:07] gdzie te dane są zapisywane,
+[03:10] które my dotrojemy, nie?
+[03:12] I te dane powinny być zapisywane u Was na Azure,
+[03:14] albo gdziekolwiek,
+[03:15] bo to cała uprzeż będzie u Was.
+[03:17] Azure to jest co?
+[03:18] Azure to jest wszystkie serwery,
+[03:21] które wynajmuje Microsoft i za które wierzycie już kontaktę.
+[03:23] Ale on korzystając z tych informacji,
+[03:25] będąc strenowany,
+[03:26] i tak je wypuszcza na zewnątrz,
+[03:28] żeby zaściągnąć języka i ściągnąć wyniki,
+[03:31] czyli z siłą rzeczy...
+[03:32] To zależy od Waszej umowy,
+[03:33] bo generalnie ten niekoniecznie tak musi być,
+[03:35] bo w tej chwili zarówno Cloud,
+[03:37] jak i w OpenAI w ramach subskrypcji biznesowych
+[03:42] oferują zero data retention policy,
+[03:44] czyli nie zatrzymują tych danych,
+[03:46] z tym rozmawiamy,
+[03:47] bo nie jest to tak, że jedynie Wasza firma
+[03:50] ma ten problem, że nie bardzo byście chcieli.
+[03:52] Oni nie wiem czy rozumieją temat,
+[03:53] bo na przykład był temat taki na spotkaniu ostatnim,
+[03:56] no bo my wiemy na przykład,
+[03:57] używajcie wiesz,
+[03:58] w ogóle było durne jakieś takie ogólne zebranie
+[04:01] na tematy wszelakie tam istotne strategicznie,
+[04:05] między innymi AI,
+[04:06] no i będzie cały kwartał tam przyszłego roku,
+[04:08] po kolei powolutku,
+[04:09] będziemy w tym temacie szkoleni,
+[04:11] ale jak weszło się głębiej,
+[04:12] z czym oni chcą nas szkolić,
+[04:13] to pewnie jest bezpieczeństwa danej,
+[04:15] cyber security,
+[04:16] oni nie mają pojęcia.
+[04:17] Dla nich AI to jest,
+[04:18] że będzie AI księgowości,
+[04:19] że mogą sobie tam maile ułożyć,
+[04:21] że może w produkcji ktoś coś zaprojektuje
+[04:23] szybciej AI, coś tam, coś tam.
+[04:24] Jako koncepcji ogólnej,
+[04:25] oni to rozumieją,
+[04:26] ale bardzo, bardzo.
+[04:28] To nie jest złe,
+[04:29] raczej nie muszą rozumieć.
+[04:30] Czyli tak,
+[04:31] czyli generalnie Alex powinien nakreślić
+[04:33] na przykład,
+[04:34] ramy,
+[04:35] ale on ci nakreśli te ramy
+[04:36] od strony technicznej
+[04:37] i cyber security.
+[04:38] No i dokładnie,
+[04:39] powiedzieć na przykład,
+[04:40] że przejeżdżałem,
+[04:41] przeczytałem kontrakt z OpenAI
+[04:43] i Antropica
+[04:44] i wydaje mi się,
+[04:45] że z OpenAI
+[04:46] A dlaczego dążą?
+[04:47] Oni na przykład zaczęli wymieniać,
+[04:48] że używajcie Copiloto,
+[04:49] bo tu mamy licencję
+[04:50] i tu nie ma wycieku danych,
+[04:51] a na czacie GTP
+[04:52] to będzie wyciek danych.
+[04:53] Przecież to nie zależy od narzędzia,
+[04:54] tylko tego umowy.
+[04:55] Copilot to chiński robot,
+[04:57] bo OpenAI,
+[04:58] czy ten,
+[04:59] bo Microsoft używa
+[05:00] w tej chwili Kimi chyba
+[05:02] i oni go szkolą
+[05:03] na twoich danych.
+[05:04] Musisz zobaczyć,
+[05:05] przestać politykę firmy,
+[05:06] żeby to,
+[05:07] nie możesz zgadywać.
+[05:08] To jest tragiczny trochę.
+[05:10] Copilot też nie ma finansowania.
+[05:12] Poza tym moim zdaniem
+[05:14] do prac typowo badawczych,
+[05:16] zresztą będziemy tutaj
+[05:17] jakby na ten temat rozmawiali,
+[05:18] ale zaprojektowałem ci
+[05:20] dwa narzędzia.
+[05:21] Pierwsze to jest Perplexity,
+[05:22] które bardzo fajnie jest w stanie
+[05:24] się wgryć w internet
+[05:25] i wyszukać wszystkie informacje
+[05:27] i on potem karmi
+[05:29] tego drugiego robota
+[05:30] takim wynikiem,
+[05:31] ale Perplexity praktycznie
+[05:32] tworzy się raport naukowy
+[05:33] na temat, nie wiem,
+[05:34] szukasz.
+[05:35] On jest zarobisty.
+[05:36] To jest kurde.
+[05:37] I to jest jakby jedna,
+[05:38] jedna subskrypcja,
+[05:39] ja ją mogę ogarnąć
+[05:40] dla całej firmy,
+[05:41] bo tam myślę, że stu euro
+[05:42] miesięcznie się ogarnę,
+[05:43] niby dawno tego,
+[05:44] tego robił,
+[05:45] więc to w ramach tego pakietu
+[05:46] jakby wyszło.
+[05:47] A jak już przebadasz...
+[05:48] Tą strukturę bym
+[05:49] potrzebował od siebie
+[05:50] też rozpisaną w punktach,
+[05:51] bo ja muszę im ją
+[05:52] przedstawić ich językiem.
+[05:53] Tak.
+[05:54] Teraz w wadze
+[05:55] Copilota,
+[05:56] bo oni nie czają tego.
+[05:57] Copilot jest marny,
+[05:58] oni nie rozumieją tego,
+[05:59] że to jest w ogóle GIPA,
+[06:00] a nie rozwiązanie,
+[06:01] Copilot.
+[06:02] I teraz...
+[06:03] I drugi masz bardzo
+[06:04] sensowny model,
+[06:06] który powinni wybrać
+[06:07] raczej z tych dwóch.
+[06:08] Ja sobie nie wyobrażam,
+[06:09] że może Groka jeszcze,
+[06:11] bo Grok stara się,
+[06:12] ale Copilot jest rozwiązaniem
+[06:14] dla babci,
+[06:15] która chce napisać do wnuczka.
+[06:17] Windows za nią napisze.
+[06:20] Tak.
+[06:21] I to napisze.
+[06:22] I to napisze
+[06:23] i może za nią napisać LOL
+[06:25] i babcia...
+[06:26] No i to będzie cały...
+[06:27] Bardzo fajnie,
+[06:28] że to napiszesz.
+[06:29] To jest nawiązuje do...
+[06:30] Tak.
+[06:31] Dobra.
+[06:32] Także...
+[06:33] Pod tym kątem,
+[06:34] to uważam,
+[06:35] że Copilot jest słabym rozwiązaniem
+[06:36] dla firmy,
+[06:37] jeżeli chcesz mieć jakieś takie sensowne
+[06:39] dane gromadzone,
+[06:40] co nie?
+[06:41] I teraz...
+[06:42] To, czym my będziemy budowali,
+[06:43] to jest właśnie cała mechanizm gromadzenia
+[06:45] tych danych
+[06:46] i, że tak powiem,
+[06:47] obiegu tych danych
+[06:48] i cała skuteczność polega na tym,
+[06:51] żeby to była taka dosyć skuteczna zapora,
+[06:53] czyli że to, co trafia do tego...
+[06:55] Wiesz, gdybyśmy chcieli, myśleli o firmie,
+[06:57] która jest superbezpieczna,
+[06:58] możesz...
+[06:59] Wewnętrznie taki model,
+[07:01] bo są już te chińskie modely,
+[07:02] na przykład
+[07:03] Quenchy 8
+[07:04] i tak dalej,
+[07:05] tylko to jest wtedy cała infrastruktura,
+[07:06] żeby to hostować,
+[07:07] żeby to...
+[07:08] żeby to było dostępne,
+[07:09] można robić wewnątrz firmy,
+[07:11] wtedy nic nie wycieka.
+[07:12] Ale jeżeli...
+[07:13] Ja bym w to nie szedł,
+[07:14] bo to jest w ogóle duża,
+[07:16] duża komplikacja
+[07:17] i też...
+[07:18] Można mieć sensowną umowę z OpenAI,
+[07:21] z Antropikiem taką,
+[07:22] że nie zatrzymują Twoich danych,
+[07:24] nie używają ich do tak zwanego randomowego,
+[07:27] czy tam randomizowanego szkolenia swoich robotów.
+[07:30] Biznes za to płaci trochę więcej,
+[07:32] ale to działa.
+[07:33] Nie powinno się używać tego...
+[07:36] tego...
+[07:37] tego narzędzia, konektora
+[07:38] w prywatnej subskrypcji.
+[07:40] Co nie?
+[07:41] To jest taki element bezpieczeństwa,
+[07:42] bo jeżeli użyjesz go na przykład,
+[07:44] jako...
+[07:45] masz prywatnego chat GPT Plus
+[07:46] albo coś,
+[07:47] możesz sobie go podłączyć,
+[07:48] ale już teraz wszystko,
+[07:49] o czym rozmawiasz z tym robotem,
+[07:51] trafia do OpenAI.
+[07:52] Tylko, że już...
+[07:53] Na razie ja to im tłumaczę tak,
+[07:55] że to jest podpięte pod moją prywatną,
+[07:57] ale my nie mamy tam żadnych wrzuconych danych...
+[08:00] Tak.
+[08:01] Bo my mógłbym...
+[08:02] Zabawiamy...
+[08:03] Włącznie to ze strony internetowej?
+[08:04] Tak.
+[08:05] I kilka moich przykładów,
+[08:08] które nie zawierają danych klientowych.
+[08:10] I wszystkie dane są legalnie,
+[08:12] czy mniej lub mniej bardziej,
+[08:13] bo co do legalności to nie wiem,
+[08:14] ale są pobrane z internetu.
+[08:16] Są dostępne po prostu.
+[08:17] To jest taki biały wywiad, co nie?
+[08:19] Także tu nie ma nic takiego super poufnego.
+[08:22] Mamy oczywiście już robią strukturę,
+[08:24] już będą dzielić dane na półufne,
+[08:26] niepółufne.
+[08:27] Ważne jest w ogóle to,
+[08:29] na dłuższą metę,
+[08:30] jak się będzie to robiło,
+[08:31] żeby oni mieli świadomość tego,
+[08:34] żeby nie przesadzić z bezpieczeństwem danych.
+[08:36] Oni mają skłonność do przesady,
+[08:37] czyli oni robią wiesz,
+[08:38] wielkie hasło pod publikę,
+[08:39] to wszystko musi być marketingowe,
+[08:41] to jest po prostu duże bicie piany w naszej firmie.
+[08:43] Tak naprawdę, powiedzmy sobie szczerze,
+[08:46] zdecydowanie większość danych,
+[08:48] no oprócz tam może danych klientów,
+[08:50] typu tam wiesz, nie wiem,
+[08:51] prywatny mail,
+[08:52] większość danych i większość rzeczy,
+[08:54] które my robimy,
+[08:55] one są do odnalezienia w sieci.
+[08:58] No dokładnie.
+[08:59] Nie ma nic prywatnego.
+[09:00] Poza tym jeszcze dochodzimy do jednego miejsca.
+[09:02] Oni to rozumieją,
+[09:03] ale do końca nie chcą tego przyznać,
+[09:05] że mamy bardzo specyficzny produkt.
+[09:08] Mamy tak specyficzny produkt,
+[09:09] na tyle niszowy,
+[09:10] że konkurencja jest policzana
+[09:12] na koncach jednej ręki,
+[09:13] ona nie jest do końca konkurencją.
+[09:14] I to, czy klient,
+[09:16] na przykład mój,
+[09:17] wybierze mój produkt,
+[09:18] czy inny produkt,
+[09:19] to w ogóle nie zależy od tego,
+[09:20] czy on wie,
+[09:21] jaki jest konkurent,
+[09:23] jaka jest cena,
+[09:24] decyduje czas dostawy,
+[09:26] jakość,
+[09:27] cena na końcu
+[09:28] i to, co wynegacuje.
+[09:29] Czyli jakby dostęp do tej wiedzy,
+[09:32] nawet gdyby to wyciekło,
+[09:33] to totalnie nie wpływa na biznes.
+[09:35] Oczywiście są wyjątki,
+[09:36] mamy teraz wojnę
+[09:37] i ja na przykład niekoniecznie
+[09:39] chciałbym,
+[09:40] żeby ktoś tam nieodpowiedni w Rosji wiedział,
+[09:43] że dokładnie to i to jest,
+[09:44] gdzieś tam coś tam,
+[09:45] ale to jest inny temat
+[09:46] i oni na te tematy
+[09:47] w ogóle nie panują.
+[09:48] Tak.
+[09:49] Ja bym powiedział tak,
+[09:50] że rozumiejąc potrzebę
+[09:52] mania jakiegoś,
+[09:54] oczywiście,
+[09:55] poufności w tym, co robimy.
+[09:57] Żeby nie przesadzić.
+[09:58] Trzeba dokładnie.
+[09:59] To trzeba to,
+[10:00] to powinno być właśnie tak,
+[10:01] bo bardzo łatwo wszystko
+[10:02] zdać do poufnych,
+[10:03] ale sam wiesz,
+[10:04] jak jest wszystko w poufnych,
+[10:05] to nic nie jest,
+[10:06] bo ludzie prędzej,
+[10:07] że później muszą,
+[10:08] nawet nie wiem,
+[10:09] co, będą się zamykali
+[10:10] w jakimś szumiącym pomieszczeniu,
+[10:12] jak będą chcieli porozmawiać
+[10:13] z kimkolwiek.
+[10:14] Klucze u nas jest niepoufność,
+[10:16] bo te dane nawet jakby wyciekły,
+[10:17] tam nie ma nic,
+[10:18] co by nam wpłynęło
+[10:19] jakoś strasznie negatywnie.
+[10:20] Macie dany handlowe.
+[10:21] W większości wypadków
+[10:22] dany handlowe
+[10:23] są danymi w jakimś stopniu
+[10:24] poufności,
+[10:25] bo nie chcesz...
+[10:26] Ale jak jest to system e-faktur?
+[10:27] On będzie dość wydarzany
+[10:28] w większy w jakiś sposób.
+[10:29] Tam jest taki problem,
+[10:30] że podobnośnie,
+[10:31] niestety,
+[10:32] ale dane z e-faktury
+[10:33] mogą być publicznie dostępne.
+[10:34] Znaczy się,
+[10:36] to zależy,
+[10:37] ja, ja,
+[10:38] i cała i Krystyna
+[10:39] działa na e-fakturach.
+[10:40] Generalnie to polega na tym,
+[10:41] że musi mieć token
+[10:42] dostępowy
+[10:43] do danej firmy,
+[10:44] żeby pobierać.
+[10:45] I wtedy,
+[10:46] jeżeli jesteś częścią
+[10:47] transakcji,
+[10:48] to możesz sobie pobrać
+[10:49] te faktury.
+[10:50] Afera, że podobno
+[10:51] były wycieki
+[10:52] na poziomie urzędów skarbowych,
+[10:53] że oni, wiesz,
+[10:54] po prostu te dane w tym momencie
+[10:55] są w stanie łatwo
+[10:56] przerzucić
+[10:57] i sprzedawać.
+[10:58] To były takie przypadki.
+[10:59] No to, no to,
+[11:00] ale to jest jakby taki temat taki,
+[11:01] że jak urząd skarbowy
+[11:03] pobiera Ci 15 milionów faktur,
+[11:05] to gdzieś powinieneś
+[11:06] zapalić czerwona lampka.
+[11:07] Ja myślę, że z czasem
+[11:09] nasze instytucje dojrzeli do tego.
+[11:11] W tej chwili,
+[11:12] no to wszystko opiera się na tym,
+[11:13] że jeżeli ktoś może
+[11:15] i nikt go nie,
+[11:16] nie przywalił za to,
+[11:17] że, że, że,
+[11:18] że to, to może faktycznie
+[11:19] takie dane próbować sprzedawać.
+[11:20] Aczkolwiek wydaje mi się,
+[11:22] że mamy jednak dość spory zespół
+[11:23] odnajomcy,
+[11:24] bez cyberbezpieczeństwa w Polsce
+[11:26] i, i to,
+[11:29] i te skandale zdarzają się,
+[11:31] ale, ale też nie,
+[11:32] nie jest to tak,
+[11:33] że wszystko,
+[11:34] wszystkiego należy się bać.
+[11:35] Dobra,
+[11:37] słuchaj,
+[11:38] tam jest taka rzecz,
+[11:39] bo,
+[11:40] mamy w poniedziałek rozmowę
+[11:41] z Alice.
+[11:42] Mhm.
+[11:43] Ja już byłem tak trochę
+[11:44] nerwany,
+[11:45] bo przysłałem jakieś cyfry,
+[11:46] ale te cyfry chyba nie są
+[11:47] za bardzo dobre,
+[11:48] bo to są takie cyfry.
+[11:49] Co nie wysłałeś?
+[11:51] To.
+[11:52] Nie?
+[11:53] A,
+[11:54] czytałem Twojego maila,
+[11:56] to bym mówiłaś o czymś takim.
+[11:57] Mhm.
+[11:58] No,
+[11:59] więc, moim zdaniem,
+[12:00] to,
+[12:01] trzeba byłoby to ująć w ten sposób,
+[12:02] że, gdyby, gdyby,
+[12:03] gdybyś zwróciła do tego,
+[12:04] że,
+[12:05] rozmawiamy o jednym,
+[12:06] albo o drugim,
+[12:07] bo jeżeli rozmawiamy o jednym małym
+[12:09] programiku, nie,
+[12:10] który gdzieś tam trzeba wrzucić
+[12:11] i,
+[12:12] ktoś tam to będzie utrzymywał,
+[12:13] to jest to,
+[12:14] ale jeżeli rozmawiamy o
+[12:15] jakiejś strategii,
+[12:16] jakiejś większej współpracy,
+[12:17] no, to musimy rozmawiać troszkę
+[12:19] o innych pieniądzach, nie?
+[12:20] Mhm.
+[12:21] Ale to ona nie jest w ogóle od tego,
+[12:22] poświętałem,
+[12:23] że to nie będzie gdzieś tam.
+[12:24] To ona czym się zajmuje?
+[12:25] Szczerze, na razie nie wiem.
+[12:26] Na razie niczym,
+[12:27] bo jest nowa.
+[12:28] Po prostu ją przyjęli,
+[12:29] bo skończyła studia
+[12:30] o specjalizacji AI,
+[12:31] jeszcze nic z tego nie wynika
+[12:33] i po prostu jej pojęcie
+[12:34] o trenowaniu danych
+[12:35] jest takie,
+[12:36] to jaki to trzeba będzie mieć
+[12:37] drogi hardware,
+[12:38] żeby przerzucić
+[12:39] ogromnej ilości danych
+[12:40] do treningu?
+[12:41] Kurwa.
+[12:42] Małsona zwariowała.
+[12:43] Po prostu jaki model będzie szkolił?
+[12:44] Open AI?
+[12:47] Że jest głupie.
+[12:49] To świadczy o tym,
+[12:51] że licza jej bazy,
+[12:52] co jest generalnie korzystne,
+[12:54] możemy ją trochę za w ogóle opić, nie?
+[12:56] Tak.
+[12:57] Dobra.
+[12:58] I teraz o czym ona by chciała
+[12:59] z nami gadać wobec tego?
+[13:01] Bo to jest...
+[13:02] Nie wiem, czekaj, jeszcze chciałem tutaj...
+[13:03] Bo czy ona jest...
+[13:04] Bo ona tak wychodziła
+[13:05] dla mnie na handlowca,
+[13:06] ale mówi, że ona jest raczej
+[13:07] technikiem.
+[13:08] Ona jest techniczna.
+[13:09] Ona ma się zajmować...
+[13:10] Widzisz, ja
+[13:11] zacząłem tu przyglądać,
+[13:12] bo mieliśmy...
+[13:13] Całe mi się nie udało
+[13:14] przejrzeć,
+[13:15] że miałam sobie zasięg
+[13:16] tej całej telekonferencji w temacie...
+[13:18] Ale...
+[13:20] No...
+[13:21] W temacie AI
+[13:22] jakieś tam takie rzeczy chcą robić...
+[13:24] Taka niby jest strategia...
+[13:28] Konfigurowanie agenci...
+[13:30] Process Automatization...
+[13:32] Operational Intelligent...
+[13:34] Productivity AI...
+[13:36] Ale głównie o bezpieczeństwie danych...
+[13:39] Development, Engineering, Marketing...
+[13:41] Marketing...
+[13:43] Everyone...
+[13:45] No private accounts...
+[13:47] Dobra, słuchaj...
+[13:49] Aha, że...
+[13:50] Copilot ma być dla everyone...
+[13:51] Cloud'a zaczęli używać ma być dla inżynierów...
+[13:53] I coś tam jeszcze dla marketingu...
+[13:55] Jakiś...
+[13:56] Jakiś język...
+[13:58] Musiałem to włączyć na...
+[14:00] Także oni w tym temacie...
+[14:06] Chcą strasznie dużo robić...
+[14:07] Ale mają bardzo mało pojęcia...
+[14:08] No i tak...
+[14:09] Przecież to wygląda...
+[14:10] No cóż...
+[14:11] Open AI w ogóle nie wchodzi w grę?
+[14:13] Bo Open AI ma dość fajne te...
+[14:16] Umowy biznesowe...
+[14:18] Zostań nie wchodzi...
+[14:20] Tylko oni w ogóle nie...
+[14:22] Albo oniż podjęli takie decyzje...
+[14:24] W ogóle się tak...
+[14:25] Przecież co...
+[14:26] Ona im to zeskorowała...
+[14:27] Studentka...
+[14:28] No kuż...
+[14:29] To jest takie trochę wiesz...
+[14:30] No słabe no...
+[14:31] Ale tak działa moja firma...
+[14:32] Też takiego...
+[14:34] I tak sobie wymyśli produkty AI...
+[14:36] I to jest...
+[14:37] I pojęcie o AI...
+[14:38] I w tym temacie chcą szkolić...
+[14:39] Właśnie w temacie...
+[14:40] Zwłaszcza w temacie...
+[14:41] Cyber Security...
+[14:42] Jakieś takie rzeczy...
+[14:43] No to co to jest?
+[14:49] To jest jakieś do marketingu...
+[14:50] Nie wiem...
+[14:51] Jakieś wiz...
+[14:52] Jakiś język...
+[14:53] Więc siłą rzeczy jest tak...
+[14:58] Że oni nie siedzą w ogóle w temacie...
+[15:00] w temacie i by trzeba było w ogóle zrobić
+[15:01] tak naprawdę porządną prezentację
+[15:03] czym jest AI
+[15:05] poza ujęciem technicznym
+[15:07] i oczywiście spróbuję im to zrobić, ale
+[15:10] nie wiem, no zobaczymy po prostu
+[15:13] na razie nie wiem o czym ma być to rozmawiam z nią
+[15:15] spotkanie jest tylko z nią, tak?
+[15:17] Zobacz na to spotkanie. No niczym, może po prostu
+[15:19] ona ma w agendzie, że musi
+[15:21] odbyć ileś tam spotkań w tym temacie
+[15:23] i zobaczymy dalej. Ale dobra,
+[15:25] jeżeli sobie, ja sobie wyobrażam, że tak
+[15:27] Aleks będzie też, Aleksander
+[15:29] czyli techniczne spotkanie
+[15:31] czyli tak naprawdę
+[15:32] chodzi o
+[15:38] sprawy techniczne, które
+[15:40] były w tym mailu gdzieś tam wymienione przez nią
+[15:41] czy z twoim, już nie pamiętam
+[15:43] tylko o spędynce ostatnie. Dobra, zaraz
+[15:46] zobaczymy tego maila
+[15:48] żeby były w tym
+[15:50] generalnie jest parę rzeczy, które jeszcze
+[15:57] chciałbym też, które chciałbym
+[15:59] bardziej używać, głównie właśnie do networkingu
+[16:01] czyli do łączenia
+[16:02] Poczekaj, sprawdź, już sprawdź maila od Alice
+[16:05] z Laser Connect
+[16:07] chodzi o spotkanie
+[16:11] w poniedziałek
+[16:13] Dobra, zaraz już
+[16:21] aha, jestem niepołączony
+[16:24] A jaki tu masz i fi?
+[16:27] któryś ma jakiś
+[16:28] funboxa czy coś takiego?
+[16:29] czy to co tu masz?
+[16:30] Gigacom
+[16:31] który?
+[16:33] Ten?
+[16:35] Gigacom
+[16:36] 36B1
+[16:37] 36B1, dobra
+[16:39] i pisałbyś mi hasło?
+[16:41] Dupet hasło, nie?
+[16:45] Dzień dobry
+[17:19] Ja wiem co to mogę ciągle tego hotspota łączyć
+[17:21] to nie będziemy przedłużać
+[17:23] Czekaj już tutaj
+[17:25] Tutaj
+[17:32] [dyktowanie hasła do Wi-Fi — usunięte z transkryptu]
+[17:45] Dobra
+[17:50] Jest, letaj
+[17:53] Chodzi o wędo
+[18:00] Nieeeet
+[18:02] Chodzi o wędo
+[18:04] Gramy w bridge'a?
+[18:16] Poczekaj
+[18:18] Pysami sobie
+[18:25] Kuuu
+[18:27] Dobra, dość puste
+[19:34] Hmmmm, dobra, to nie ma
+[19:41] Nie ma żadnych tych
+[19:43] Ty mi wysłałeś jakieś skany, nie?
+[19:45] Poczekaj, spróbuję się jeszcze połączyć
+[19:47] z domowym serwerem
+[19:49] Bo te skany sam tam przechowałem
+[19:51] Moment, ssh
+[19:53] Tak
+[19:55] Think Tank, jesteśmy w domowym
+[19:57] Czekaj się już i teraz
+[20:10] Mógł się nie dać tutaj
+[20:31] Jaka ma być agenda spotkania
+[20:33] Alice
+[20:39] Masz
+[20:41] Do wszystkiego trzeba wyjść z tego poziomu, że oni nie wiedzą na co chodzi
+[20:43] Trzeba ich wyłączyć jak krowie na roli
+[20:45] Oni coś tam wiedzą, coś tam chcą
+[20:47] Podobają im się prezentacje, które im pokazujemy
+[20:49] I wyniki
+[20:51] Nie do tego trzeba mieć niestety
+[20:53] No tak, tylko że problem polega na tym, że Alice jest nową osobą, która nie jest
+[20:57] Ale ale jest może
+[20:59] Ale Aleks może
+[21:00] Ale na Alex może. Ale Aleks może.
+[21:03] Ale Aleks może. Skupmy się na Aleksie. Ona musi w tej chwili robić wrażenie.
+[21:07] Więc jest teraz taką postacią, trochę dla mnie zabawną, bo wszystkie mitygi są po niemiecku, tylko z powodu Ali są po angielsku, bo ona
+[21:17] musi mieć tam jeszcze czas, żeby nie osób do niej wyczestaje. Politycznie pokładnie jest Afro-Merykańka.
+[21:29] No właśnie, tak sobie pomyślałem. To jest to token.
+[21:34] No to jest inny.
+[21:36] A do tego mirem została jeszcze.
+[21:48] Okej, czyli co ona będzie chciała tak po polsku?
+[22:04] Nie wiem.
+[22:05] Nic, nie wiem, co będzie chciała.
+[22:08] Mieście, skoro mnie się pyta, jakie będą wymagania sprzętowe do odróbki wielkiej ilości danych przy treningu, to już widać, że nie czali bazy.
+[22:16] I już po prostu ja sprzedziłem na ziemię.
+[22:18] Ale na dyskusję z niej, co jest po prostu lepsze.
+[22:21] Wiesz co, bo ja generalnie mam rozwiązanie, które jest agnostyczne, czyli możesz sobie podłączyć do czego chcesz.
+[22:33] Ale to jest trochę tak, jakbyś wziął, nie wiem, czasami do Audi Q5 wstawisz silnik z Trabanta.
+[22:41] No pojedzie Ci.
+[22:43] A czy coś wiesz?
+[22:45] No bo silnikiem jest sztuczna inteligencja, co nie.
+[22:47] Mamy harness, który jest karoserio i tymi wszystkimi samochódzami i tak dalej.
+[22:51] No możesz sobie wybrać silnik jaki chcesz, bo to jest tak zrobione, że tak jest.
+[22:56] Tylko jak dasz takiego chińskiego Kimi.
+[22:59] Ja gomammy, jak gommy lecą na jakimś Co-pilocie i w tej chwili cloudzie też, coś tam na cloudzie robimy.
+[23:03] Ale głównie developing, czyli jakąś tam inżynierią.
+[23:06] No bo daj im cloud code. Cloud code też pochodzi Ci z tym rozwiązaniem, ale ten, no nie wiem, sam osobiście mam takie...
+[23:16] Tak zastanawiam się, nie?
+[23:18] Znaczy, oni mają kasę, więc jak im powie, że mają, wiesz, będzie potrzebna włożenia pieniędzy w to, w to, w to i w to i tak tam nadziałać, no to się wydarzy.
+[23:27] Ja bym się tym nie kierował, nie?
+[23:30] Nie chodzi nawet o to, czy faktycznie ta infrastruktura musi być, tylko chodzi o to, o sam charakter jej pytania, który pokazuje, że on w ogóle nie rozumie od co chodzi tego problemu.
+[23:40] Już my nie budujemy nowego, wiesz, nie wiem, AI-a.
+[23:43] Nie celujemy, bo na danych, nie wiem, lubię na klientów, to w ogóle nie...
+[23:48] Nawet szkolenia, klientów nikt nie robi, poza tymi kilkoma firmami, bo to jest po pierwsze cholernie drogie, a po drugie w momencie, jak je zakończysz, to koniec, nie?
+[24:00] Ten model się nie rozwija, zostaje w miejscu i teraz jedyną metodą tego, żeby on się czegokolwiek uczył od momentu zakończenia treningu, jest albo kolejny trening, co jest kolejne wiesz, setki tysięcy dolarów, bo załóżmy, że możesz to jakoś uprościć, nie?
+[24:16] Albo właśnie uprząż, no i ta uprząż jest dużo lepsza, no to jest tak jakbyś miało zamiast...
+[24:22] Tak, ale chodzi o to, że to co ja rozumiem pod trenowaniem, to jest po prostu codzienne użytkowanie i korygowanie, bo on się uczy, Lenin Bejduji, to jest wszystko, nie?
+[24:31] Tak, żeby on się uczył, to on musi mieć to gdzieś zapisane, że na przykład sobie zapisuje błędy, nie?
+[24:35] No i to jest właśnie dlatego ta uprząż, bo inaczej to jak ja zaczynałem współpracę z AI, a pracowałem już na dużych modelach od trzech lat, od kiedy się pokazało już od GPT-35 i od pierwszych wersji Antropica,
+[24:52] to z okazją razem miałeś to samo wrażenie, że wchodzi Ci bardzo bystry, młody, inteligentny człowiek, który zaczyna pracę w firmie i dosyć szybko się uczy, ale dosłownie za chwilę kupieje i nie pamięta co zrobił.
+[25:05] I zaczyna jeszcze raz to samo zadanie, robi to bardzo szybko, bardzo poprawnie, ale zupełnie inaczej i wtedy masz, no nawet to w kodzie było tak, że nagle Ci się okazywało, że masz to samo zaczynte cztery razy w różnych miejscach, nie?
+[25:17] Aha, no dobra, to spoko, to mi zniknęło już z mostkaczy, tam z mojego błocąpowego wyłączenia to te zdjęcia, ale to jest to, czyli teraz tak, co ona by chciała?
+[25:41] To, co ona by chciała… [fragment niezrozumiały — Whisper zapętlił się, ok. 25:41–26:26]
+[26:26] No tak, no, ale żeby cokolwiek ich szkolić, to musisz mieć zgodę na to, że tego można używać.
+[26:31] No tak, ale mogę ich szkolić już z tego, co robię, czyli bazują znawian na moim prywatnym koncie danych ze strony i na lcconnect, takie różne tam działania, które podejmowałem, to mogę im pokazać, jak to działa, bo oni już chcieliby, wczoraj się odezwali Szwedzi, żeby mi się podobała prezentacja, oni by chcieli też to potestować, nie, ja im odpisałem, okej, teoretycznie jest to możliwe, ale na razie tego nie robimy, czekamy na dzielone światło, no właśnie dogadujemy szczegóły,
+[26:56] jak miałoby to wyglądać. Generalnie kierują się tym linkiem, oni też byliby sobie w stanie zainstalować to nawet w apce i...
+[27:04] Ale wolałbym, żeby tego nie robili, by to siedził mi na domowym komputerze, jak tam, kuwa, nie chcę żadnych danych, które, wiesz, bo to...
+[27:11] Na przykład, danych ci nie wrzucą, nie, bo to nie o to chodzi, tylko, że...
+[27:13] No ale z czasem to się różne rzeczy będą tam działy, więc nie chcę, żeby się potem jakieś FBI mi pojęło w domu, nie.
+[27:21] Nie, tam nie ma żadnych... Oni mają też zakaz wrzucania tam jakichkolwiek danych z firmy,
+[27:26] na razie bazuję tylko na tych jakichś tam rzeczach zewnętrznych i na stronie.
+[27:31] No dokładnie, a dlatego najlepiej byliśmy tą stronę formalną zakończyli, tylko żeby to się tak strasznie nie ciągnęło, bo...
+[27:38] To się może ciągnąć. W takiej firmie tego typu to...
+[27:42] No, ale co trzeba powiedzieć temu, tej uprzejży, że generalnie ona się...
+[27:47] Już może się trochę polepszyć.
+[27:50] Prawdopodobnie przejdziemy na nową wersję tego takiego standardu, który tam jest, MCP, już na 2.0, bo to jest ten...
+[27:57] Ja to zrobię, jak zaczną już używać tego te... Ci najwięksi dostawcy, właśnie Antropic i OpenAI, ale generalnie już jest dosyć dojrzała technologia działania, bo myśmy...
+[28:09] Ja tak sobie sięgałem pamięcią, jadąc do Ciebie od naszych pierwszych rozmów i początków, to teraz pomysły były bardzo nieudolne, a to już masz takie coś, co naprawdę można, moim zdaniem, bardzo łatwo zastosować, zaimplementować.
+[28:20] Nie wymaga kosztownych, jakichś ogromnych tych. Po prostu się zaczyna tego używać i to jakby wchodzi w krew.
+[28:28] Powiedz, więc tam jeszcze wysłałem jakiś zewnętrzny model, który analizuje ruch w sieci oparty o osobę, bo ja chciałbym też analizować na przykład...
+[28:38] To taka ciekawostka egzotyczna, że idę do klienta, mogę sobie przeanalizować, bazując na ruchu w sieci tej osoby plus minus jego jakiejś tam mentalnej konstrukcji, żeby wieś,
+[28:50] jak się z nim obejść przy pierwszym kontakcie, nie?
+[28:55] No rozmawialiśmy kiedyś o tym o...
+[28:56] Ja to wysłałem ci ostatnio, jest jakaś wysyta testowa jakiegoś nowego tego...
+[29:00] Tylko problem tkwi w czymś takim, na ile to jest legalne.
+[29:03] Bo w Unii Europejskiej, to ja bym powiedział, że stąpamy po bardzo, bardzo silnkim nodzie w tym zakresie.
+[29:09] No, można zapytać, o to będzie to jest legalne.
+[29:11] No, jeśli to będzie nielegalne, to ja sobie tutaj tak w drodze prywatnie pozyskiwał tę informację.
+[29:16] No tak, ale to wtedy jakby to trzeba byłoby jakoś inaczej obejść, bo ja nie mówię, że tego ludzie nie robią, bo ja podejrzewam, że jeżeli takie coś jest, to wszelkie agencje wywiadu i tak dalej, to oczywiście czy policja.
+[29:28] No, dokładnie.
+[29:30] No, jeśli chodzi o zachowanie marketingowe, żeby wiedzieć, jak to zagadać, jakby jego dotrzeć.
+[29:34] No, dokładnie. Tylko, że ostatnia taka właśnie na większe, to zakończyła się grubą aferą, bo pamiętasz, że chodziło to laboratorium w Wielkiej Brytanii,
+[29:44] które, Cambridge Analytica, które tam targetowało duże grupy ludzi, bardzo skutecznie.
+[29:49] No, dzięki niemu, dzięki niemu Duda wygrał, nie?
+[29:52] No i Brexit się zrobił, nie?
+[29:54] I Brexit się zrobił.
+[29:55] No, bo tam były też niewielkie ilości procentowe, które przechyliły się, ale potem ludzie obudzili się w trochę innym świecie, zaskoczyli.
+[30:02] Przecież nie tak miało być. Mieliśmy się wszyscy tylko dobrze bawić i miało się skończyć.
+[30:07] Proszę, wygrałaś.
+[30:09] To rób.
+[30:11] To robią teraz.
+[30:13] Chodzi o to, że tak, to można rozważyć, tylko to nie jest takie narzędzie, które mogłeś wdrażać w firmie bez jakichś zgód rządowych i tak dalej, bo to jest już...
+[30:23] Na każdym razie to trzeba sprawdzić, to jest jakieś tam jedno.
+[30:26] No.
+[30:27] Tak, tak, ale to są, jak patrzysz się na na przykład na wymagania odnośnie RODO i czy tam to się nazywa po angielsku GDPR, to jest, to problematyczne, nie?
+[30:43] Zbierz to wszystko wstępnie, co nagrasz, jakiś rodzaj prezentacji takiej dla nich, być może jeszcze bym ją...
+[30:51] Możemy ją Alice pokazać nawet jutro, pojutrze.
+[30:55] Ja ją skoryguję, ja bym wygenerował, proszę mojego, żeby wygenerował mi to tak, jak ja to bym pokazał.
+[31:02] Prównamy te nasze dwie i zrobimy z tego, jak on się tam wspominał i tyle.
+[31:06] Tak, żeby mówić ich językiem, bo to jest największy problem.
+[31:08] Tu widzę, że jest największy problem taki, żeby dalać język taki, który nie rozumieją, nie?
+[31:13] Te prezentacje zrobiliśmy ostatnio trochę pomogły, ale mówię, jak oni mówią, że to jest dla niego od początku black box i o co w ogóle chodzi i do czego to ma być i co się ma z tym wiązać.
+[31:22] Aleks mówi, że to jest dobre, ale dla niego to jest też black box, bo nie wie, co tam dałeś w środku i jaka konstrukcja tego.
+[31:28] Więc coś na temat tej konstrukcji też będą chcieli wiedzieć w taki sposób, żebyś tam nie musiał swoich know-how'ów, jakiegoś to zdradzać, ale tak, żeby wiedzieli mniej więcej, co to uprzęż robi, jak to funkcjonuje i dlaczego tak.
+[31:41] Dobrze, to ja zrobię taki diagram, żeby było wiadomo, co tam w sieci.
+[31:45] A, diagram, no.
+[31:46] Od uprzęży bym napisał, to jest dobre. Napisz w ogóle uprząż, napisz.
+[31:50] Zrób to tak, żeby im przekazać w ogóle różnice pomiędzy tym, co oni w tej chwili robią, że mają tam jakieś coś, wiesz, do rozwoju produktu z cloud'a, mają jakiegoś kopilota do maili, nie wiadomo czego jeszcze.
+[32:01] Dlaczego to jest zupełnie już, wiesz, przestarzała technologia, a jest, chociażby z tego powodu, o którym mówiłem, z tą transkrypcją i nie tylko cloud.
+[32:11] Dlaczego w ogóle chcemy to robić, uprząż do tej uprzęży wrzucić inne modele, a nie mają jakieś takie obiekcje na zasadzie, no bo czatu GTP nie możemy używać, bo nie wiadomo, gdzie te dane wyciekają, a w cloudzie wiadomo, gdzie wyciekają.
+[32:23] Jakieś bzdura lubię. Ako pilot? No właśnie, to im powiedz i wyszczególni im to, no to jest średniowieczne cały czas, myślę, że będzie...
+[32:31] Bo OpenAI ma modele lokowane w Europie i to jest właśnie jedna z firm, która poszła dosyć daleko, bo oni się bali tego AI Act i mają modele lokowane w Europie, z których też jest zero data retention policy, to trzeba powiedzieć.
+[32:47] O tym właśnie data retention policy, o bezpieczeństwie danych, podkreśl wady kopilota, podkreśl, że w zasadzie cloud GDP to jest to samo i plus różne inne groki, cokolwiek i ta uprzęż będzie w stanie korzystać od wszystkiego w razie potrzeby, że te dane będą zabezpieczone, że pozostaną do naszej dyspozycji.
+[33:05] My musimy tak naprawdę tutaj zacząć, tak naprawdę zarządzać tą naszą bazą wiedzy, którą zarządzamy, bo my posiadamy gigantyczne ilości danych, których nie używamy.
+[33:15] My na przykład wiesz, nie łączamy w ogóle, ja na przykład nie wiem, co robią nasi koledzy w Stanach, bo nie mamy wspólnych systemów IT.
+[33:21] Można by to jakoś połapać i wygenerować z tego też jakąś wiedzę. Po prostu nie mamy dobrej bazy wiedzy.
+[33:27] My mówimy o wycieku danych, a prawda jest taka, jak ja miałem przenieść, był projekt, żeby zrobić pieniądze i przenieść produkcję zawiedzone części do Polski, z kopiowo się po prostu.
+[33:38] To mi powiedział szef, że jeżeli oni nie będą chcieli nam w tym pomóc, to projekt się nie uda, bo my nie wiemy tak do końca, jak oni to robią. Rozumiesz?
+[33:45] Nasz najlepszy know-how nadal jest w głowach ludzi. My mówimy marketingowo, wielkie spotkania, meetingi, pierdol, pierdol.
+[33:52] Najważniejsze z rzeczy, jak dokładnie się pieczy ciasto, tego nie mamy zapisanej, bo oni się z tym podzielili, bo się boją, że się gmini.
+[34:00] Oczywiście, bo to firmy tak robią, ale ja jestem przekonany, że AI tutaj może nam pomóc takiej rzeczy, bo ja na przykład osobiście jak pracowałem z papierami różnego typu dokumentacji, to się zawsze tak kończyło, że masz pięć czy sześć rzeczy, które pamiętasz gdzie są, nie?
+[34:20] Bo są ważne są twoje aktualne projekty i po pewnym czasie one spadają, bo wiadomo kończą się, wrzuca się do szafy i one leżą w takim dużym stosie i potem myślisz sobie, kurde, ja to 4 lata temu robiłem, 3 lata temu i za chiny ludowe nie znajdziesz, bo tam leży taki stos i dla tej umowy i kurwa jakieś skupki od bananów.
+[34:41] Znaczy jak ja chodzę po klientach i często ludzie dzielą się tym co robią, ja mam gigantyczną też bazę wiedzy o klientach i o rynku.
+[34:51] Jest firma X, która robi kurde, pierdolnik numer 1, a jest firma Y, która robi numer 2, one się generalnie, te kropki się nie łączą, oni się nie znają, ale jak ja ich połączę, to będą robili pierdolnik numer 3 i będą potrzebowali moich rzeczy.
+[35:02] Ale ja w życiu po latach z tych raportów i z tych danych systemu sam tego nie wydobędę, bo to jest po prostu, no tak jak mówisz, tam latają mole, tam są jakieś nitki i tak nie połączę ręcznie.
+[35:13] I co, nie będzie coś klepkiego, więc człowiek to otwiera, zamyka zaraz i tak właśnie...
+[35:19] I do tego ja bym chciał tego użyć, nie?
+[35:21] Więc to co ja ci mówiłem, czego oni nie chcieli robić, to jest w ogóle absurd, że przychodzi do mnie klient, słuchaj, mówi, chcę kupić waszą diodę i waszą optykę, ale nie wiem dokładnie, jak ona wygląda,
+[35:32] ale chce mieć z tego taki i taki moduł, a my mówimy, my panu tego nie zaprojektujemy, to musi pan do inżyniera optykę, który panu zaprojektuje optykę, przynieść do nam rysunek i my według rysunku wykonamy, rozumiesz?
+[35:42] I my panu nikomu nie polecimy, bo to nie nasze zadanie, nie nasza branża.
+[35:47] Totalny absurd.
+[35:49] No to trochę dziwne, bo...
+[35:51] Znaczy ja ci podam przykład taki, bo pracowałem właśnie w tym, w tej branży chemicznej, pojechaliśmy do takiego producenta, nazywa się tego, co robi dla Szamponu Vella, no nie?
+[36:02] Oni też robili, to BASF to było chyba, oddział BASF zajmujący się tym i oni mieli nam, chcieli nam wcisnąć jakieś składniki do tego szamponu, bardzo drogie, ale skuteczne i zresztą wcisnęli nam i oni dla nas opracowali receptury.
+[36:15] My mieliśmy swój zjawo złojów, całkiem nieźle byliśmy w tym, ale oni nam zrobili receptury i zresztą były bardzo fajne receptury, bo chcieli nam spytać składniki do tego.
+[36:25] I kupowaliśmy od nich przez parę lat te składniki.
+[36:27] U nas jest to nie do przejścia, bo jest mental taki, to nie jest nasza sprawa, nie mamy do tego ludzi, nie mamy jak tego ogarnąć i teraz miejsce tego braku ludzi, z jednej strony można by było wpuścić inne zewnętrzne firmy, tylko to jest złożona branża i ja tego sam nie zrobię dobrze.
+[36:45] Potrzebuję modelu, który to zrobi, albo nawet w przyszłości, jeżeli będzie tych błędów mało, zrobić to unel, że ktoś to po prostu wrzucił w jakiś model i po prostu się to przeliczy, nie?
+[36:54] Na nie, tu jest taka dioda, takie zastosowanie, to pan chce uzyskać, cyk, cyk, taki jest rysunek chce pan, robimy, no i tyle, tego nie ma, to jest w ogóle absolutnie dobre.
+[37:03] Czyli klasyfikacja informacji, przeszukiwanie jakichś stosów, łączenie, cross-selling, w ogóle bale wiedzy.
+[37:09] To jest, to jest, oni to robią, oni to robią super.
+[37:11] Ja wiem o tym, bo to jest po prostu, to jest totalny, totalny dramat, nie?
+[37:16] Ja na przykład też bym chciał bazując na wynikach, tu muszę mieć wyniki w samom momencie wszystkie te, efektywnie ocenić efekt i jakość
+[37:25] moich wizyt w poszczególnych firmach, w zróżnieniu po prostu na branżę, żeby po prostu znaleźć, wiesz, feeling, co zmienić, żeby wybierać lepiej,
+[37:37] albo żeby lepiej prowadzić jakieś tam, bo po prostu niektóre firmy są z dupy, a niektóre firmy z dupy się okazują, że nie jest nibyło jednak z dupy.
+[37:44] To jest tak różnorodny pakiet, żeby to ocenić, jak mając dane sprzedażowe, ilości zapytań, ofertowań, coś tam, coś tam.
+[37:51] Ja, mając wszystkie te dane z kilkunastu lat i raporty i tak dalej, no jestem w stanie z tego coś wyrzucić, jakiś trend na przykład, nie?
+[37:59] Albo też mogę sprawdzić na przykład często osoby przeskakują z firmy do firmy i się okazuje, że...
+[38:05] No, tylko wiesz, tylko jest taki problem, bo z tego, co rozumiem, że prędkość działania takich projektów to jest mniej więcej bliska do prędkości lodowca, nie?
+[38:13] Czyli, czy tam kiedyś była ta pokała lodowcowa, wyszły z Polski, przyszły z Polski i tak dalej, ale to wszystko patrzysz się na to, raczej myślisz, w tempie ery geologicznej nie godzien, a nie minut,
+[38:27] bo jak zakładasz, zakładam, że Ty pójdziesz jakiś czujnik sprzedać, to on Cię może w gotowym projekcie za 5 lat pokaże, nie?
+[38:35] Może za 3...
+[38:36] Projekt trwa 3 lata, przecież nie? Od pomysłu do realizacji.
+[38:39] No, to chodzi o to, że to właśnie jest dosyć długo, nie? Jakby tu byśmy się też jeszcze kolidowali z taką kwestią, czy ten proces, wiesz, walidacji klientów, to by Cię zajął za 3, 4 lata, nie?
+[38:52] To jest takie co zajął za 3 funkcjonowań, to jest jedna rzecz, a po drugie, to musiałbyś mieć połączenie też z Twoim systemem ERP, co tam...
+[39:00] ERP, co tam. Ja to mówię właśnie, no, no, koncepcja jest taka, ja im o tym mówię, że
+[39:06] dali byśmy do tego, tych uprzęży, dostęp do dużej części czy większości naszego CRM, ERP.
+[39:13] I to by robił np. wtedy bardzo byś fajnie poruszał taki cloud, czy jakbyś, no musiałabyś mieć
+[39:19] inteligentny model. On by sobie zczytał najpierw dane sprzedażowe np. z tego roku i potem
+[39:25] popatrzył wstecz się na twoje wizyty i by ci powiedział, że te wizyty przyniosły efekt, te przyniosły,
+[39:31] a te tam nie warto. To ja jestem w stanie też zrobić, ale ja bym poszedł głębiej, żeby on bez
+[39:36] związku na opercie spojrzył na specyfikację tej firmy, branży i w ogóle do jakich branż i firm
+[39:43] w jaki sposób warto uderzyć, czy w ogóle warto jeździć. Może do tego nie warto, może do tego warto,
+[39:48] może to warto bardziej, może to warto mniej. Może jest firma, która zmienia co dwa lata,
+[39:53] osoba, która zmienia co dwa lata firmę i tam gdzie jest ta osoba, to projekty powstają, tak final mamy np.
+[39:59] a tam gdzie nie ma tej osoby, to tych projektów jest mniej. Może za osobą powinienem dany np.
+[40:03] w nie wiem, jakoś tam mieście się przynieść.
+[40:04] Ciekawe.
+[40:05] No to jest, jest coś w tym.
+[40:08] Więc trochę tego jest i np.
+[40:11] świetnie się też sprawdza przy tym, że
+[40:16] nie wiem oczywiście jakby było bez tego, bo nie miałem możliwości przetestowania w tym momencie, ale
+[40:19] poszłałem na targi.
+[40:21] A widziałem to, bo bardzo fajne.
+[40:22] Powiedziałem, żeby bardzo dokładnie mało, czego ja szukałem, że przejrzał osoby,
+[40:26] która jest zmieniona, kompetencje tych osób, zajrzał w internet,
+[40:30] są firmę i wybrał mi łącznie ze ścieżką i mapką, gdzie ja mam pójść, o koło mam pytać i o co zagadać.
+[40:37] To się sprawdziło tak w 65%.
+[40:41] A pozostała część, co się nie sprawdziła, po prostu tych ludzi nie było albo były stoiska fake.
+[40:45] Ktoś dał wiesz, kupił stoisko, powiesił reklamę, ale na tym się skończyło jego...
+[40:50] Pomyślałem, że ja bym takiego już z case'u nie był.
+[40:54] I to mój, właśnie mój ten, klient będą mi opowiadali taką historię, że on też tak zastanawia się nad tym łącznikiem, bo to jest system ERP.
+[41:04] Poszedł do klienta, a klienta to powie, to pokaż mi to.
+[41:08] I tak, usprawni mi technologię gięcia blachy, co by można było zmienić, żeby zmniejszyć straty.
+[41:15] I system rozbił to na ten.
+[41:18] Zrobił mu tak, że o co miałem chyba 10-15% więcej uzysku i mówił, że mu tylko jednego przycisku zabrakło, żeby mu to wrzucił do systemu.
+[41:26] I był w szoku, potem klient mówi, no kurde, jedziemy, robimy to.
+[41:31] Bo to... to tak działa, nie?
+[41:34] To działa.
+[41:34] Natomiast jest też ryzyko w drugą stronę, o którą musimy pamiętać.
+[41:38] I jak my, nie daj Boże, byśmy na przykład wrzucili spraw czy wyniki działania tego i tego dyrektora i ten, oni sobie tego nie życzą, żeby ktoś patrzył w papiery,
+[41:49] by się okaże, że tak naprawdę on głównie generuje koszty, lata biznes klasą i tak naprawdę od kiedy jest w firmie, to się pogorszyło w tym dziale, a nie poprawiło.
+[41:56] Wiesz, to jest takie... to będzie widoczne, nie?
+[41:58] No, ale to jest temat delikatny już, nie?
+[42:03] To jest temat, ale to już jakby jest kwestia, czy właściciel, czy pan chce, bo niekoniecznie chce efektywności czasami.
+[42:11] No dokładnie, bo czasami ludzie po prostu, którzy chcą trochę ułatwić się życie, ale niekoniecznie chcą, żeby ich zwalniać.
+[42:18] Bo poprawa efektywności, co to jest? No to jest coś takiego, że firma zaczyna brzuczać więcej kasy, ale na przykład jak ty jesteś przeszkodą dla efektywności, bo zajmiesz miejsce,
+[42:27] bierzesz kasę i jeszcze pogarszasz to, co inni wykonują, no to nie bardzo byś chciał, żeby pokazać, hej, ty, ciebie tu nie powinno być,
+[42:35] to będziesz się bronił rękami i nogami, nie? Żeby do takiej sytuacji nie doszło.
+[42:39] Dobra, wiesz co Łukasz, to i tak mamy mało czasu, bo ja mam w poniedziałek to spotkanie, nie? Mam w poniedziałek.
+[42:46] W poniedziałek to będzie takie spotkanie, wiesz, żeby wygadrować kolejny ten.
+[42:49] Ja już bym przygotował dla nich parę slajdów.
+[42:53] Zrób to, przygodę parę slajdów.
+[42:54] No.
+[42:55] O której spotkanie? Po pół.
+[42:57] O 11 chyba mi się otrzymaje.
+[42:58] Nie, 14 chyba.
+[42:59] Czy nie, 24. I to pół godziny jakoś tylko, czy co?
+[43:04] Tak wpisałem, ja to nic nie znaczy. Wpisałem 16.30, ale to nie znaczy, że pół godziny, wczoraj będzie to będzie dłużej.
+[43:09] Poza tym to jest lepiej.
+[43:10] Oni strasznie dużo lubią być pijane i pierdolić.
+[43:13] Ja ich cisnę zawsze na krótkie spotkanie.
+[43:16] Bo wtedy z tego coś jest.
+[43:18] Bo jak oni się rozwlekają, to z tego nic nie ma.
+[43:20] Nie mamy materiału ani potrzeby.
+[43:22] No możemy, jak będzie prezentacja i będzie potrzeba, żeby więcej to więcej, ale zrobimy to na razie tak jak jest.
+[43:26] Mhm.
+[43:27] I ten.
+[43:29] Zobaczymy dalej.
+[43:31] Ja im zaproponuję, żeby w drugim tygodniu listopadzie spotkać.
+[43:38] Dobra, dobra.
+[43:39] To byłoby fajnie, bo już, wiesz, to już tyle dla mnie zeszło z tego, że warto byłoby, żeby zaczęło się jakoś już też.
+[43:45] Wcześniej nie wiem, czy będzie, czy ja będę miał kiedy, nie?
+[43:49] Jakby się bardzo się bardzo uprawić, to oczywiście ma za wcześnie, ale...
+[44:00] powiedzieć, że przecież to ich za wiele nie będzie kosztować, można to postawić,
+[44:03] zobaczyć, co się będzie działo, czy jest zainteresowanie, bo to też pokazuje Ci,
+[44:07] jak się temat przyjmie i ludzie będą chcieli to mieć podłączone i będą z tego
+[44:10] korzystali, będzie rosła baza interaktywną, to znaczy, że to jest potrzebne narzędzie.
+[44:15] Jak kupisz narzędzie i potem nikt z tego nie korzysta albo korzystasz 5%, wiesz.
+[44:18] Nie, nie, nie, nie, ale wciąż chcę tego korzystać.
+[44:21] Może jest w jakimś zakresie jak ja, ale spoko.
+[44:24] W piątek jestem u Alice, bo w piątek jest Monachium, mamy ten dwudniowe,
+[44:32] nie wiem co, spotkanie integracyjne, więc, bo jeszcze w ogóle nie widziałem jej na żywo,
+[44:39] bo jak byłem ostatnio, to nie miała czasu nawet zejść, więc spoko.
+[44:43] Nie wiem jak Aleksa.
+[44:45] Jak coś by było, to też oczywiście będę jeszcze u nich w piątek.
+[44:49] Pokaż tą kostkę, co tam masz.
+[44:52] To jest duży?
+[44:53] Trudzieste chyba.
+[44:55] Patrz Maciek, to można zabić już.
+[44:59] Dobra firma.
+[45:00] To jest taki dock, co nie?
+[45:02] To jest taki dock.
+[45:03] Ale nie chciałem tego doka.
+[45:04] Dok kosztuje 1000 złotych, to kosztuje 250 złotych,
+[45:08] ładuje się półtorej godziny, na doku podobno się ładuje 20 minut, ale po co nie wiesi?
+[45:13] 1000 złotych za doka?
+[45:15] Jakoś tam 200 euro.
+[45:16] To czego?
+[45:18] Może jak to jest adokowe?
+[45:19] Ale zwykłą dawarką do iPhone'a, tą wysokiej moc i półtorej godziny złotych.
+[45:25] Wystarczy Ci na...
+[45:26] Nie ładuje iPhone'a z 6-7 razy, ale laptop dwa razy.
+[45:30] To używają w podróży.
+[45:32] To jest...
+[45:33] Nie jest najnowsza generacja.
+[45:34] Też ma nowsza generacja, identycznie wygląda,
+[45:36] indycznie waży.
+[45:37] Ma chyba jedną czwartą wiecję.
+[45:40] 737 chyba.
+[45:41] Ale ten...
+[45:44] Słyszałem, że to do samolotu to wniesiesz w ogóle?
+[45:48] Tak.
+[45:49] Bo tam była jakaś afera, że gościu wszedł do samolotu, jakiś były prezes linii lotniczych
+[45:55] i musieli ewakuować samolot, bo mu się zaczęło dymić z ładowarki.
+[45:59] No, więc to tam...
+[46:00] Nie, nie, to nie było AI, to przeczytajmy.
+[46:05] No teraz tyle, że musisz mieć kodężny, nie?
+[46:07] Dobra, to ja kończysz nagrywać.
+[46:09] Dobra, to nie było.
