@@ -64,7 +64,7 @@ h1 b { font-weight: 500; }
 .slide.diagram .foot { left: 56px; right: 56px; }
 .sp { --bg:#f7f8fa; --surface:#ffffff; --lane:#eef1f5; --ink:#14213a; --muted:#5b6478; --rule:#d9dde5; --rule-strong:#b9c0cd; --accent:#c9861f; --accent-ink:#8a5a0e; }
 .fig.sp svg g, .fig.sp svg text { font-family: "Ubuntu Condensed", "Arial Narrow", sans-serif; }
-.fig.sp svg { width: 100%; max-height: 470px; display: block; }
+.fig.sp svg { width: 100%; max-height: 450px; display: block; }
 .cap { font-size: 20px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 .fig { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 8px; }
 .fig svg { width: 100%; max-height: 520px; height: auto; display: block; }
@@ -111,7 +111,33 @@ ol.asks li { counter-increment: a; display: grid; grid-template-columns: 56px 1f
 ol.asks li::before { content: counter(a); font-family: "Ubuntu Mono", monospace; font-size: 26px; color: var(--accent); }
 ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
 
+/* zdr table */
+.slide h1 + table.zdr { margin-top: 22px; }
+table.zdr { width: 100%; border-collapse: collapse; font-size: 20px; table-layout: fixed; }
+.slide.zdrs h1 { font-size: 40px; }
+table.zdr th:nth-child(1) { width: 290px; } table.zdr th:nth-child(2) { width: 165px; } table.zdr th:nth-child(3) { width: 235px; }
+table.zdr th { text-align: left; font-family: "Ubuntu Mono", monospace; font-weight: 400; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 0 14px 8px 0; border-bottom: 2px solid var(--ink); }
+table.zdr td { padding: 7px 12px 7px 0; border-bottom: 1px solid var(--rule); line-height: 1.25; vertical-align: baseline; }
+table.zdr td:first-child { font-weight: 500; color: var(--ink); }
+table.zdr td small { display: block; font-weight: 400; color: var(--muted); font-size: 15px; }
+.mtag { font-family: "Ubuntu Mono", monospace; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; white-space: nowrap; }
+.zfoot { font-size: 19px; color: var(--ink); margin: 14px 0 0; line-height: 1.35; }
+/* ecosystem */
+.eco { margin-top: 14px; }
+.slide.ecos h1 { font-size: 44px; }
+.eco svg { width: 100%; max-height: 270px; display: block; }
+.chips { display: flex; align-items: stretch; gap: 10px; margin-top: 18px; }
+.chip { flex: 1; border: 2px dashed var(--faint); border-radius: 8px; padding: 9px 14px; font-size: 21px; color: var(--ink); font-weight: 500; line-height: 1.25; }
+.chip.now { border: 2px solid var(--accent); background: var(--accent-soft); }
+.chip .n { font-family: "Ubuntu Mono", monospace; color: var(--accent); margin-right: 8px; }
+.chip small { display: block; font-size: 17px; font-weight: 400; color: var(--muted); margin-top: 3px; }
+.arr { align-self: center; font-size: 26px; color: var(--faint); }
 /* security grid */
+.sec2 { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
+.sec2 div { padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 23px; line-height: 1.35; }
+.sec2 b { color: var(--ink); font-weight: 500; }
+.compare.one { grid-template-columns: 1fr; }
+.three.two { grid-template-columns: 1fr 1fr; }
 .grid5 { margin-top: 24px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 34px; }
 .grid5 div { padding: 8px 0; border-bottom: 1px solid var(--rule); font-size: 18px; line-height: 1.36; }
 .grid5 b { display: block; color: var(--ink); font-weight: 500; font-size: 20px; margin-bottom: 2px; }
@@ -134,17 +160,13 @@ ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
 
 <!-- 2 -->
 <section class="slide">
-  <div class="eyebrow">The idea</div>
   <h1>We do not train a model.<br><b>We build a harness.</b></h1>
-  <p class="small" style="margin-top:12px">The connector from the service package you received on 15 September: we call it the harness.</p>
+  <p class="small" style="margin-top:12px">Harness = the connector in your service package of 15 September.</p>
   <div class="cards">
-    <div class="card soft"><h2>The engine</h2><p>A model from OpenAI or Anthropic. Rented by you, under your business plan; replaceable.</p></div>
-    <div class="card"><h2>The harness</h2><p>Tools that give the engine your products, your lead base and your rules. Designed to learn from every correction.</p></div>
+    <div class="card soft"><h2>The engine</h2><p>An OpenAI or Anthropic model. Rented by you, under your business plan; replaceable.</p></div>
+    <div class="card"><h2>The harness</h2><p>Tools for your products, lead base and rules. Designed to learn from every correction.</p></div>
   </div>
-  <div class="compare">
-    <div><span class="k">Training a model</span>Hundreds of thousands. <b>Frozen</b> the day it is finished.</div>
-    <div><span class="k">Building a harness</span><b>Improves with daily use.</b> No GPU purchase needed.</div>
-  </div>
+  <div class="compare one"><div><span class="k">Training your own model instead</span>Hundreds of thousands, <b>frozen</b> when finished, and GPUs to buy.</div></div>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">2</span></div>
 </section>
 
@@ -251,73 +273,136 @@ ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
 
 <!-- 4 -->
 <section class="slide">
-  <div class="eyebrow">Security</div>
-  <h1>Security depends on the <b>contract</b>,<br>not on the tool.</h1>
+  <h1>Security depends on the <b>contract</b>, not the tool.</h1>
   <div class="rows">
-    <div><b>Business plans</b><span>OpenAI and Anthropic: no training on your data by default. Data retention and EU data residency are set in your contract with the vendor.</span></div>
-    <div><b>Copilot · ChatGPT · Claude</b><span>Same question, same answer: it is the contract that protects you.</span></div>
+    <div><b>Business plans</b><span>Every business plan: no training on your data by default. Storage and zero retention differ, see next slide.</span></div>
+    <div><b>Copilot · ChatGPT · Claude</b><span>Same question, same answer. The contract protects you.</span></div>
   </div>
-  <div class="callout"><b>Our rule:</b> the connector runs only in company business accounts, never in private subscriptions.</div>
-  <p class="small">Pilot tests so far ran on personal accounts with public data only. From the formal pilot on: business workspaces only.</p>
+  <div class="callout"><b>Our rule:</b> connector only in company business accounts, never private subscriptions.</div>
+  <p class="small">Pilot tests so far: personal accounts, public data only. Formal pilot: business workspaces only.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4</span></div>
+</section>
+
+<!-- 4b -->
+<section class="slide zdrs">
+  <h1>No business plan trains on your data.<br><b>None of the chat apps offers zero retention.</b></h1>
+  <table class="zdr">
+    <thead><tr><th>Plan</th><th>Trained on your data</th><th>Prompts stored</th><th>Zero data retention</th></tr></thead>
+    <tbody>
+      <tr><td>Claude Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
+      <tr><td>Claude API</td><td>No, default</td><td>≤30 days</td><td>By signed agreement <span class="mtag">contract</span></td></tr>
+      <tr><td>ChatGPT Enterprise (chat)</td><td>No, default</td><td>Yes,&nbsp;admin-set&nbsp;period</td><td>Not offered for the app</td></tr>
+      <tr><td>OpenAI API</td><td>No, default</td><td>Abuse logs ≤30 days</td><td>By request, EU residency option <span class="mtag">contract</span></td></tr>
+      <tr><td>Microsoft 365 Copilot</td><td>No, default</td><td>Yes, in your tenant</td><td>No such option</td></tr>
+      <tr><td>Grok API (xAI)</td><td>No, default</td><td>30 days</td><td>Admin toggle <span class="mtag">setting</span></td></tr>
+      <tr><td>Perplexity API <small>used by LC Connect</small></td><td>No, default</td><td>Not retained</td><td>Yes, by default <span class="mtag">default</span></td></tr>
+      </tbody>
+  </table>
+  <p class="zfoot">Consumer and free plans are out: training is on by default. Residency has two parts: where data rests and where inference runs.</p>
+  <p class="small" style="margin-top:6px">Vendor pages as of 4 Oct 2026; details in the notes.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4b</span></div>
 </section>
 
 <!-- 5 -->
 <section class="slide">
-  <div class="eyebrow">Results from the pilot</div>
-  <h1>What it <b>already does</b></h1>
-  <p class="q">Same question to Claude and ChatGPT, 29 Sept: <i>“Which companies use pulsed laser diodes?”</i></p>
+  <h1>With LC Connect, the assistant finds <b>every prospect in your base</b>.</h1>
+  <p class="q">Test of 29 Sept, Claude and ChatGPT: <i>“Which companies use pulsed laser diodes?”</i></p>
   <table class="res">
     <thead><tr><th>Found in lead base</th><th>Poland</th><th>Czech Republic</th></tr></thead>
     <tbody>
-      <tr><td>Without LC Connect</td><td><span class="big">4–8</span><span class="sub">of 6–12 names are in the lead base</span></td><td><span class="big">0–4</span><span class="sub">of 5–11 names are in the lead base</span></td></tr>
-      <tr class="with"><td>With LC Connect</td><td><span class="big">16 of 16</span><span class="sub">(Claude) all pulsed-diode prospects in the base</span></td><td><span class="big">14 of 14</span><span class="sub">(ChatGPT) all pulsed-diode prospects in the base</span></td></tr>
+      <tr><td>Without LC Connect</td><td><span class="big">4–8</span><span class="sub">of 6–12 names</span></td><td><span class="big">0–4</span><span class="sub">of 5–11 names</span></td></tr>
+      <tr class="with"><td>With LC Connect</td><td><span class="big">16 of 16</span><span class="sub">Claude</span></td><td><span class="big">14 of 14</span><span class="sub">ChatGPT</span></td></tr>
     </tbody>
   </table>
-  <div class="three">
-    <div><b>Country discovery</b>One question returns a country’s prospects.</div>
-    <div><b>Trade-fair preparation</b>About 65 % of suggested companies were worth the visit (Łukasz’s trade-fair test).</div>
-    <div><b>Roles and audit trail</b>Everyone signs in personally. Every change is logged.</div>
+  <div class="three two">
+    <div><b>Trade fairs</b>About 65 % of suggested companies were worth the visit (Łukasz’s test).</div>
+    <div><b>Roles and audit trail</b>Personal sign-in. Every change logged.</div>
   </div>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">5</span></div>
 </section>
 
 <!-- 6 -->
 <section class="slide">
-  <div class="eyebrow">Clear boundaries</div>
-  <h1>What it <b>is not</b></h1>
+  <h1>A <b>lead-research connector</b>: the harness around your AI assistant.</h1>
   <div class="nots">
-    <div class="wide">Not a replacement for Copilot for e-mail<small>Copilot can use the same open protocol; to be validated in the pilot.</small></div>
+    <div>Not a Copilot replacement for e-mail</div>
     <div>Not a CRM</div>
     <div>Not a fine-tuned model</div>
     <div>Not a data lake</div>
   </div>
-  <p class="is">It is a <b>lead-research connector:</b> the harness around your AI assistant.</p>
+  <p class="small">Not a closed system: one connector among the ones you will own.<br>Copilot can use the same open protocol; to be validated in the pilot.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">6</span></div>
 </section>
 
 <!-- 7 -->
+<section class="slide ecos">
+  <h1>One connector in your ecosystem,<br><b>not a system of its own.</b></h1>
+  <div class="eco"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="eco-t">
+    <title id="eco-t">Your AI assistant in the centre, working in natural language in your business workspace. Around it four connectors: LC Connect for leads and market research (today), and CRM, ERP and documents, added when you connect them.</title>
+    <g font-family="Ubuntu, Arial, sans-serif" fill="#24262a">
+      <g stroke="#9aa0a6" stroke-width="2.5">
+        <line x1="360" y1="75" x2="430" y2="140" stroke="#c9861f" stroke-width="3.5"/>
+        <line x1="840" y1="75" x2="770" y2="140" stroke-dasharray="7 5"/>
+        <line x1="360" y1="255" x2="430" y2="190" stroke-dasharray="7 5"/>
+        <line x1="840" y1="255" x2="770" y2="190" stroke-dasharray="7 5"/>
+      </g>
+      <rect x="430" y="105" width="340" height="120" rx="10" fill="#2b2d31"/>
+      <text x="600" y="152" text-anchor="middle" font-size="26" font-weight="500" fill="#ffffff">Your AI assistant</text>
+      <text x="600" y="182" text-anchor="middle" font-size="18" fill="#c4c6ca">natural language</text>
+      <text x="600" y="206" text-anchor="middle" font-size="18" fill="#c4c6ca">your business workspace</text>
+
+      <rect x="30" y="20" width="330" height="110" rx="8" fill="#fbf1e0" stroke="#c9861f" stroke-width="2.5"/>
+      <text x="50" y="56" font-size="23" font-weight="500">LC Connect</text>
+      <text x="50" y="88" font-size="19" fill="#3c4046">leads · market research</text>
+      <rect x="262" y="34" width="80" height="28" rx="4" fill="#c9861f"/>
+      <text x="302" y="54" text-anchor="middle" font-family="'Ubuntu Mono', monospace" font-size="15" letter-spacing="1" fill="#ffffff">TODAY</text>
+
+      <rect x="840" y="20" width="330" height="110" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="860" y="54" font-size="22" font-weight="500">CRM / Salesforce</text>
+      <text x="860" y="84" font-size="19" fill="#3c4046">contacts · approvals · travel policy</text>
+      <text x="860" y="112" font-size="17" fill="#71767d">when you connect it</text>
+
+      <rect x="30" y="200" width="330" height="110" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="50" y="234" font-size="22" font-weight="500">ERP</text>
+      <text x="50" y="264" font-size="19" fill="#3c4046">budgets · cost estimates</text>
+      <text x="50" y="292" font-size="17" fill="#71767d">when you connect it</text>
+
+      <rect x="840" y="200" width="330" height="110" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="7 5"/>
+      <text x="860" y="234" font-size="22" font-weight="500">Documents</text>
+      <text x="860" y="264" font-size="19" fill="#3c4046">print · file · send</text>
+      <text x="860" y="292" font-size="17" fill="#71767d">when you connect it</text>
+    </g>
+  </svg></div>
+  <div class="chips">
+    <div class="chip now"><span class="n">1</span>Find prospects<small>LC Connect</small></div><span class="arr">→</span>
+    <div class="chip"><span class="n">2</span>Plan the trip<small>LC Connect + CRM</small></div><span class="arr">→</span>
+    <div class="chip"><span class="n">3</span>Request approvals<small>CRM</small></div><span class="arr">→</span>
+    <div class="chip"><span class="n">4</span>Estimate costs, budget<small>ERP</small></div>
+  </div>
+  <p class="small">Each step is a connector you own or add later. The assistant does the office work between them.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
+</section>
+
+<!-- 7b -->
 <section class="slide">
   <div class="eyebrow">Ideas from daily use · not in the current scope</div>
-  <h1>Where it <b>could go</b></h1>
+  <h1>Next: from lead research <b>to company knowledge</b>.</h1>
   <div class="outs">
-    <div><b>Know-how out of heads</b>A working knowledge base the whole team can ask. <span class="tag">needs your data decision</span></div>
-    <div><b>Connecting the dots</b>Spot when two customers together will need Laser Components. <span class="tag">needs your data decision</span></div>
-    <div><b>Visit effectiveness by industry</b>Years of visit reports plus ERP data. <span class="tag">needs your data decision</span></div>
-    <div><b>Module fit before design</b>Diode plus optics, suggested for a customer request. <span class="tag">needs your data decision</span></div>
-    <div><b>Trade-fair planning for the whole team</b>Who to meet, prepared before every fair.</div>
+    <div><b>Know-how out of heads</b>A knowledge base the team can ask. <span class="tag">needs your data decision</span></div>
+    <div><b>Connecting the dots</b>Customers who together will need Laser Components. <span class="tag">needs your data decision</span></div>
+    <div><b>Visit effectiveness by industry</b>Visit reports plus ERP data. <span class="tag">needs your data decision</span></div>
+    <div><b>Module fit before design</b>Diode plus optics for a request. <span class="tag">needs your data decision</span></div>
+    <div><b>Trade-fair planning for the whole team</b>Who to meet, before every fair.</div>
   </div>
-  <p class="small">Access to ERP or CRM data is a later phase and needs your decision.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7b</span></div>
 </section>
 
 <!-- 8 -->
 <section class="slide">
-  <div class="eyebrow">Decisions</div>
-  <h1>What we <b>need from you</b></h1>
+  <h1><b>Seven decisions</b> to start the formal pilot</h1>
   <ol class="asks">
     <li><div>Green light for the formal pilot <span>terms follow in Munich</span></div></li>
-    <li><div>Hosting choice <span>A: your Azure · B: AutoOffice EU server</span></div></li>
+    <li><div>Hosting choice <span>A: your Azure · B: EU server</span></div></li>
     <li><div>Identity provider for sign-in <span>Entra ID / Google / Okta</span></div></li>
     <li><div>NDA and data processing agreement signed <span>before any company data goes in</span></div></li>
     <li><div>Business workspace accounts for pilot users</div></li>
@@ -331,19 +416,17 @@ ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
 <section class="slide">
   <div class="eyebrow">Backup</div>
   <h1>Security pack <b>in one page</b></h1>
-  <div class="grid5">
-    <div><b>Sign-in</b>OAuth 2.1 with PKCE, tokens 4 h. Today: personal accounts, one per person. Target: your identity provider with your MFA.</div>
-    <div><b>Roles</b>ADMIN, RESEARCHER, SALES. Editing limited by ownership and region.</div>
-    <div><b>Audit log</b>Every write: who, when, before and after. Refused attempts too.</div>
-    <div><b>Limits</b>Rate limits on sign-in. Size limits on every request.</div>
-    <div><b>Logs</b>Structured, with personal data redacted.</div>
-    <div><b>Transport</b>HTTPS end to end. Passwords stored hashed (bcrypt).</div>
-    <div><b>Backups</b>Nightly, kept 30 days, on-site and off-site.</div>
-    <div><b>Watchdog</b>Full sign-in check every 5 minutes. Restart and alert on failure.</div>
-    <div><b>Market research (Perplexity)</b>Receives company names, websites and product/market questions; never notes, contacts or users.</div>
-    <div><b>Hosting</b>A: your Azure tenant. B: AutoOffice-managed server in the EU.</div>
-    <div><b>Data protection</b>Data processing agreement (AVV) as an annex. Personal data stored in the EU.</div>
-    <div><b>Exit</b>Full source in your repository. Data exported and deleted within 30 days.</div>
+  <div class="sec2">
+    <div><b>Sign-in:</b> OAuth 2.1 + PKCE, HTTPS, 4 h tokens</div>
+    <div><b>Target:</b> your identity provider, your MFA</div>
+    <div><b>Roles:</b> ADMIN, RESEARCHER, SALES; region-scoped editing</div>
+    <div><b>Audit log:</b> every write, refused attempts too</div>
+    <div><b>Limits:</b> sign-in rate limits, request size limits</div>
+    <div><b>Logs:</b> structured, personal data redacted</div>
+    <div><b>Backups:</b> nightly, 30 days, on- and off-site</div>
+    <div><b>Watchdog:</b> full sign-in check every 5 minutes</div>
+    <div><b>Perplexity:</b> names, websites, questions; never notes, contacts</div>
+    <div><b>Hosting:</b> your Azure or EU server; AVV annex</div>
   </div>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">9</span></div>
 </section>
@@ -351,7 +434,7 @@ ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
 <!-- 10 -->
 <section class="slide">
   <div class="eyebrow">Backup</div>
-  <h1>The same system, <b>as in the service package</b></h1>
+  <h1>Same system as in the <b>service package</b></h1>
   <div class="fig sp"><svg viewBox="0 0 760 310" role="img" aria-labelledby="ctx-title">
       <title id="ctx-title">Context diagram: Laser Components team uses AI assistants, which call the LC Connect connector over HTTPS; the connector verifies identity with the identity provider, reads and writes the lead database, sends public company names to the market research API, and is operated by AutoOffice.</title>
       <defs>
@@ -405,7 +488,7 @@ ol.asks li span { color: var(--muted); font-size: 21px; margin-left: 10px; }
         <line x1="658" y1="150" x2="632" y2="150" stroke="var(--rule-strong)" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a1)"></line>
       </g>
     </svg></div>
-  <p class="cap">The same system as in the service package of 15 September. The harness diagram on slide 3 is its simplified view.</p>
+  <p class="cap">From the service package of 15 September, unchanged. Slide 3 is its simplified view.</p>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">10</span></div>
 </section>
 
