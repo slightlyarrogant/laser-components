@@ -20,13 +20,31 @@ import {
   queryAuditLog,
 } from "../core/audit.js";
 import { getCurrentUser } from "../core/current-user.js";
+import { audit } from "../core/audit.js";
+import { canEditLead, type LeadAccessFields } from "../core/access.js";
+import { child, errMessage } from "../core/log.js";
 import { PRESENT_BRIEFLY } from "./_present.js";
+import {
+  type AiSource,
+  SCORING_FACTOR_LABELS,
+  SCORING_FACTOR_WEIGHTS,
+  extractFactorScore,
+  extractNextSteps,
+  formatSources,
+  isoDate,
+  mergeSources,
+  parseSources,
+  weightedOverall,
+} from "./ai-helpers.js";
 
 /**
  * AI / market-intelligence domain.
  *
- * All tools are read-only with respect to the LC database; the Perplexity-backed
- * ones reach out to an external web-search model (openWorldHint=true). The Prisma
+ * The Perplexity-backed tools reach out to an external web-search model
+ * (openWorldHint=true) and return the provider's cited sources. They are
+ * read-only with respect to the LC database EXCEPT enrich_lead and
+ * generate_lead_score, which store their result as a lead note (enrich_lead
+ * also sets leads.last_enriched and writes an enrichment_jobs row). The Prisma
  * queries (export_data, generate_insights, get_activity_feed, generate_report,
  * and the context-loading reads) are ported verbatim from the old low-level
  * `tools/ai.ts`; only the transport shape (zod schema + high-level `server.tool`)
@@ -46,6 +64,23 @@ const DATASET_THRESHOLD = 10;
 // Perplexity client (inline, no external file dependency)
 // ---------------------------------------------------------------------------
 
+/** One AI call's outcome: the answer text plus the sources the provider cited. */
+type AiResult = {
+  text: string;
+  sources: AiSource[];
+  provider: string;
+  model: string;
+  durationMs: number;
+};
+
+const AI_PROVIDER = "perplexity";
+const AI_TIMEOUT_MS = 45_000;
+
+function aiModel(): string {
+  // Perplexity retired the llama-3.1-sonar-* names (2025); "sonar" is the cheaper option.
+  return process.env.PERPLEXITY_MODEL || "sonar-pro";
+}
+
 class PerplexityClient {
   private apiKey: string;
   private baseUrl = "https://api.perplexity.ai";
@@ -55,12 +90,13 @@ class PerplexityClient {
     this.apiKey = apiKey;
   }
 
-  async analyze(prompt: string, context?: string): Promise<string> {
+  async analyze(prompt: string, context?: string): Promise<AiResult> {
     let userMessage = prompt;
     if (context) userMessage = `Context: ${context}\n\nRequest: ${prompt}`;
 
+    const model = aiModel();
     const body = {
-      model: process.env.PERPLEXITY_MODEL || "sonar-pro", // Perplexity retired the llama-3.1-sonar-* names (2025); "sonar" is the cheaper option
+      model,
       messages: [
         {
           role: "system",
@@ -73,6 +109,7 @@ class PerplexityClient {
       max_tokens: 1500,
     };
 
+    const t0 = Date.now();
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -81,17 +118,24 @@ class PerplexityClient {
       },
       body: JSON.stringify(body),
       // Without a deadline a hung upstream pins the request (and its MCP
-      // transport) open indefinitely.
-      signal: AbortSignal.timeout(30_000),
+      // transport) open indefinitely. sonar-pro answers with web search
+      // routinely take 20-35 s, so 30 s was too tight.
+      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Perplexity API error ${response.status}: ${error}`);
+      throw new Error(`Perplexity API error ${response.status}: ${error.slice(0, 300)}`);
     }
 
     const data = (await response.json()) as any;
-    return data.choices?.[0]?.message?.content || "No response generated";
+    return {
+      text: data.choices?.[0]?.message?.content || "No response generated",
+      sources: parseSources(data),
+      provider: AI_PROVIDER,
+      model: typeof data.model === "string" && data.model ? data.model : model,
+      durationMs: Date.now() - t0,
+    };
   }
 }
 
@@ -104,6 +148,48 @@ function getPerplexity(): PerplexityClient {
     _perplexity = new PerplexityClient(key);
   }
   return _perplexity;
+}
+
+const aiLog = child({ mod: "ai" });
+
+/**
+ * The single entry point for AI calls from tools: runs the call and logs one
+ * line (tool, lead id, provider, model, duration, citations count, ok/error).
+ * Never logs prompts or answers.
+ */
+async function callAi(
+  tool: string,
+  leadId: number | null,
+  prompt: string,
+  context?: string
+): Promise<AiResult> {
+  const t0 = Date.now();
+  try {
+    const r = await getPerplexity().analyze(prompt, context);
+    aiLog.info(
+      { tool, leadId, provider: r.provider, model: r.model, durationMs: r.durationMs, citations: r.sources.length, ok: true },
+      "ai call"
+    );
+    return r;
+  } catch (err) {
+    aiLog.warn(
+      { tool, leadId, provider: AI_PROVIDER, model: aiModel(), durationMs: Date.now() - t0, citations: 0, ok: false, error: errMessage(err) },
+      "ai call failed"
+    );
+    throw err;
+  }
+}
+
+/** JSON payload for the model, followed by a plain-text Sources block. */
+function okWithSources(data: Record<string, unknown>, sources: AiSource[]) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `${JSON.stringify(data, null, 2)}\n\n${formatSources(sources)}`,
+      },
+    ],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,52 +303,6 @@ function ok(data: unknown) {
   };
 }
 
-// Human-readable label per scoring factor enum value (used as the KPI tile label).
-const SCORING_FACTOR_LABELS: Record<string, string> = {
-  company_fit: "Company fit",
-  budget_potential: "Budget potential",
-  timeline: "Timeline",
-  engagement: "Engagement",
-  technology_alignment: "Technology alignment",
-};
-
-/**
- * Best-effort extraction of a 0-100 score for a named factor from the free-text
- * AI analysis. Looks at the line(s) that mention the factor (by its enum token or
- * its human label) and pulls the first plausible 0-100 integer near it. Returns
- * null when no score can be confidently located (the tile then shows "—").
- */
-function extractFactorScore(analysis: string, factor: string): number | null {
-  const label = (SCORING_FACTOR_LABELS[factor] ?? factor).toLowerCase();
-  const spaced = factor.replace(/_/g, " ");
-  for (const line of analysis.split(/\n+/)) {
-    const lower = line.toLowerCase();
-    if (lower.includes(spaced) || lower.includes(factor) || lower.includes(label)) {
-      const m = line.match(/(\d{1,3})\s*(?:\/\s*100|%)?/);
-      if (m) {
-        const n = Number(m[1]);
-        if (n >= 0 && n <= 100) return n;
-      }
-    }
-  }
-  return null;
-}
-
-/** Pull the overall/weighted 0-100 score from the analysis text, if stated. */
-function extractOverallScore(analysis: string): number | null {
-  for (const line of analysis.split(/\n+/)) {
-    if (/overall|weighted|total|łączn|ogóln|całkowit/i.test(line)) {
-      const m = line.match(/(\d{1,3})\s*(?:\/\s*100|%)?/);
-      if (m) {
-        const n = Number(m[1]);
-        if (n >= 0 && n <= 100) return n;
-      }
-    }
-  }
-  // Fallback: average of any factor scores the caller computed (handled by caller).
-  return null;
-}
-
 export function registerAiTools(
   server: McpServer,
   getTenantSub: () => string
@@ -280,8 +320,9 @@ export function registerAiTools(
       "DO NOT USE WHEN: the user only needs local catalog rows -> use",
       "get_products/search_products; or wants competitor-only detail -> use",
       "analyze_competition.",
-      "RETURNS: { success, productId, productName, analysisType, analysis, timestamp }",
-      "— an analytical narrative, not a DB change.",
+      "RETURNS: { success, productId, productName, analysisType, analysis, timestamp,",
+      "then a 'Sources:' list of cited URLs — an analytical narrative, not a",
+      "DB change. Cite the sources when presenting.",
       "GOTCHAS: productId is required and must be resolved with search_products/",
       "get_products first; never guess IDs. Requires PERPLEXITY_API_KEY.",
     ].join("\n"),
@@ -309,7 +350,6 @@ export function registerAiTools(
       if (!product) throw new Error(`Product with ID ${a.productId} not found`);
 
       const analysisType = a.analysisType || "full";
-      const perplexity = getPerplexity();
 
       const context = `Product: ${product.name}
 Category: ${(product.subcategory as any).category.name} > ${(product.subcategory as any).name}
@@ -335,15 +375,15 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
           prompt = `Provide a comprehensive market analysis for "${product.name}" including: 1) Market size and growth potential, 2) Key applications and use cases, 3) Technology trends, 4) Competitive landscape, 5) Future opportunities.`;
       }
 
-      const analysis = await perplexity.analyze(prompt, context);
-      return ok({
+      const ai = await callAi("analyze_product_market", null, prompt, context);
+      return okWithSources({
         success: true,
         productId: a.productId,
         productName: product.name,
         analysisType,
-        analysis,
+        analysis: ai.text,
         timestamp: new Date().toISOString(),
-      });
+      }, ai.sources);
     }
   );
 
@@ -359,7 +399,8 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "DO NOT USE WHEN: the user only wants the applications already mapped to the",
       "product -> use get_product_applications.",
       "RETURNS: { success, data{ productId, productName, industryFocus, discoveries,",
-      "recommendedActions, timestamp } } — suggestions only.",
+      "recommendedActions, timestamp }, then a 'Sources:' list of cited URLs —",
+      "suggestions only.",
       "GOTCHAS: productId is required (resolve via search_products/get_products); this",
       "does NOT create application records or mappings — review before",
       "create_application/create_product_application. Requires PERPLEXITY_API_KEY.",
@@ -388,7 +429,6 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       });
       if (!product) throw new Error(`Product with ID ${a.productId} not found`);
 
-      const perplexity = getPerplexity();
       const limit = a.limit || 5;
 
       let prompt = `Discover ${limit} specific industrial or commercial applications for "${product.name}" (${product.description || "laser/photonics component"}).`;
@@ -396,15 +436,15 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       prompt += ` For each application, provide: 1) Application name, 2) Industry sector, 3) Use case description, 4) Technical requirements, 5) Market potential. Format as a structured list.`;
 
       const context = `Product Category: ${(product.subcategory as any).category.name} > ${(product.subcategory as any).name}`;
-      const aiResponse = await perplexity.analyze(prompt, context);
+      const ai = await callAi("discover_applications", null, prompt, context);
 
-      return ok({
+      return okWithSources({
         success: true,
         data: {
           productId: a.productId,
           productName: product.name,
           industryFocus: a.industryFocus || "all industries",
-          discoveries: aiResponse,
+          discoveries: ai.text,
           recommendedActions: [
             "Review discovered applications for relevance",
             "Create application records for promising opportunities",
@@ -413,7 +453,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
           ],
           timestamp: new Date().toISOString(),
         },
-      });
+      }, ai.sources);
     }
   );
 
@@ -426,13 +466,18 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "enrich_lead — AI enrichment of a known lead (company info, market position, tech stack, growth).",
       "USE WHEN: the user asks to research/enrich a specific lead with company,",
       "market, technology, or growth information. Calls a web-backed AI (Perplexity).",
-      "DO NOT USE WHEN: the user asks to persist changes to the CRM record -> use",
-      "update_lead after explicit confirmation.",
+      "DO NOT USE WHEN: the user asks to change CRM fields (status, industry, website…)",
+      "-> use update_lead after explicit confirmation.",
       "RETURNS: { success, data{ leadId, companyName, currentData, enrichedData,",
-      "enrichmentTimestamp, recommendedActions } } — suggested enrichment only; nothing",
-      "is persisted.",
-      "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Requires",
-      "PERPLEXITY_API_KEY.",
+      "enrichmentTimestamp, persisted, recommendedActions } } followed by a",
+      "'Sources:' list of cited URLs — cite them when presenting the findings.",
+      "PERSISTS: the findings + sources are saved as an [ENRICHMENT] note on the lead and",
+      "leads.last_enriched is set (only if you may edit the lead; otherwise the text is",
+      "returned and data.persisted explains why nothing was saved). Lead fields are NOT",
+      "changed.",
+      "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Each",
+      "enrichmentType is one web-search call (~20-40 s each); prefer the specific",
+      "types the user asked for over 'all'. Requires PERPLEXITY_API_KEY.",
     ].join("\n"),
     {
       leadId: z.number().describe("Lead ID to enrich (resolve via get_leads/search_leads)."),
@@ -450,54 +495,228 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
         .default(["all"])
         .describe("Which enrichment dimensions to gather. 'all' runs every dimension. Defaults to ['all']."),
     },
-    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async (a) => {
       void getTenantSub();
 
       if (!a.leadId) throw new Error("Lead ID is required");
 
+      const me = await getCurrentUser();
       const lead = await prisma.lead.findUnique({
         where: { id: a.leadId },
         include: { product: true, application: true, region: true, country: true },
       });
       if (!lead) throw new Error(`Lead with ID ${a.leadId} not found`);
+      const access: LeadAccessFields = {
+        ownerUserId: lead.ownerUserId,
+        createdByUserId: lead.createdByUserId,
+        regionId: lead.regionId,
+        countryRegionId: (lead.country as any)?.regionId ?? null,
+      };
+      const mayEdit = canEditLead(me, access);
 
-      const perplexity = getPerplexity();
       const enrichmentTypes = Array.isArray(a.enrichmentTypes) ? a.enrichmentTypes : ["all"];
       const shouldEnrichAll = enrichmentTypes.includes("all");
 
-      const enrichmentData: any = {
-        leadId: a.leadId,
-        companyName: lead.name,
-        currentData: { industry: lead.industry, website: lead.website, location: (lead as any).location },
-        enrichedData: {},
-      };
-
+      const plan: Array<{ key: string; title: string; prompt: string }> = [];
       if (shouldEnrichAll || enrichmentTypes.includes("company_info")) {
-        const prompt = `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ""}. Provide: company size, founding year, key product/services, headquarters location, and recent news.`;
-        enrichmentData.enrichedData.company_info = await perplexity.analyze(prompt);
+        plan.push({
+          key: "company_info",
+          title: "Company info",
+          prompt: `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ""}. Provide: company size, founding year, key product/services, headquarters location, and recent news.`,
+        });
       }
       if (shouldEnrichAll || enrichmentTypes.includes("market_position")) {
-        const prompt = `Analyze the market position of "${lead.name}" in the ${lead.industry || "laser/photonics"} industry. Include market share, competitive advantages, and industry reputation.`;
-        enrichmentData.enrichedData.market_position = await perplexity.analyze(prompt);
+        plan.push({
+          key: "market_position",
+          title: "Market position",
+          prompt: `Analyze the market position of "${lead.name}" in the ${lead.industry || "laser/photonics"} industry. Include market share, competitive advantages, and industry reputation.`,
+        });
       }
       if (shouldEnrichAll || enrichmentTypes.includes("technology_stack")) {
-        const prompt = `Identify the technology stack and technical capabilities of "${lead.name}". Focus on their use of laser/photonics technologies and related systems.`;
-        enrichmentData.enrichedData.technology_stack = await perplexity.analyze(prompt);
+        plan.push({
+          key: "technology_stack",
+          title: "Technology stack",
+          prompt: `Identify the technology stack and technical capabilities of "${lead.name}". Focus on their use of laser/photonics technologies and related systems.`,
+        });
       }
       if (shouldEnrichAll || enrichmentTypes.includes("growth_potential")) {
-        const prompt = `Assess the growth potential of "${lead.name}". Consider funding status, market expansion, product development, and industry trends affecting their business.`;
-        enrichmentData.enrichedData.growth_potential = await perplexity.analyze(prompt);
+        plan.push({
+          key: "growth_potential",
+          title: "Growth potential",
+          prompt: `Assess the growth potential of "${lead.name}". Consider funding status, market expansion, product development, and industry trends affecting their business.`,
+        });
       }
 
-      enrichmentData.enrichmentTimestamp = new Date().toISOString();
-      enrichmentData.recommendedActions = [
-        "Update lead record with enriched data",
-        "Review and validate AI-generated insights",
-        "Schedule follow-up based on growth potential",
-        "Identify cross-sell opportunities",
-      ];
-      return ok({ success: true, data: enrichmentData });
+      // Job row first, so a crash mid-call still leaves a PROCESSING trace.
+      const startedAt = new Date();
+      const model = aiModel();
+      const jobMeta: Record<string, unknown> = {
+        tool: "enrich_lead",
+        model,
+        enrichmentTypes: plan.map((p) => p.key),
+        userId: me.id,
+        startedAt: startedAt.toISOString(),
+      };
+      let jobId: number | null = null;
+      try {
+        const job = await prisma.enrichmentJob.create({
+          data: {
+            leadId: a.leadId,
+            status: "PROCESSING",
+            attempts: 1,
+            lastAttemptAt: startedAt,
+            updatedAt: startedAt,
+            provider: AI_PROVIDER,
+            metadata: JSON.stringify(jobMeta),
+          },
+          select: { id: true },
+        });
+        jobId = job.id;
+      } catch (err) {
+        aiLog.error({ tool: "enrich_lead", leadId: a.leadId, error: errMessage(err) }, "enrichment job create failed");
+      }
+
+      const results: Array<{ key: string; title: string; ai: AiResult }> = [];
+      try {
+        for (const p of plan) {
+          results.push({ key: p.key, title: p.title, ai: await callAi("enrich_lead", a.leadId, p.prompt) });
+        }
+      } catch (err) {
+        const finishedAt = new Date();
+        if (jobId != null) {
+          await prisma.enrichmentJob
+            .update({
+              where: { id: jobId },
+              data: {
+                status: "FAILED",
+                completedAt: finishedAt,
+                updatedAt: finishedAt,
+                metadata: JSON.stringify({
+                  ...jobMeta,
+                  finishedAt: finishedAt.toISOString(),
+                  durationMs: finishedAt.getTime() - startedAt.getTime(),
+                  callsCompleted: results.length,
+                  error: errMessage(err).slice(0, 500),
+                }),
+              },
+              select: { id: true },
+            })
+            .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
+        }
+        await audit({
+          action: "lead.enrichment_failed",
+          resourceType: "lead",
+          resourceId: a.leadId,
+          details: { leadName: lead.name, jobId, provider: AI_PROVIDER, model, error: errMessage(err) },
+        });
+        throw err;
+      }
+
+      const sources = mergeSources(results.map((r) => r.ai.sources));
+      const usedModel = results[0]?.ai.model ?? model;
+      const finishedAt = new Date();
+      const date = isoDate(finishedAt);
+
+      const enrichedData: Record<string, string> = {};
+      for (const r of results) enrichedData[r.key] = r.ai.text;
+
+      // Persist: note + last_enriched, only when the caller may edit the lead.
+      let noteId: number | null = null;
+      let persisted: Record<string, unknown>;
+      if (!mayEdit) {
+        persisted = {
+          saved: false,
+          reason:
+            "You may not edit this lead, so no note was saved and last_enriched was not updated. " +
+            "The owner or an ADMIN can run enrich_lead to store it.",
+        };
+      } else {
+        try {
+          const body = [
+            `Enrichment (Perplexity ${usedModel}, ${date})`,
+            "",
+            ...results.flatMap((r) => [`## ${r.title}`, r.ai.text.trim(), ""]),
+            formatSources(sources),
+          ].join("\n");
+          const [note] = await prisma.$transaction([
+            prisma.note.create({
+              data: { leadId: a.leadId, content: `[ENRICHMENT] ${body}`, user_id: me.id },
+              select: { id: true },
+            }),
+            prisma.lead.update({
+              where: { id: a.leadId },
+              data: { lastEnriched: finishedAt },
+              select: { id: true },
+            }),
+          ]);
+          noteId = note.id;
+          persisted = { saved: true, noteId, lastEnriched: finishedAt.toISOString() };
+        } catch (err) {
+          aiLog.error({ tool: "enrich_lead", leadId: a.leadId, error: errMessage(err) }, "enrichment persist failed");
+          persisted = { saved: false, reason: `Saving the enrichment note failed: ${errMessage(err)}` };
+        }
+      }
+
+      if (jobId != null) {
+        await prisma.enrichmentJob
+          .update({
+            where: { id: jobId },
+            data: {
+              status: "COMPLETED",
+              completedAt: finishedAt,
+              updatedAt: finishedAt,
+              result: JSON.stringify({ noteId, saved: persisted.saved === true, sources: sources.map((s) => s.url) }),
+              metadata: JSON.stringify({
+                ...jobMeta,
+                model: usedModel,
+                finishedAt: finishedAt.toISOString(),
+                durationMs: finishedAt.getTime() - startedAt.getTime(),
+                calls: results.length,
+                citations: sources.length,
+              }),
+            },
+            select: { id: true },
+          })
+          .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
+      }
+
+      await audit({
+        action: "lead.enriched",
+        resourceType: "lead",
+        resourceId: a.leadId,
+        details: {
+          leadName: lead.name,
+          jobId,
+          noteId,
+          saved: persisted.saved === true,
+          enrichmentTypes: plan.map((p) => p.key),
+          provider: AI_PROVIDER,
+          model: usedModel,
+          citations: sources.length,
+        },
+      });
+
+      return okWithSources(
+        {
+          success: true,
+          data: {
+            leadId: a.leadId,
+            companyName: lead.name,
+            currentData: { industry: lead.industry, website: lead.website, location: lead.location },
+            enrichedData,
+            enrichmentTimestamp: finishedAt.toISOString(),
+            persisted,
+            recommendedActions: [
+              "Review and validate AI-generated insights against the sources",
+              "Update lead fields (industry, website, size) with update_lead if confirmed",
+              "Schedule follow-up based on growth potential",
+              "Identify cross-sell opportunities",
+            ],
+          },
+        },
+        sources
+      );
     }
   );
 
@@ -513,7 +732,7 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "DO NOT USE WHEN: the user only wants local product/application records -> use",
       "get_products/get_product_applications.",
       "RETURNS: { success, productId, productName, analysisDepth, focusedCompetitors,",
-      "analysis, recommendations, timestamp }.",
+      "analysis, recommendations, timestamp, then a 'Sources:' list of cited URLs.",
       "GOTCHAS: productId is required; optional competitorNames narrows the analysis.",
       "Requires PERPLEXITY_API_KEY.",
     ].join("\n"),
@@ -541,7 +760,6 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       });
       if (!product) throw new Error(`Product with ID ${a.productId} not found`);
 
-      const perplexity = getPerplexity();
       const analysisDepth = a.analysisDepth || "standard";
       const competitorNames = Array.isArray(a.competitorNames) ? a.competitorNames : [];
 
@@ -562,14 +780,14 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       const context = `Product Category: ${(product.subcategory as any).category.name} > ${(product.subcategory as any).name}
 Product Description: ${product.description || "N/A"}`;
 
-      const competitiveAnalysis = await perplexity.analyze(prompt, context);
-      return ok({
+      const ai = await callAi("analyze_competition", null, prompt, context);
+      return okWithSources({
         success: true,
         productId: a.productId,
         productName: product.name,
         analysisDepth,
         focusedCompetitors: competitorNames,
-        analysis: competitiveAnalysis,
+        analysis: ai.text,
         recommendations: [
           "Review competitive positioning",
           "Identify unique value propositions",
@@ -577,7 +795,7 @@ Product Description: ${product.description || "N/A"}`;
           "Monitor competitor activities regularly",
         ],
         timestamp: new Date().toISOString(),
-      });
+      }, ai.sources);
     }
   );
 
@@ -594,7 +812,8 @@ Product Description: ${product.description || "N/A"}`;
       "DO NOT USE WHEN: the user asks for raw rows -> use get_leads/get_products/",
       "get_applications.",
       "RETURNS: { success, insightType, timeframe, focusArea, insights, dataContext,",
-      "nextSteps, generatedAt } — interpretation and next steps, not row dumps.",
+      "nextSteps, generatedAt, then a 'Sources:' list of cited URLs —",
+      "interpretation and next steps, not row dumps.",
       "GOTCHAS: requires PERPLEXITY_API_KEY.",
     ].join("\n"),
     {
@@ -623,7 +842,6 @@ Product Description: ${product.description || "N/A"}`;
     async (a) => {
       void getTenantSub();
 
-      const perplexity = getPerplexity();
       const insightType = a.insightType || "overall";
       const timeframe = a.timeframe || "current";
 
@@ -689,13 +907,13 @@ Product Description: ${product.description || "N/A"}`;
 
       if (a.focusArea) prompt += ` Pay special attention to: ${a.focusArea}.`;
 
-      const insights = await perplexity.analyze(prompt, context);
-      return ok({
+      const ai = await callAi("generate_insights", null, prompt, context);
+      return okWithSources({
         success: true,
         insightType,
         timeframe,
         focusArea: a.focusArea,
-        insights,
+        insights: ai.text,
         dataContext: context,
         nextSteps: [
           "Review and validate insights with team",
@@ -704,7 +922,7 @@ Product Description: ${product.description || "N/A"}`;
           "Schedule follow-up analysis",
         ],
         generatedAt: new Date().toISOString(),
-      });
+      }, ai.sources);
     }
   );
 
@@ -720,14 +938,17 @@ Product Description: ${product.description || "N/A"}`;
         "generate_lead_score — AI scoring/prioritization of a known lead with reasoning and next steps.",
         "USE WHEN: the user asks to score, prioritize, or explain sales fit for a",
         "specific lead. Calls a web-backed AI (Perplexity).",
-        "DO NOT USE WHEN: the user asks to persist the score/status -> use update_lead",
+        "DO NOT USE WHEN: the user asks to change the lead status -> use update_lead",
         "after explicit confirmation.",
         "RETURNS: a KPI card — one tile per scoring factor plus an accented overall-score",
-        "tile; the card IS the answer. The full AI reasoning + recommendations stay in",
-        "the steer/structuredContent (textual analysis only — nothing is persisted).",
+        "tile; the card IS the answer. The text carries the AI reasoning and a 'Sources:'",
+        "list of cited URLs.",
+        "PERSISTS: factor scores, overall and next steps are saved as a [LEAD_SCORE] note",
+        "on the lead (only if you may edit it). Lead fields are NOT changed.",
         "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Requires",
-        "PERPLEXITY_API_KEY. Factor/overall scores are extracted from the AI text",
-        "best-effort; a tile shows '—' when no number could be parsed.",
+        "PERPLEXITY_API_KEY. Factor scores are extracted from the AI text best-effort",
+        "('not scored' when no number could be parsed); the overall is the weighted",
+        "mean of the scored factors, computed by LC Connect.",
       ].join("\n"),
       inputSchema: {
         leadId: z.number().describe("Lead ID to score (resolve via get_leads/search_leads)."),
@@ -746,9 +967,9 @@ Product Description: ${product.description || "N/A"}`;
           .describe("Factors to score against. Defaults to company_fit, budget_potential, technology_alignment."),
       },
       annotations: {
-        readOnlyHint: true,
+        readOnlyHint: false,
         destructiveHint: false,
-        idempotentHint: true,
+        idempotentHint: false,
         openWorldHint: true,
       },
       _meta: {
@@ -761,18 +982,24 @@ Product Description: ${product.description || "N/A"}`;
 
       if (!a.leadId) throw new Error("Lead ID is required");
 
+      const me = await getCurrentUser();
       const lead = await prisma.lead.findUnique({
         where: { id: a.leadId },
         include: {
           product: true,
           application: true,
           region: true,
-          notes: { orderBy: { createdAt: "desc" }, take: 5 },
+          country: { select: { regionId: true } },
         },
       });
       if (!lead) throw new Error(`Lead with ID ${a.leadId} not found`);
+      const mayEdit = canEditLead(me, {
+        ownerUserId: lead.ownerUserId,
+        createdByUserId: lead.createdByUserId,
+        regionId: lead.regionId,
+        countryRegionId: lead.country?.regionId ?? null,
+      });
 
-      const perplexity = getPerplexity();
       const scoringFactors = Array.isArray(a.scoringFactors)
         ? a.scoringFactors
         : ["company_fit", "budget_potential", "technology_alignment"];
@@ -786,14 +1013,16 @@ Annual Revenue: ${(lead as any).annualRevenue || "Unknown"}
 Employee Count: ${(lead as any).employeeCount || "Unknown"}`;
 
       const prompt = `Score this lead on a scale of 0-100 based on the following factors: ${scoringFactors.join(", ")}.
-For each factor, provide:
-1. Score (0-100)
-2. Reasoning
-3. Key indicators
+For each factor, start a line with "<Factor name>: NN/100", then give:
+1. Reasoning
+2. Key indicators
 
-Also provide an overall weighted score and recommendation for next steps.`;
+Factor names: ${scoringFactors.map((f: string) => SCORING_FACTOR_LABELS[f] ?? f).join(", ")}.
+Do not compute an overall score (it is computed separately from the factor scores).
+End with a section headed "Next steps" listing concrete recommended actions.`;
 
-      const aiAnalysis = await perplexity.analyze(prompt, context);
+      const ai = await callAi("generate_lead_score", a.leadId, prompt, context);
+      const aiAnalysis = ai.text;
 
       const recommendations = {
         immediate_actions: [
@@ -815,27 +1044,72 @@ Also provide an overall weighted score and recommendation for next steps.`;
         label: SCORING_FACTOR_LABELS[f] ?? f,
         score: extractFactorScore(aiAnalysis, f),
       }));
-      const parsed = factorScores
-        .map((s) => s.score)
-        .filter((n): n is number => n != null);
-      const overall =
-        extractOverallScore(aiAnalysis) ??
-        (parsed.length
-          ? Math.round(parsed.reduce((x, y) => x + y, 0) / parsed.length)
-          : null);
+      // Overall is computed here, never taken from the model's arithmetic.
+      const overall = weightedOverall(factorScores);
+      const nextSteps = extractNextSteps(aiAnalysis);
+      const scoredAt = new Date();
 
       const factorTiles: KpiItem[] = factorScores.map((s) => ({
         label: s.label,
-        value: s.score != null ? s.score : "—",
+        value: s.score != null ? s.score : "not scored",
         format: s.score != null ? "int" : "text",
       }));
       const overallTile: KpiItem = {
         label: "Overall score",
-        value: overall != null ? overall : "—",
+        value: overall != null ? overall : "not scored",
         format: overall != null ? "int" : "text",
         accent: true,
         note: "/100",
       };
+
+      // Persist as a lead note (there is no score column on leads; score_overrides
+      // is for manual overrides and is deliberately not written here).
+      let noteId: number | null = null;
+      let persistNote: string;
+      if (!mayEdit) {
+        persistNote = "Not saved: you may not edit this lead (owner or an ADMIN can re-run it to store the score).";
+      } else {
+        try {
+          const weightsLine = factorScores
+            .map((s) => `${s.label} ${SCORING_FACTOR_WEIGHTS[s.factor] ?? 0.1}`)
+            .join(", ");
+          const body = [
+            `Lead score (${isoDate(scoredAt)}, Perplexity ${ai.model})`,
+            "",
+            `Overall: ${overall != null ? `${overall}/100` : "not scored"} (weighted mean of scored factors; weights: ${weightsLine})`,
+            ...factorScores.map((s) => `- ${s.label}: ${s.score != null ? `${s.score}/100` : "not scored"}`),
+            "",
+            "Next steps:",
+            nextSteps ?? aiAnalysis.trim().slice(0, 2000),
+            "",
+            formatSources(ai.sources),
+          ].join("\n");
+          const note = await prisma.note.create({
+            data: { leadId: a.leadId, content: `[LEAD_SCORE] ${body}`, user_id: me.id },
+            select: { id: true },
+          });
+          noteId = note.id;
+          persistNote = `Saved as lead note #${noteId}.`;
+        } catch (err) {
+          aiLog.error({ tool: "generate_lead_score", leadId: a.leadId, error: errMessage(err) }, "lead score persist failed");
+          persistNote = `Not saved: writing the note failed (${errMessage(err)}).`;
+        }
+      }
+
+      await audit({
+        action: "lead.scored",
+        resourceType: "lead",
+        resourceId: a.leadId,
+        details: {
+          leadName: lead.name,
+          noteId,
+          overall,
+          factors: Object.fromEntries(factorScores.map((s) => [s.factor, s.score])),
+          provider: ai.provider,
+          model: ai.model,
+          citations: ai.sources.length,
+        },
+      });
 
       const meta: KpiMeta = {
         title: `Lead scoring — ${lead.name}`,
@@ -847,10 +1121,11 @@ Also provide an overall weighted score and recommendation for next steps.`;
         `[PRESENTATION] Lead scoring "${lead.name}" (ID ${a.leadId}). ` +
         (overall != null
           ? `Overall score: ${overall}/100. `
-          : `The overall score could not be parsed from the analysis. `) +
+          : `No factor score could be parsed from the analysis, so there is no overall. `) +
+        `${persistNote} ` +
         `The KPI tiles (one per factor + overall) ARE the answer — do not repeat the numbers in a table. ` +
-        `Recommendation: present the key takeaways and next steps from the AI analysis below briefly.\n\n` +
-        `--- AI analysis ---\n${aiAnalysis}`;
+        `Recommendation: present the key takeaways and next steps from the AI analysis below briefly, citing the sources.\n\n` +
+        `--- AI analysis ---\n${aiAnalysis}\n\n${formatSources(ai.sources)}`;
 
       const env = buildKpiEnvelope(meta, steer);
       // Keep the original structured payload available to the model.
@@ -860,10 +1135,14 @@ Also provide an overall weighted score and recommendation for next steps.`;
         scoringFactors,
         factorScores,
         overallScore: overall,
+        overallMethod: "weighted mean of scored factors",
+        weights: Object.fromEntries(scoringFactors.map((f: string) => [f, SCORING_FACTOR_WEIGHTS[f] ?? 0.1])),
         analysis: aiAnalysis,
+        sources: ai.sources,
+        noteId,
         currentStatus: lead.status,
         recommendations,
-        scoreTimestamp: new Date().toISOString(),
+        scoreTimestamp: scoredAt.toISOString(),
       };
       return env as any;
     }
