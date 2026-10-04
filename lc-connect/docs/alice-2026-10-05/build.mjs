@@ -10,7 +10,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const F = '/usr/share/fonts/truetype/ubuntu/';
 const face = (fam, w, file) => `@font-face{font-family:'${fam}';font-weight:${w};src:url(data:font/ttf;base64,${readFileSync(F + file).toString('base64')}) format('truetype');}`;
 const fonts = [face('Ubuntu', 300, 'Ubuntu-L.ttf'), face('Ubuntu', 400, 'Ubuntu-R.ttf'), face('Ubuntu', 500, 'Ubuntu-M.ttf'),
-  face('Ubuntu Mono', 400, 'UbuntuMono-R.ttf')].join('\n');
+  face('Ubuntu Mono', 400, 'UbuntuMono-R.ttf'), face('Ubuntu Condensed', 400, 'Ubuntu-C.ttf')].join('\n');
 const svg = readFileSync(path.join(dir, 'harness-diagram.svg'), 'utf8').replace(/^<\?xml[^>]*>\s*/, '');
 const html = readFileSync(path.join(dir, 'briefing.src.html'), 'utf8').replace('/*FONTS*/', fonts).replace('<!--DIAGRAM-->', svg);
 const out = path.join(dir, 'LC-Connect-briefing-2026-10-05.html');
