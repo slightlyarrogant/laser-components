@@ -22,6 +22,7 @@ import { datasetCsvHandler } from "./datasets.js";
 import { prisma } from "./db/client.js";
 import { getRecentEvents, logEmitter, type SessionLogEvent } from "./core/session-log.js";
 import { errMessage, errStack, log } from "./core/log.js";
+import { failRunningEnrichmentJobs, startEnrichmentJobSweeper } from "./tools/ai.js";
 
 // The MCP Apps SDK browser bundle (app-with-deps.js, bundled/self-contained),
 // resolved through the shared @cfi/mcp-widgets helper against LC's own ext-apps
@@ -561,6 +562,7 @@ try {
   log.debug({ evt: "oauth-legacy-import", stack: errStack(err) });
 }
 startOAuthStateSweeper();
+startEnrichmentJobSweeper();
 
 const port = config.PORT;
 
@@ -623,6 +625,14 @@ async function shutdown(signal: string): Promise<void> {
     process.exit(1);
   }, 10_000);
   failsafe.unref?.();
+
+  // Before the HTTP drain and the Prisma disconnect: background enrichment
+  // jobs die with this process, so their rows must not stay PROCESSING.
+  try {
+    await failRunningEnrichmentJobs("server restart");
+  } catch (err) {
+    log.error({ evt: "shutdown", phase: "enrichment-jobs", err: errMessage(err) });
+  }
 
   try {
     await new Promise<void>((resolve) => server.close(() => resolve()));

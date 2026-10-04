@@ -23,7 +23,7 @@ import { getCurrentUser } from "../core/current-user.js";
 import { audit } from "../core/audit.js";
 import { canEditLead, type LeadAccessFields } from "../core/access.js";
 import { child, errMessage } from "../core/log.js";
-import { PRESENT_BRIEFLY } from "./_present.js";
+import { LONG_JOB_RULE, PRESENT_BRIEFLY, SLOW_AI_RULE } from "./_present.js";
 import {
   type AiSource,
   SCORING_FACTOR_LABELS,
@@ -35,6 +35,13 @@ import {
   mergeSources,
   parseSources,
   weightedOverall,
+  Limiter,
+  resolveEnrichmentAreas,
+  shouldRunInBackground,
+  formatJobStarted,
+  formatJobStatus,
+  estimateEnrichment,
+  type EnrichmentArea,
 } from "./ai-helpers.js";
 
 /**
@@ -68,6 +75,8 @@ const DATASET_THRESHOLD = 10;
 type AiResult = {
   text: string;
   sources: AiSource[];
+  /** Every distinct cited URL (uncapped), for counting sources read. */
+  allSourceUrls: string[];
   provider: string;
   model: string;
   durationMs: number;
@@ -132,6 +141,7 @@ class PerplexityClient {
     return {
       text: data.choices?.[0]?.message?.content || "No response generated",
       sources: parseSources(data),
+      allSourceUrls: parseSources(data, Number.POSITIVE_INFINITY).map((x) => x.url),
       provider: AI_PROVIDER,
       model: typeof data.model === "string" && data.model ? data.model : model,
       durationMs: Date.now() - t0,
@@ -297,6 +307,337 @@ function generateMarkdownReport(
   return lines.join("\n");
 }
 
+// ---------------------------------------------------------------------------
+// enrich_lead execution + background job runtime
+//
+// Background jobs run in-process, fire-and-forget: the tool call returns a job
+// id at once and the work continues after the MCP response is sent. The
+// promise keeps the request's AsyncLocalStorage store, so audit() still
+// attributes the write to the caller. Nothing is tied to the request's
+// AbortSignal (the Perplexity fetch has its own 45 s deadline per call).
+//
+// Lifecycle guarantees for the enrichment_jobs row:
+//   - every exit of executeEnrichment writes COMPLETED or FAILED;
+//   - SIGTERM: failRunningEnrichmentJobs("server restart") (src/index.ts);
+//   - crash/SIGKILL: the sweeper marks PROCESSING rows older than 10 min that
+//     no live worker owns as FAILED (at startup and every 5 min), and
+//     get_enrichment_status reports such a row as failed straight away.
+// ---------------------------------------------------------------------------
+
+const ENRICH_CONCURRENCY = 2;
+const ENRICH_MAX_QUEUED = 8;
+const STALE_JOB_MS = 10 * 60_000;
+const SWEEP_INTERVAL_MS = 5 * 60_000;
+const PROCESS_STARTED_AT = new Date();
+
+const enrichLimiter = new Limiter(ENRICH_CONCURRENCY);
+const activeEnrichmentJobs = new Set<number>();
+let acceptingJobs = true;
+
+type EnrichPlanItem = { key: EnrichmentArea; title: string; prompt: string };
+type EnrichLead = { id: number; name: string; industry: string | null; website: string | null };
+
+type EnrichmentRun = {
+  jobId: number | null;
+  lead: EnrichLead;
+  plan: EnrichPlanItem[];
+  mayEdit: boolean;
+  userId: number;
+  jobMeta: Record<string, unknown>;
+  startedAt: Date;
+};
+
+function buildEnrichmentPlan(lead: EnrichLead, areas: EnrichmentArea[]): EnrichPlanItem[] {
+  const prompts: Record<EnrichmentArea, { title: string; prompt: string }> = {
+    company_info: {
+      title: "Company info",
+      prompt: `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ""}. Provide: company size, founding year, key product/services, headquarters location, and recent news.`,
+    },
+    market_position: {
+      title: "Market position",
+      prompt: `Analyze the market position of "${lead.name}" in the ${lead.industry || "laser/photonics"} industry. Include market share, competitive advantages, and industry reputation.`,
+    },
+    technology_stack: {
+      title: "Technology stack",
+      prompt: `Identify the technology stack and technical capabilities of "${lead.name}". Focus on their use of laser/photonics technologies and related systems.`,
+    },
+    growth_potential: {
+      title: "Growth potential",
+      prompt: `Assess the growth potential of "${lead.name}". Consider funding status, market expansion, product development, and industry trends affecting their business.`,
+    },
+  };
+  return areas.map((key) => ({ key, ...prompts[key] }));
+}
+
+/** durationMs + calls of the last 50 completed enrichment jobs (for the estimate). */
+async function recentJobHistory(): Promise<Array<{ durationMs?: unknown; calls?: unknown }>> {
+  try {
+    const rows = await prisma.enrichmentJob.findMany({
+      where: { status: "COMPLETED" },
+      orderBy: { id: "desc" },
+      take: 50,
+      select: { metadata: true },
+    });
+    return rows.map((r) => parseJson(r.metadata) ?? {});
+  } catch (err) {
+    aiLog.warn({ error: errMessage(err) }, "enrichment history read failed");
+    return [];
+  }
+}
+
+function parseJson(s: string | null | undefined): Record<string, unknown> | null {
+  if (!s) return null;
+  try {
+    const v = JSON.parse(s);
+    return v && typeof v === "object" ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function createEnrichmentJob(
+  leadId: number,
+  jobMeta: Record<string, unknown>,
+  startedAt: Date
+): Promise<number | null> {
+  try {
+    const job = await prisma.enrichmentJob.create({
+      data: {
+        leadId,
+        status: "PROCESSING",
+        attempts: 1,
+        lastAttemptAt: startedAt,
+        updatedAt: startedAt,
+        provider: AI_PROVIDER,
+        metadata: JSON.stringify(jobMeta),
+      },
+      select: { id: true },
+    });
+    return job.id;
+  } catch (err) {
+    aiLog.error({ tool: "enrich_lead", leadId, error: errMessage(err) }, "enrichment job create failed");
+    return null;
+  }
+}
+
+async function markJobFailed(jobId: number, meta: Record<string, unknown>, error: string): Promise<void> {
+  const finishedAt = new Date();
+  await prisma.enrichmentJob
+    .update({
+      where: { id: jobId },
+      data: {
+        status: "FAILED",
+        completedAt: finishedAt,
+        updatedAt: finishedAt,
+        metadata: JSON.stringify({ ...meta, finishedAt: finishedAt.toISOString(), error: error.slice(0, 500) }),
+      },
+      select: { id: true },
+    })
+    .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
+}
+
+/**
+ * Runs the AI calls, persists the note + last_enriched, closes the job row and
+ * writes the audit entry. Same behaviour inline and in the background. Throws
+ * (after marking the job FAILED + auditing) when an AI call fails.
+ */
+async function executeEnrichment(r: EnrichmentRun) {
+  const { jobId, lead, plan, mayEdit, jobMeta, startedAt } = r;
+  const leadId = lead.id;
+  const model = aiModel();
+
+  const results: Array<{ key: string; title: string; ai: AiResult }> = [];
+  try {
+    for (const p of plan) {
+      results.push({ key: p.key, title: p.title, ai: await callAi("enrich_lead", leadId, p.prompt) });
+    }
+  } catch (err) {
+    if (jobId != null) {
+      await markJobFailed(
+        jobId,
+        { ...jobMeta, durationMs: Date.now() - startedAt.getTime(), callsCompleted: results.length },
+        errMessage(err)
+      );
+    }
+    await audit({
+      action: "lead.enrichment_failed",
+      resourceType: "lead",
+      resourceId: leadId,
+      details: { leadName: lead.name, jobId, provider: AI_PROVIDER, model, error: errMessage(err) },
+    });
+    throw err;
+  }
+
+  const sources = mergeSources(results.map((x) => x.ai.sources));
+  const distinctSources = new Set(results.flatMap((x) => x.ai.allSourceUrls ?? [])).size;
+  const usedModel = results[0]?.ai.model ?? model;
+  const finishedAt = new Date();
+  const date = isoDate(finishedAt);
+
+  const enrichedData: Record<string, string> = {};
+  for (const x of results) enrichedData[x.key] = x.ai.text;
+
+  const body = [
+    `Enrichment (Perplexity ${usedModel}, ${date})`,
+    "",
+    ...results.flatMap((x) => [`## ${x.title}`, x.ai.text.trim(), ""]),
+    formatSources(sources),
+  ].join("\n");
+
+  // Persist: note + last_enriched, only when the caller may edit the lead.
+  let noteId: number | null = null;
+  let persisted: Record<string, unknown>;
+  if (!mayEdit) {
+    persisted = {
+      saved: false,
+      reason:
+        "You may not edit this lead, so no note was saved and last_enriched was not updated. " +
+        "The owner or an ADMIN can run enrich_lead to store it.",
+    };
+  } else {
+    try {
+      const [note] = await prisma.$transaction([
+        prisma.note.create({
+          data: { leadId, content: `[ENRICHMENT] ${body}`, user_id: r.userId },
+          select: { id: true },
+        }),
+        prisma.lead.update({
+          where: { id: leadId },
+          data: { lastEnriched: finishedAt },
+          select: { id: true },
+        }),
+      ]);
+      noteId = note.id;
+      persisted = { saved: true, noteId, lastEnriched: finishedAt.toISOString() };
+    } catch (err) {
+      aiLog.error({ tool: "enrich_lead", leadId, error: errMessage(err) }, "enrichment persist failed");
+      persisted = { saved: false, reason: `Saving the enrichment note failed: ${errMessage(err)}` };
+    }
+  }
+
+  if (jobId != null) {
+    await prisma.enrichmentJob
+      .update({
+        where: { id: jobId },
+        data: {
+          status: "COMPLETED",
+          completedAt: finishedAt,
+          updatedAt: finishedAt,
+          // The text is kept on the job too, so a background result is readable
+          // via get_enrichment_status even when no note could be saved.
+          result: JSON.stringify({
+            noteId,
+            saved: persisted.saved === true,
+            reason: persisted.saved === true ? undefined : persisted.reason,
+            sources: sources.map((s) => s.url),
+            text: body,
+          }),
+          metadata: JSON.stringify({
+            ...jobMeta,
+            model: usedModel,
+            finishedAt: finishedAt.toISOString(),
+            durationMs: finishedAt.getTime() - startedAt.getTime(),
+            calls: results.length,
+            citations: sources.length,
+            distinctSources,
+          }),
+        },
+        select: { id: true },
+      })
+      .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
+  }
+
+  await audit({
+    action: "lead.enriched",
+    resourceType: "lead",
+    resourceId: leadId,
+    details: {
+      leadName: lead.name,
+      jobId,
+      noteId,
+      saved: persisted.saved === true,
+      enrichmentTypes: plan.map((p) => p.key),
+      provider: AI_PROVIDER,
+      model: usedModel,
+      citations: sources.length,
+    },
+  });
+
+  return { enrichedData, sources, finishedAt, persisted, noteId };
+}
+
+/** Fire-and-forget: never throws, never rejects unhandled. */
+function startBackgroundEnrichment(r: EnrichmentRun): void {
+  const jobId = r.jobId as number;
+  activeEnrichmentJobs.add(jobId);
+  void enrichLimiter
+    .run(async () => {
+      if (!acceptingJobs) return; // shutdown already marked the row FAILED
+      const t0 = Date.now();
+      await executeEnrichment(r);
+      aiLog.info({ tool: "enrich_lead", leadId: r.lead.id, jobId, durationMs: Date.now() - t0, totalMs: Date.now() - r.startedAt.getTime() }, "enrichment job completed");
+    })
+    .catch(async (err) => {
+      aiLog.warn({ tool: "enrich_lead", leadId: r.lead.id, jobId, error: errMessage(err) }, "enrichment job failed");
+      // executeEnrichment marks FAILED itself on AI errors; this covers anything
+      // that escaped before or after (only touches a row still PROCESSING).
+      await prisma.enrichmentJob
+        .updateMany({
+          where: { id: jobId, status: "PROCESSING" },
+          data: { status: "FAILED", completedAt: new Date(), updatedAt: new Date() },
+        })
+        .catch(() => undefined);
+    })
+    .finally(() => activeEnrichmentJobs.delete(jobId));
+}
+
+async function failJobs(where: { ids?: number[]; olderThan?: Date }, reason: string): Promise<number> {
+  const rows = await prisma.enrichmentJob.findMany({
+    where: {
+      status: { in: ["PROCESSING", "PENDING"] },
+      ...(where.ids ? { id: { in: where.ids } } : {}),
+      ...(where.olderThan ? { createdAt: { lt: where.olderThan } } : {}),
+    },
+    select: { id: true, metadata: true },
+  });
+  let n = 0;
+  for (const row of rows) {
+    if (!where.ids && activeEnrichmentJobs.has(row.id)) continue; // a live worker owns it
+    await markJobFailed(row.id, parseJson(row.metadata) ?? {}, reason);
+    n++;
+  }
+  return n;
+}
+
+/**
+ * SIGTERM path: stop starting queued jobs and mark every job this process owns
+ * FAILED ("server restart"). Call BEFORE closing the HTTP server / Prisma.
+ */
+export async function failRunningEnrichmentJobs(reason = "server restart"): Promise<number> {
+  acceptingJobs = false;
+  const ids = [...activeEnrichmentJobs];
+  if (ids.length === 0) return 0;
+  const n = await failJobs({ ids }, reason);
+  aiLog.warn({ jobs: ids, reason }, "enrichment jobs failed on shutdown");
+  return n;
+}
+
+/** Marks PROCESSING rows older than 10 min that no live worker owns as FAILED. */
+export async function failStaleEnrichmentJobs(olderThanMs: number = STALE_JOB_MS): Promise<number> {
+  const n = await failJobs({ olderThan: new Date(Date.now() - olderThanMs) }, "server restart (job was left running)");
+  if (n > 0) aiLog.warn({ jobs: n }, "stale enrichment jobs marked failed");
+  return n;
+}
+
+/** Startup sweep + periodic sweep (unref'd). */
+export function startEnrichmentJobSweeper(): void {
+  const sweep = () =>
+    failStaleEnrichmentJobs().catch((err) => aiLog.error({ error: errMessage(err) }, "enrichment job sweep failed"));
+  void sweep();
+  const t = setInterval(sweep, SWEEP_INTERVAL_MS);
+  t.unref?.();
+}
+
 function ok(data: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
@@ -320,6 +661,8 @@ export function registerAiTools(
       "DO NOT USE WHEN: the user only needs local catalog rows -> use",
       "get_products/search_products; or wants competitor-only detail -> use",
       "analyze_competition.",
+      "DURATION: 10–30 s (one web-search call).",
+      SLOW_AI_RULE,
       "RETURNS: { success, productId, productName, analysisType, analysis, timestamp,",
       "then a 'Sources:' list of cited URLs — an analytical narrative, not a",
       "DB change. Cite the sources when presenting.",
@@ -398,6 +741,8 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "product could serve. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user only wants the applications already mapped to the",
       "product -> use get_product_applications.",
+      "DURATION: 10–30 s (one web-search call).",
+      SLOW_AI_RULE,
       "RETURNS: { success, data{ productId, productName, industryFocus, discoveries,",
       "recommendedActions, timestamp }, then a 'Sources:' list of cited URLs —",
       "suggestions only.",
@@ -458,7 +803,8 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
   );
 
   // -------------------------------------------------------------------------
-  // enrich_lead — Perplexity-backed lead enrichment.
+  // enrich_lead — Perplexity-backed lead enrichment. One area runs inline;
+  // two or more areas (or async:true) run as a background job.
   // -------------------------------------------------------------------------
   server.tool(
     "enrich_lead",
@@ -468,16 +814,26 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "market, technology, or growth information. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user asks to change CRM fields (status, industry, website…)",
       "-> use update_lead after explicit confirmation.",
-      "RETURNS: { success, data{ leadId, companyName, currentData, enrichedData,",
+      "DURATION: ~5–15 s per focus area. ONE area runs inline and returns the findings.",
+      "'all' or 2+ areas (or async:true) run in the BACKGROUND (1–3 min) and return",
+      "IMMEDIATELY with a job id — the findings are not in that reply.",
+      "RETURNS (inline): { success, data{ leadId, companyName, currentData, enrichedData,",
       "enrichmentTimestamp, persisted, recommendedActions } } followed by a",
       "'Sources:' list of cited URLs — cite them when presenting the findings.",
+      "RETURNS (background): a short user-facing paragraph (job #N, saved to the lead's",
+      "notes, estimated minutes from past runs) — read the result later with",
+      "get_enrichment_status { jobId: N } or get_lead_notes.",
+      "When this returns a job id, tell the user the process is running, that the result",
+      "will be saved to the lead, the estimated time, and that you can check the status",
+      "when they ask. Do not poll.",
       "PERSISTS: the findings + sources are saved as an [ENRICHMENT] note on the lead and",
       "leads.last_enriched is set (only if you may edit the lead; otherwise the text is",
-      "returned and data.persisted explains why nothing was saved). Lead fields are NOT",
-      "changed.",
-      "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Each",
-      "enrichmentType is one web-search call (~20-40 s each); prefer the specific",
-      "types the user asked for over 'all'. Requires PERPLEXITY_API_KEY.",
+      "kept on the job / returned, and persisted explains why no note was saved). Lead",
+      "fields are NOT changed.",
+      "GOTCHAS: leadId is required (resolve via get_leads/search_leads). Prefer the",
+      "specific areas the user asked for over 'all'. Run one lead at a time; do not fan",
+      "out across many leads in one turn. Requires PERPLEXITY_API_KEY.",
+      LONG_JOB_RULE,
     ].join("\n"),
     {
       leadId: z.number().describe("Lead ID to enrich (resolve via get_leads/search_leads)."),
@@ -493,7 +849,14 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
         )
         .optional()
         .default(["all"])
-        .describe("Which enrichment dimensions to gather. 'all' runs every dimension. Defaults to ['all']."),
+        .describe(
+          "Which enrichment dimensions to gather. 'all' runs every dimension (background job). " +
+            "Defaults to ['all']. One dimension runs inline (~5–15 s)."
+        ),
+      async: z
+        .boolean()
+        .optional()
+        .describe("Force a background job even for one area. Two or more areas always run in the background."),
     },
     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     async (a) => {
@@ -515,188 +878,63 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       };
       const mayEdit = canEditLead(me, access);
 
-      const enrichmentTypes = Array.isArray(a.enrichmentTypes) ? a.enrichmentTypes : ["all"];
-      const shouldEnrichAll = enrichmentTypes.includes("all");
+      const areas = resolveEnrichmentAreas(a.enrichmentTypes);
+      if (areas.length === 0) throw new Error("No enrichment area selected");
+      const plan = buildEnrichmentPlan(lead, areas);
+      const background = shouldRunInBackground(plan.length, a.async);
 
-      const plan: Array<{ key: string; title: string; prompt: string }> = [];
-      if (shouldEnrichAll || enrichmentTypes.includes("company_info")) {
-        plan.push({
-          key: "company_info",
-          title: "Company info",
-          prompt: `Research company information for "${lead.name}"${lead.website ? ` (${lead.website})` : ""}. Provide: company size, founding year, key product/services, headquarters location, and recent news.`,
-        });
-      }
-      if (shouldEnrichAll || enrichmentTypes.includes("market_position")) {
-        plan.push({
-          key: "market_position",
-          title: "Market position",
-          prompt: `Analyze the market position of "${lead.name}" in the ${lead.industry || "laser/photonics"} industry. Include market share, competitive advantages, and industry reputation.`,
-        });
-      }
-      if (shouldEnrichAll || enrichmentTypes.includes("technology_stack")) {
-        plan.push({
-          key: "technology_stack",
-          title: "Technology stack",
-          prompt: `Identify the technology stack and technical capabilities of "${lead.name}". Focus on their use of laser/photonics technologies and related systems.`,
-        });
-      }
-      if (shouldEnrichAll || enrichmentTypes.includes("growth_potential")) {
-        plan.push({
-          key: "growth_potential",
-          title: "Growth potential",
-          prompt: `Assess the growth potential of "${lead.name}". Consider funding status, market expansion, product development, and industry trends affecting their business.`,
-        });
+      if (background && enrichLimiter.active + enrichLimiter.waiting >= ENRICH_CONCURRENCY + ENRICH_MAX_QUEUED) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text:
+                `Too many enrichment jobs are already running or queued (${enrichLimiter.active + enrichLimiter.waiting}). ` +
+                "Nothing was started. Tell the user to try again in a few minutes, and run one lead at a time.",
+            },
+          ],
+        };
       }
 
-      // Job row first, so a crash mid-call still leaves a PROCESSING trace.
+      const queuedAhead =
+        background && enrichLimiter.active >= ENRICH_CONCURRENCY ? enrichLimiter.waiting + 1 : 0;
+      const estimate = estimateEnrichment(await recentJobHistory(), plan.length, queuedAhead, ENRICH_CONCURRENCY);
       const startedAt = new Date();
-      const model = aiModel();
       const jobMeta: Record<string, unknown> = {
         tool: "enrich_lead",
-        model,
+        model: aiModel(),
         enrichmentTypes: plan.map((p) => p.key),
+        mode: background ? "background" : "inline",
+        estimatedMs: estimate.estimatedMs,
+        estimateMsPerArea: estimate.msPerArea,
+        estimateSamples: estimate.samples,
         userId: me.id,
         startedAt: startedAt.toISOString(),
       };
-      let jobId: number | null = null;
-      try {
-        const job = await prisma.enrichmentJob.create({
-          data: {
-            leadId: a.leadId,
-            status: "PROCESSING",
-            attempts: 1,
-            lastAttemptAt: startedAt,
-            updatedAt: startedAt,
-            provider: AI_PROVIDER,
-            metadata: JSON.stringify(jobMeta),
-          },
-          select: { id: true },
-        });
-        jobId = job.id;
-      } catch (err) {
-        aiLog.error({ tool: "enrich_lead", leadId: a.leadId, error: errMessage(err) }, "enrichment job create failed");
-      }
+      // Job row first, so a crash mid-call still leaves a PROCESSING trace.
+      const jobId = await createEnrichmentJob(a.leadId, jobMeta, startedAt);
+      const run: EnrichmentRun = { jobId, lead, plan, mayEdit, userId: me.id, jobMeta, startedAt };
 
-      const results: Array<{ key: string; title: string; ai: AiResult }> = [];
-      try {
-        for (const p of plan) {
-          results.push({ key: p.key, title: p.title, ai: await callAi("enrich_lead", a.leadId, p.prompt) });
+      if (background) {
+        if (jobId == null) {
+          throw new Error("Could not create the enrichment job record; nothing was started. Try again.");
         }
-      } catch (err) {
-        const finishedAt = new Date();
-        if (jobId != null) {
-          await prisma.enrichmentJob
-            .update({
-              where: { id: jobId },
-              data: {
-                status: "FAILED",
-                completedAt: finishedAt,
-                updatedAt: finishedAt,
-                metadata: JSON.stringify({
-                  ...jobMeta,
-                  finishedAt: finishedAt.toISOString(),
-                  durationMs: finishedAt.getTime() - startedAt.getTime(),
-                  callsCompleted: results.length,
-                  error: errMessage(err).slice(0, 500),
-                }),
-              },
-              select: { id: true },
-            })
-            .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
-        }
-        await audit({
-          action: "lead.enrichment_failed",
-          resourceType: "lead",
-          resourceId: a.leadId,
-          details: { leadName: lead.name, jobId, provider: AI_PROVIDER, model, error: errMessage(err) },
-        });
-        throw err;
-      }
-
-      const sources = mergeSources(results.map((r) => r.ai.sources));
-      const usedModel = results[0]?.ai.model ?? model;
-      const finishedAt = new Date();
-      const date = isoDate(finishedAt);
-
-      const enrichedData: Record<string, string> = {};
-      for (const r of results) enrichedData[r.key] = r.ai.text;
-
-      // Persist: note + last_enriched, only when the caller may edit the lead.
-      let noteId: number | null = null;
-      let persisted: Record<string, unknown>;
-      if (!mayEdit) {
-        persisted = {
-          saved: false,
-          reason:
-            "You may not edit this lead, so no note was saved and last_enriched was not updated. " +
-            "The owner or an ADMIN can run enrich_lead to store it.",
-        };
-      } else {
-        try {
-          const body = [
-            `Enrichment (Perplexity ${usedModel}, ${date})`,
-            "",
-            ...results.flatMap((r) => [`## ${r.title}`, r.ai.text.trim(), ""]),
-            formatSources(sources),
-          ].join("\n");
-          const [note] = await prisma.$transaction([
-            prisma.note.create({
-              data: { leadId: a.leadId, content: `[ENRICHMENT] ${body}`, user_id: me.id },
-              select: { id: true },
-            }),
-            prisma.lead.update({
-              where: { id: a.leadId },
-              data: { lastEnriched: finishedAt },
-              select: { id: true },
-            }),
-          ]);
-          noteId = note.id;
-          persisted = { saved: true, noteId, lastEnriched: finishedAt.toISOString() };
-        } catch (err) {
-          aiLog.error({ tool: "enrich_lead", leadId: a.leadId, error: errMessage(err) }, "enrichment persist failed");
-          persisted = { saved: false, reason: `Saving the enrichment note failed: ${errMessage(err)}` };
-        }
-      }
-
-      if (jobId != null) {
-        await prisma.enrichmentJob
-          .update({
-            where: { id: jobId },
-            data: {
-              status: "COMPLETED",
-              completedAt: finishedAt,
-              updatedAt: finishedAt,
-              result: JSON.stringify({ noteId, saved: persisted.saved === true, sources: sources.map((s) => s.url) }),
-              metadata: JSON.stringify({
-                ...jobMeta,
-                model: usedModel,
-                finishedAt: finishedAt.toISOString(),
-                durationMs: finishedAt.getTime() - startedAt.getTime(),
-                calls: results.length,
-                citations: sources.length,
-              }),
+        startBackgroundEnrichment(run);
+        aiLog.info(
+          { tool: "enrich_lead", leadId: a.leadId, jobId, areas: plan.length, queuedAhead, estimatedMs: estimate.estimatedMs },
+          "enrichment job started"
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: formatJobStarted({ jobId, leadName: lead.name, areas: plan.map((p) => p.key), estimate, queuedAhead }),
             },
-            select: { id: true },
-          })
-          .catch((e) => aiLog.error({ jobId, error: errMessage(e) }, "enrichment job update failed"));
+          ],
+        };
       }
 
-      await audit({
-        action: "lead.enriched",
-        resourceType: "lead",
-        resourceId: a.leadId,
-        details: {
-          leadName: lead.name,
-          jobId,
-          noteId,
-          saved: persisted.saved === true,
-          enrichmentTypes: plan.map((p) => p.key),
-          provider: AI_PROVIDER,
-          model: usedModel,
-          citations: sources.length,
-        },
-      });
-
+      const out = await executeEnrichment(run);
       return okWithSources(
         {
           success: true,
@@ -704,9 +942,10 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
             leadId: a.leadId,
             companyName: lead.name,
             currentData: { industry: lead.industry, website: lead.website, location: lead.location },
-            enrichedData,
-            enrichmentTimestamp: finishedAt.toISOString(),
-            persisted,
+            enrichedData: out.enrichedData,
+            enrichmentTimestamp: out.finishedAt.toISOString(),
+            persisted: out.persisted,
+            jobId,
             recommendedActions: [
               "Review and validate AI-generated insights against the sources",
               "Update lead fields (industry, website, size) with update_lead if confirmed",
@@ -715,8 +954,86 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
             ],
           },
         },
-        sources
+        out.sources
       );
+    }
+  );
+
+  // -------------------------------------------------------------------------
+  // get_enrichment_status — read a background enrichment job.
+  // -------------------------------------------------------------------------
+  server.tool(
+    "get_enrichment_status",
+    [
+      "get_enrichment_status — status and result of an enrich_lead background job.",
+      "USE WHEN: enrich_lead returned a job id and the user asks whether it is done or",
+      "what it found (or at the next turn after starting it).",
+      "DO NOT USE WHEN: you just started the job in this same reply — say it is running",
+      "instead. Never call this in a loop.",
+      "RETURNS: status (RUNNING / COMPLETED / FAILED), timings, and on COMPLETED the",
+      "full enrichment text with its 'Sources:' list; on FAILED the error.",
+      "INPUT: jobId, or leadId for that lead's most recent job.",
+      "DURATION: instant (database read).",
+    ].join("\n"),
+    {
+      jobId: z.number().optional().describe("Job id returned by enrich_lead."),
+      leadId: z.number().optional().describe("Lead id: returns that lead's most recent enrichment job."),
+    },
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    async (a) => {
+      void getTenantSub();
+      if (a.jobId == null && a.leadId == null) throw new Error("Pass jobId or leadId");
+
+      const job =
+        a.jobId != null
+          ? await prisma.enrichmentJob.findUnique({ where: { id: a.jobId }, include: { lead: { select: { name: true } } } })
+          : await prisma.enrichmentJob.findFirst({
+              where: { leadId: a.leadId! },
+              orderBy: { id: "desc" },
+              include: { lead: { select: { name: true } } },
+            });
+      if (!job) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: a.jobId != null ? `No enrichment job #${a.jobId}.` : `No enrichment job for lead ${a.leadId}.`,
+            },
+          ],
+        };
+      }
+
+      const metadata = parseJson(job.metadata);
+      const result = parseJson(job.result);
+      let noteContent: string | null = null;
+      if (job.status === "COMPLETED" && typeof result?.noteId === "number") {
+        const note = await prisma.note.findUnique({ where: { id: result.noteId as number }, select: { content: true } });
+        noteContent = note?.content ?? null;
+      }
+      const orphaned =
+        (job.status === "PROCESSING" || job.status === "PENDING") &&
+        !activeEnrichmentJobs.has(job.id) &&
+        job.createdAt < PROCESS_STARTED_AT;
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: formatJobStatus({
+              id: job.id,
+              leadId: job.leadId,
+              leadName: job.lead?.name ?? null,
+              status: job.status,
+              createdAt: job.createdAt,
+              completedAt: job.completedAt,
+              metadata,
+              result,
+              noteContent,
+              orphaned,
+            }),
+          },
+        ],
+      };
     }
   );
 
@@ -731,6 +1048,8 @@ Applications: ${product.product_applications.map((pa: any) => pa.application.nam
       "alternative solutions for a specific product. Calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user only wants local product/application records -> use",
       "get_products/get_product_applications.",
+      "DURATION: 10–30 s (one web-search call; 'comprehensive' is the slow end).",
+      SLOW_AI_RULE,
       "RETURNS: { success, productId, productName, analysisDepth, focusedCompetitors,",
       "analysis, recommendations, timestamp, then a 'Sources:' list of cited URLs.",
       "GOTCHAS: productId is required; optional competitorNames narrows the analysis.",
@@ -811,6 +1130,8 @@ Product Description: ${product.description || "N/A"}`;
       "the DB for context, then calls a web-backed AI (Perplexity).",
       "DO NOT USE WHEN: the user asks for raw rows -> use get_leads/get_products/",
       "get_applications.",
+      "DURATION: 10–30 s (DB summary + one web-search call).",
+      SLOW_AI_RULE,
       "RETURNS: { success, insightType, timeframe, focusArea, insights, dataContext,",
       "nextSteps, generatedAt, then a 'Sources:' list of cited URLs —",
       "interpretation and next steps, not row dumps.",
@@ -940,6 +1261,7 @@ Product Description: ${product.description || "N/A"}`;
         "specific lead. Calls a web-backed AI (Perplexity).",
         "DO NOT USE WHEN: the user asks to change the lead status -> use update_lead",
         "after explicit confirmation.",
+        "DURATION: takes 15–30 s (one web-search call). " + SLOW_AI_RULE,
         "RETURNS: a KPI card — one tile per scoring factor plus an accented overall-score",
         "tile; the card IS the answer. The text carries the AI reasoning and a 'Sources:'",
         "list of cited URLs.",

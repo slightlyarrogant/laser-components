@@ -13,3 +13,13 @@ export const PRESENT_BRIEFLY =
   "data, reply with at most one sentence. If the user asked for specific fields per item, " +
   "a written list, a comparison, a count, or which items match a condition, ANSWER IN TEXT " +
   "from the rows listed in the tool result text (when it ends with \"total N · shown M\", say the card holds the complete set).";
+
+// Long-running AI tools. claude.ai allows ~240 s per tool call, ChatGPT ~60 s;
+// a multi-area enrichment can exceed both, so it runs as a background job.
+export const SLOW_AI_RULE =
+  "Run one at a time; do not fan out across many leads or products in one turn.";
+
+export const LONG_JOB_RULE =
+  "JOBS: when a tool returns a job id, tell the user in one sentence that it is running and " +
+  "the expected time, then stop. Do not poll in a loop; check get_enrichment_status only when " +
+  "the user asks or at the next turn.";
