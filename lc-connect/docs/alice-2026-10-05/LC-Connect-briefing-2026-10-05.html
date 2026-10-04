@@ -132,6 +132,29 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
 .chip .n { font-family: "Ubuntu Mono", monospace; color: var(--accent); margin-right: 8px; }
 .chip small { display: block; font-size: 17px; font-weight: 400; color: var(--muted); margin-top: 3px; }
 .arr { align-self: center; font-size: 26px; color: var(--faint); }
+/* not-chips */
+.notrow { margin-top: auto; margin-bottom: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+.notrow span { font-size: 21px; color: var(--body); border: 1px solid var(--rule); border-radius: 6px; padding: 7px 14px 7px 38px; position: relative; }
+.notrow span::before { content: ""; position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; margin-top: -8px;
+  background: linear-gradient(45deg, transparent 42%, #a33a2b 42%, #a33a2b 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, #a33a2b 42%, #a33a2b 58%, transparent 58%); }
+/* adoption */
+.adopt { display: grid; grid-template-columns: 1fr 1.25fr; gap: 40px; margin-top: 34px; }
+.adopt > div { border-top: 2px solid var(--ink); padding-top: 12px; }
+.adopt .use { border-top-color: var(--accent); }
+.adopt ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.adopt li { font-size: 25px; line-height: 1.3; color: var(--ink); padding: 11px 0; border-bottom: 1px solid var(--rule); }
+.small2 { font-size: 26px !important; margin-top: 34px !important; }
+/* decisions + daily use */
+.dec { display: grid; grid-template-columns: 1.15fr 1fr; gap: 44px; margin-top: 24px; }
+.dec ol.asks { margin-top: 0; }
+.dec ol.asks li { font-size: 22px; padding: 8px 0; grid-template-columns: 40px 1fr; }
+.dec ol.asks li::before { font-size: 21px; }
+.dec ol.asks li span { font-size: 17px; margin-left: 6px; }
+.dec .use { border-top: 2px solid var(--accent); padding-top: 10px; }
+.dec .use ul { margin: 4px 0 0; padding: 0; list-style: none; }
+.dec .use li { font-size: 22px; line-height: 1.32; color: var(--ink); padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.decline { margin: 22px 0 0; font-size: 24px; color: var(--body); border-left: 5px solid var(--accent); padding: 8px 0 8px 18px; background: var(--accent-soft); }
+.decline b { color: var(--ink); font-weight: 500; }
 /* security grid */
 .sec2 { margin-top: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 48px; }
 .sec2 div { padding: 12px 0; border-bottom: 1px solid var(--rule); font-size: 23px; line-height: 1.35; }
@@ -167,15 +190,16 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
     <div class="card"><h2>The harness</h2><p>Tools for your products, lead base and rules. Designed to learn from every correction.</p></div>
   </div>
   <div class="compare one"><div><span class="k">Training your own model instead</span>Hundreds of thousands, <b>frozen</b> when finished, and GPUs to buy.</div></div>
+  <div class="notrow"><span>Not a model fine-tune</span><span>Not a CRM</span><span>Not a data lake</span><span>Not a closed system</span></div>
   <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">2</span></div>
 </section>
 
 <!-- 3 -->
 <section class="slide diagram">
   <h1>Your data stays in one place you choose.<br><b>The engine is rented by you.</b></h1>
-  <div class="fig"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 572" role="img" aria-labelledby="hd-title hd-desc">
+  <div class="fig"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 510" role="img" aria-labelledby="hd-title hd-desc">
   <title id="hd-title">LC Connect: how the harness fits together</title>
-  <desc id="hd-desc">Your team works in a Claude or ChatGPT business workspace. The AI engine (OpenAI, Anthropic) is rented by you under your business plan and is replaceable; it receives the conversation, including the lead rows needed to answer, under your business contract. The workspace reaches the LC Connect server through an MCP connector with a personal sign-in; the target is sign-in through your identity provider, for example Entra ID. The LC Connect server holds tools, access rules and the audit log, and reads a database of leads, products and knowledge. AutoOffice operates and monitors the server and deploys it from your repository. Server and database live in one place you choose: your Azure (A) or an AutoOffice EU server (B). Market research (Perplexity) can be switched off; it receives company names, websites and product or market questions, never notes, contacts or users.</desc>
+  <desc id="hd-desc">Your team works in a Claude or ChatGPT business workspace; the engine from OpenAI or Anthropic is rented by you and replaceable, and sees the conversation, including the lead rows needed to answer, under your business contract. The workspace reaches LC Connect (connector and server: tools, access rules per person, audit log) through an MCP connector with a personal sign-in. LC Connect and the database of leads, products and knowledge live in one place you choose: your Azure (A) or an AutoOffice EU server (B). Market research (Perplexity) can be switched off; it receives company names, websites and product or market questions, never notes, contacts or users.</desc>
   <defs>
     <marker id="hd-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3a3d42"/></marker>
     <marker id="hd-am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9aa0a6"/></marker>
@@ -183,88 +207,60 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
   <g font-family="Ubuntu, 'Segoe UI', Arial, sans-serif" fill="#24262a">
 
     <!-- data zone -->
-    <rect x="510" y="172" width="674" height="250" rx="10" fill="#fbf1e0" stroke="#c9861f" stroke-width="2" stroke-dasharray="9 6"/>
-    <text x="530" y="410" font-family="'Ubuntu Mono', monospace" font-size="17" letter-spacing="1.5" fill="#8a5a0e">YOUR DATA LIVES HERE</text>
-    <text x="1164" y="410" text-anchor="end" font-size="18" fill="#8a5a0e">A: your Azure  ·  B: AutoOffice EU server</text>
+    <rect x="530" y="10" width="654" height="320" rx="10" fill="#fbf1e0" stroke="#c9861f" stroke-width="2" stroke-dasharray="9 6"/>
+    <text x="552" y="42" font-family="'Ubuntu Mono', monospace" font-size="18" letter-spacing="1.5" fill="#8a5a0e">YOUR DATA LIVES HERE</text>
+    <text x="1164" y="42" text-anchor="end" font-size="19" fill="#8a5a0e">A: your Azure  ·  B: AutoOffice EU server</text>
 
-    <!-- engine -->
-    <rect x="30" y="10" width="300" height="124" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="180" y="42" text-anchor="middle" font-size="22" font-weight="500">AI engine, rented by you</text>
-    <rect x="52" y="56" width="122" height="34" rx="17" fill="#ffffff" stroke="#b9bcc0"/>
-    <text x="113" y="79" text-anchor="middle" font-size="18">OpenAI</text>
-    <rect x="186" y="56" width="122" height="34" rx="17" fill="#ffffff" stroke="#b9bcc0"/>
-    <text x="247" y="79" text-anchor="middle" font-size="18">Anthropic</text>
-    <text x="180" y="120" text-anchor="middle" font-size="18" fill="#71767d">replaceable: you can switch it</text>
+    <!-- team -->
+    <rect x="20" y="70" width="340" height="230" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="190" y="112" text-anchor="middle" font-size="27" font-weight="500">Your team</text>
+    <text x="190" y="148" text-anchor="middle" font-size="21" fill="#3c4046">Claude or ChatGPT</text>
+    <text x="190" y="176" text-anchor="middle" font-size="21" fill="#3c4046">business workspace</text>
+    <line x1="44" y1="200" x2="336" y2="200" stroke="#d9dbde"/>
+    <text x="190" y="232" text-anchor="middle" font-size="18" fill="#71767d">engine from OpenAI or Anthropic,</text>
+    <text x="190" y="258" text-anchor="middle" font-size="18" fill="#71767d">rented by you, replaceable</text>
 
-    <!-- engine <-> workspace -->
-    <line x1="100" y1="136" x2="100" y2="238" stroke="#9aa0a6" stroke-width="2.5" marker-start="url(#hd-am)" marker-end="url(#hd-am)"/>
-    <text x="116" y="166" font-size="17" fill="#3c4046">the conversation, incl. the</text>
-    <text x="116" y="188" font-size="17" fill="#3c4046">lead rows needed to answer</text>
-    <text x="116" y="210" font-size="17" fill="#3c4046">under your business contract</text>
-
-    <!-- identity provider -->
-    <rect x="390" y="10" width="270" height="124" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5"/>
-    <text x="525" y="44" text-anchor="middle" font-size="21" font-weight="500">Your identity provider</text>
-    <text x="525" y="74" text-anchor="middle" font-size="18" fill="#3c4046">e.g. Entra ID, your MFA</text>
-    <rect x="490" y="88" width="70" height="28" rx="4" fill="#fbf1e0" stroke="#c9861f"/>
-    <text x="525" y="108" text-anchor="middle" font-family="'Ubuntu Mono', monospace" font-size="15" letter-spacing="1" fill="#8a5a0e">TARGET</text>
-    <line x1="610" y1="136" x2="610" y2="226" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="7 5" marker-start="url(#hd-am)" marker-end="url(#hd-am)"/>
-    <text x="598" y="160" text-anchor="end" font-size="17" fill="#3c4046">sign-in</text>
-
-    <!-- operator -->
-    <rect x="720" y="10" width="330" height="124" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="1.5"/>
-    <text x="885" y="44" text-anchor="middle" font-size="21" font-weight="500">AutoOffice</text>
-    <text x="885" y="76" text-anchor="middle" font-size="18" fill="#3c4046">operates · monitors</text>
-    <text x="885" y="104" text-anchor="middle" font-size="18" fill="#3c4046">deploys from your repository</text>
-    <line x1="780" y1="136" x2="780" y2="226" stroke="#3a3d42" stroke-width="2.5" marker-end="url(#hd-ar)"/>
-
-    <!-- workspace -->
-    <rect x="30" y="242" width="300" height="140" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="180" y="282" text-anchor="middle" font-size="25" font-weight="500">Your team</text>
-    <text x="180" y="318" text-anchor="middle" font-size="20" fill="#3c4046">Claude or ChatGPT</text>
-    <text x="180" y="346" text-anchor="middle" font-size="20" fill="#3c4046">business workspace</text>
+    <!-- engine note -->
+    <text x="20" y="342" font-size="18" fill="#3c4046">The engine sees the conversation, incl. the</text>
+    <text x="20" y="366" font-size="18" fill="#3c4046">lead rows needed to answer, under your</text>
+    <text x="20" y="390" font-size="18" fill="#3c4046">business contract.</text>
 
     <!-- connector arrow -->
-    <line x1="332" y1="312" x2="543" y2="312" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
-    <text x="428" y="294" text-anchor="middle" font-size="20" font-weight="500">MCP connector</text>
-    <text x="428" y="342" text-anchor="middle" font-size="17" fill="#3c4046">personal sign-in</text>
-    <text x="428" y="364" text-anchor="middle" font-size="17" fill="#3c4046">OAuth 2.1 · role</text>
+    <line x1="362" y1="185" x2="570" y2="185" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
+    <text x="444" y="166" text-anchor="middle" font-size="21" font-weight="500">MCP connector</text>
+    <text x="452" y="216" text-anchor="middle" font-size="18" fill="#3c4046">personal sign-in</text>
+    <text x="452" y="240" text-anchor="middle" font-size="18" fill="#3c4046">OAuth 2.1 · role</text>
 
-    <!-- server -->
-    <rect x="545" y="228" width="285" height="160" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="687" y="262" text-anchor="middle" font-size="23" font-weight="500">LC Connect server</text>
-    <rect x="563" y="274" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="296" text-anchor="middle" font-size="18">tools</text>
-    <rect x="563" y="310" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="332" text-anchor="middle" font-size="18">access rules per person</text>
-    <rect x="563" y="346" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="368" text-anchor="middle" font-size="18">audit log of every change</text>
+    <!-- LC Connect -->
+    <rect x="572" y="66" width="300" height="236" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="722" y="102" text-anchor="middle" font-size="26" font-weight="500">LC Connect</text>
+    <text x="722" y="130" text-anchor="middle" font-size="18" fill="#71767d">connector + server</text>
+    <rect x="592" y="148" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="174" text-anchor="middle" font-size="20">tools</text>
+    <rect x="592" y="194" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="220" text-anchor="middle" font-size="20">access rules per person</text>
+    <rect x="592" y="240" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="266" text-anchor="middle" font-size="20">audit log</text>
 
-    <!-- server <-> db -->
-    <line x1="832" y1="308" x2="898" y2="308" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
+    <!-- LC <-> db -->
+    <line x1="874" y1="185" x2="928" y2="185" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
 
     <!-- database -->
-    <rect x="900" y="228" width="264" height="160" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="1032" y="262" text-anchor="middle" font-size="23" font-weight="500">Database</text>
-    <text x="1032" y="296" text-anchor="middle" font-size="18" fill="#3c4046">leads · products</text>
-    <text x="1032" y="322" text-anchor="middle" font-size="18" fill="#3c4046">knowledge base</text>
-    <text x="1032" y="348" text-anchor="middle" font-size="18" fill="#3c4046">memory of corrections</text>
-    <text x="1032" y="374" text-anchor="middle" font-size="17" fill="#71767d">PostgreSQL</text>
+    <rect x="930" y="66" width="234" height="236" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="1047" y="102" text-anchor="middle" font-size="26" font-weight="500">Database</text>
+    <text x="1047" y="160" text-anchor="middle" font-size="20" fill="#3c4046">leads</text>
+    <text x="1047" y="192" text-anchor="middle" font-size="20" fill="#3c4046">products</text>
+    <text x="1047" y="224" text-anchor="middle" font-size="20" fill="#3c4046">knowledge</text>
+    <text x="1047" y="272" text-anchor="middle" font-size="18" fill="#71767d">PostgreSQL</text>
 
     <!-- market research -->
-    <line x1="790" y1="390" x2="790" y2="476" stroke="#9aa0a6" stroke-width="2.5" marker-end="url(#hd-am)"/>
-    <rect x="585" y="478" width="295" height="84" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5"/>
-    <text x="732" y="512" text-anchor="middle" font-size="20" font-weight="500">Market research (Perplexity)</text>
-    <text x="732" y="542" text-anchor="middle" font-size="17" fill="#71767d">can be switched off</text>
-    <text x="900" y="498" font-size="17" fill="#3c4046">company names, websites,</text>
-    <text x="900" y="520" font-size="17" fill="#3c4046">product and market questions.</text>
-    <text x="900" y="542" font-size="17" fill="#3c4046">Never notes, contacts or users.</text>
-
-    <!-- legend -->
-    <rect x="30" y="482" width="40" height="22" rx="4" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="82" y="499" font-size="18" fill="#3c4046">built and run for you</text>
-    <rect x="30" y="524" width="40" height="22" rx="4" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="82" y="541" font-size="18" fill="#3c4046">your subscription, replaceable</text>
+    <line x1="722" y1="304" x2="722" y2="404" stroke="#9aa0a6" stroke-width="2.5" marker-end="url(#hd-am)"/>
+    <rect x="572" y="406" width="300" height="90" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5"/>
+    <text x="722" y="442" text-anchor="middle" font-size="21" font-weight="500">Market research (Perplexity)</text>
+    <text x="722" y="474" text-anchor="middle" font-size="18" fill="#71767d">can be switched off</text>
+    <text x="892" y="428" font-size="18" fill="#3c4046">company names, websites,</text>
+    <text x="892" y="452" font-size="18" fill="#3c4046">product and market questions.</text>
+    <text x="892" y="476" font-size="18" fill="#3c4046">Never notes, contacts or users.</text>
   </g>
 </svg>
 </div>
@@ -272,20 +268,8 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
 </section>
 
 <!-- 4 -->
-<section class="slide">
-  <h1>Security depends on the <b>contract</b>, not the tool.</h1>
-  <div class="rows">
-    <div><b>Business plans</b><span>Every business plan: no training on your data by default. Storage and zero retention differ, see next slide.</span></div>
-    <div><b>Copilot · ChatGPT · Claude</b><span>Same question, same answer. The contract protects you.</span></div>
-  </div>
-  <div class="callout"><b>Our rule:</b> connector only in company business accounts, never private subscriptions.</div>
-  <p class="small">Pilot tests so far: personal accounts, public data only. Formal pilot: business workspaces only.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4</span></div>
-</section>
-
-<!-- 4b -->
 <section class="slide zdrs">
-  <h1>No business plan trains on your data.<br><b>None of the chat apps offers zero retention.</b></h1>
+  <h1>Security depends on the <b>contract</b>, not on the tool.</h1>
   <table class="zdr">
     <thead><tr><th>Plan</th><th>Trained on your data</th><th>Prompts stored</th><th>Zero data retention</th></tr></thead>
     <tbody>
@@ -298,9 +282,10 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
       <tr><td>Perplexity API <small>used by LC Connect</small></td><td>No, default</td><td>Not retained</td><td>Yes, by default <span class="mtag">default</span></td></tr>
       </tbody>
   </table>
-  <p class="zfoot">Consumer and free plans are out: training is on by default. Residency has two parts: where data rests and where inference runs.</p>
-  <p class="small" style="margin-top:6px">Vendor pages as of 4 Oct 2026; details in the notes.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4b</span></div>
+  <p class="zfoot"><b>Our rule:</b> company business accounts only; pilot tests so far ran on personal accounts with public data.</p>
+  <p class="zfoot" style="margin-top:4px">Consumer plans train by default. Residency = where data rests + where inference runs.</p>
+  <p class="small" style="margin-top:6px">Vendor pages as of 4 Oct 2026.</p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">4</span></div>
 </section>
 
 <!-- 5 -->
@@ -322,19 +307,6 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
 </section>
 
 <!-- 6 -->
-<section class="slide">
-  <h1>A <b>lead-research connector</b>: the harness around your AI assistant.</h1>
-  <div class="nots">
-    <div>Not a Copilot replacement for e-mail</div>
-    <div>Not a CRM</div>
-    <div>Not a fine-tuned model</div>
-    <div>Not a data lake</div>
-  </div>
-  <p class="small">Not a closed system: one connector among the ones you will own.<br>Copilot can use the same open protocol; to be validated in the pilot.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">6</span></div>
-</section>
-
-<!-- 7 -->
 <section class="slide ecos">
   <h1>One connector in your ecosystem,<br><b>not a system of its own.</b></h1>
   <div class="eco"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 330" role="img" aria-labelledby="eco-t">
@@ -380,27 +352,14 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
     <div class="chip"><span class="n">4</span>Estimate costs, budget<small>ERP</small></div>
   </div>
   <p class="small">Each step is a connector you own or add later. The assistant does the office work between them.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">6</span></div>
 </section>
 
-<!-- 7b -->
+<!-- 7 -->
 <section class="slide">
-  <div class="eyebrow">Ideas from daily use · not in the current scope</div>
-  <h1>Next: from lead research <b>to company knowledge</b>.</h1>
-  <div class="outs">
-    <div><b>Know-how out of heads</b>A knowledge base the team can ask. <span class="tag">needs your data decision</span></div>
-    <div><b>Connecting the dots</b>Customers who together will need Laser Components. <span class="tag">needs your data decision</span></div>
-    <div><b>Visit effectiveness by industry</b>Visit reports plus ERP data. <span class="tag">needs your data decision</span></div>
-    <div><b>Module fit before design</b>Diode plus optics for a request. <span class="tag">needs your data decision</span></div>
-    <div><b>Trade-fair planning for the whole team</b>Who to meet, before every fair.</div>
-  </div>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7b</span></div>
-</section>
-
-<!-- 8 -->
-<section class="slide">
-  <h1><b>Seven decisions</b> to start the formal pilot</h1>
-  <ol class="asks">
+  <h1><b>Seven decisions.</b> Then daily use becomes routine.</h1>
+  <div class="dec">
+    <div><ol class="asks">
     <li><div>Green light for the formal pilot <span>terms follow in Munich</span></div></li>
     <li><div>Hosting choice <span>A: your Azure · B: EU server</span></div></li>
     <li><div>Identity provider for sign-in <span>Entra ID / Google / Okta</span></div></li>
@@ -408,11 +367,15 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
     <li><div>Business workspace accounts for pilot users</div></li>
     <li><div>Confirm the IT contact <span>for security questions</span></div></li>
     <li><div>A date in Munich <span>second week of November</span></div></li>
-  </ol>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">8</span></div>
+  </ol></div>
+    <div class="use"><span class="k">Daily use</span>
+      <ul><li>You talk to it, typed or by voice.</li><li>The model is the clerk: speech into facts the system stores.</li><li>Changes are confirmed before saving; confirmation rules per tool.</li><li>Fewer slips: IDs and addresses come from the record.</li></ul></div>
+  </div>
+  <p class="decline">Easy for the user, like a phone. The hard work sits behind it: prompts, roles, corrections. <b>That work is the service.</b></p>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">7</span></div>
 </section>
 
-<!-- 9 -->
+<!-- 8 -->
 <section class="slide">
   <div class="eyebrow">Backup</div>
   <h1>Security pack <b>in one page</b></h1>
@@ -428,10 +391,10 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
     <div><b>Perplexity:</b> names, websites, questions; never notes, contacts</div>
     <div><b>Hosting:</b> your Azure or EU server; AVV annex</div>
   </div>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">9</span></div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">8</span></div>
 </section>
 
-<!-- 10 -->
+<!-- 9 -->
 <section class="slide">
   <div class="eyebrow">Backup</div>
   <h1>Same system as in the <b>service package</b></h1>
@@ -489,8 +452,7 @@ table.zdr td small { display: block; font-weight: 400; color: var(--muted); font
       </g>
     </svg></div>
   <p class="cap">From the service package of 15 September, unchanged. Slide 3 is its simplified view.</p>
-  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">10</span></div>
+  <div class="foot"><span class="wm">autooffice</span><span class="mid">LC Connect · 5 October 2026</span><span class="pn">9</span></div>
 </section>
-
 </body>
 </html>

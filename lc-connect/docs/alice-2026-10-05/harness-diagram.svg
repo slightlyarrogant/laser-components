@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 572" role="img" aria-labelledby="hd-title hd-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 510" role="img" aria-labelledby="hd-title hd-desc">
   <title id="hd-title">LC Connect: how the harness fits together</title>
-  <desc id="hd-desc">Your team works in a Claude or ChatGPT business workspace. The AI engine (OpenAI, Anthropic) is rented by you under your business plan and is replaceable; it receives the conversation, including the lead rows needed to answer, under your business contract. The workspace reaches the LC Connect server through an MCP connector with a personal sign-in; the target is sign-in through your identity provider, for example Entra ID. The LC Connect server holds tools, access rules and the audit log, and reads a database of leads, products and knowledge. AutoOffice operates and monitors the server and deploys it from your repository. Server and database live in one place you choose: your Azure (A) or an AutoOffice EU server (B). Market research (Perplexity) can be switched off; it receives company names, websites and product or market questions, never notes, contacts or users.</desc>
+  <desc id="hd-desc">Your team works in a Claude or ChatGPT business workspace; the engine from OpenAI or Anthropic is rented by you and replaceable, and sees the conversation, including the lead rows needed to answer, under your business contract. The workspace reaches LC Connect (connector and server: tools, access rules per person, audit log) through an MCP connector with a personal sign-in. LC Connect and the database of leads, products and knowledge live in one place you choose: your Azure (A) or an AutoOffice EU server (B). Market research (Perplexity) can be switched off; it receives company names, websites and product or market questions, never notes, contacts or users.</desc>
   <defs>
     <marker id="hd-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3a3d42"/></marker>
     <marker id="hd-am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9aa0a6"/></marker>
@@ -8,87 +8,59 @@
   <g font-family="Ubuntu, 'Segoe UI', Arial, sans-serif" fill="#24262a">
 
     <!-- data zone -->
-    <rect x="510" y="172" width="674" height="250" rx="10" fill="#fbf1e0" stroke="#c9861f" stroke-width="2" stroke-dasharray="9 6"/>
-    <text x="530" y="410" font-family="'Ubuntu Mono', monospace" font-size="17" letter-spacing="1.5" fill="#8a5a0e">YOUR DATA LIVES HERE</text>
-    <text x="1164" y="410" text-anchor="end" font-size="18" fill="#8a5a0e">A: your Azure  ·  B: AutoOffice EU server</text>
+    <rect x="530" y="10" width="654" height="320" rx="10" fill="#fbf1e0" stroke="#c9861f" stroke-width="2" stroke-dasharray="9 6"/>
+    <text x="552" y="42" font-family="'Ubuntu Mono', monospace" font-size="18" letter-spacing="1.5" fill="#8a5a0e">YOUR DATA LIVES HERE</text>
+    <text x="1164" y="42" text-anchor="end" font-size="19" fill="#8a5a0e">A: your Azure  ·  B: AutoOffice EU server</text>
 
-    <!-- engine -->
-    <rect x="30" y="10" width="300" height="124" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="180" y="42" text-anchor="middle" font-size="22" font-weight="500">AI engine, rented by you</text>
-    <rect x="52" y="56" width="122" height="34" rx="17" fill="#ffffff" stroke="#b9bcc0"/>
-    <text x="113" y="79" text-anchor="middle" font-size="18">OpenAI</text>
-    <rect x="186" y="56" width="122" height="34" rx="17" fill="#ffffff" stroke="#b9bcc0"/>
-    <text x="247" y="79" text-anchor="middle" font-size="18">Anthropic</text>
-    <text x="180" y="120" text-anchor="middle" font-size="18" fill="#71767d">replaceable: you can switch it</text>
+    <!-- team -->
+    <rect x="20" y="70" width="340" height="230" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="190" y="112" text-anchor="middle" font-size="27" font-weight="500">Your team</text>
+    <text x="190" y="148" text-anchor="middle" font-size="21" fill="#3c4046">Claude or ChatGPT</text>
+    <text x="190" y="176" text-anchor="middle" font-size="21" fill="#3c4046">business workspace</text>
+    <line x1="44" y1="200" x2="336" y2="200" stroke="#d9dbde"/>
+    <text x="190" y="232" text-anchor="middle" font-size="18" fill="#71767d">engine from OpenAI or Anthropic,</text>
+    <text x="190" y="258" text-anchor="middle" font-size="18" fill="#71767d">rented by you, replaceable</text>
 
-    <!-- engine <-> workspace -->
-    <line x1="100" y1="136" x2="100" y2="238" stroke="#9aa0a6" stroke-width="2.5" marker-start="url(#hd-am)" marker-end="url(#hd-am)"/>
-    <text x="116" y="166" font-size="17" fill="#3c4046">the conversation, incl. the</text>
-    <text x="116" y="188" font-size="17" fill="#3c4046">lead rows needed to answer</text>
-    <text x="116" y="210" font-size="17" fill="#3c4046">under your business contract</text>
-
-    <!-- identity provider -->
-    <rect x="390" y="10" width="270" height="124" rx="8" fill="#ffffff" stroke="#9aa0a6" stroke-width="1.5"/>
-    <text x="525" y="44" text-anchor="middle" font-size="21" font-weight="500">Your identity provider</text>
-    <text x="525" y="74" text-anchor="middle" font-size="18" fill="#3c4046">e.g. Entra ID, your MFA</text>
-    <rect x="490" y="88" width="70" height="28" rx="4" fill="#fbf1e0" stroke="#c9861f"/>
-    <text x="525" y="108" text-anchor="middle" font-family="'Ubuntu Mono', monospace" font-size="15" letter-spacing="1" fill="#8a5a0e">TARGET</text>
-    <line x1="610" y1="136" x2="610" y2="226" stroke="#9aa0a6" stroke-width="2.5" stroke-dasharray="7 5" marker-start="url(#hd-am)" marker-end="url(#hd-am)"/>
-    <text x="598" y="160" text-anchor="end" font-size="17" fill="#3c4046">sign-in</text>
-
-    <!-- operator -->
-    <rect x="720" y="10" width="330" height="124" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="1.5"/>
-    <text x="885" y="44" text-anchor="middle" font-size="21" font-weight="500">AutoOffice</text>
-    <text x="885" y="76" text-anchor="middle" font-size="18" fill="#3c4046">operates · monitors</text>
-    <text x="885" y="104" text-anchor="middle" font-size="18" fill="#3c4046">deploys from your repository</text>
-    <line x1="780" y1="136" x2="780" y2="226" stroke="#3a3d42" stroke-width="2.5" marker-end="url(#hd-ar)"/>
-
-    <!-- workspace -->
-    <rect x="30" y="242" width="300" height="140" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="180" y="282" text-anchor="middle" font-size="25" font-weight="500">Your team</text>
-    <text x="180" y="318" text-anchor="middle" font-size="20" fill="#3c4046">Claude or ChatGPT</text>
-    <text x="180" y="346" text-anchor="middle" font-size="20" fill="#3c4046">business workspace</text>
+    <!-- engine note -->
+    <text x="20" y="342" font-size="18" fill="#3c4046">The engine sees the conversation, incl. the</text>
+    <text x="20" y="366" font-size="18" fill="#3c4046">lead rows needed to answer, under your</text>
+    <text x="20" y="390" font-size="18" fill="#3c4046">business contract.</text>
 
     <!-- connector arrow -->
-    <line x1="332" y1="312" x2="543" y2="312" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
-    <text x="428" y="294" text-anchor="middle" font-size="20" font-weight="500">MCP connector</text>
-    <text x="428" y="342" text-anchor="middle" font-size="17" fill="#3c4046">personal sign-in</text>
-    <text x="428" y="364" text-anchor="middle" font-size="17" fill="#3c4046">OAuth 2.1 · role</text>
+    <line x1="362" y1="185" x2="570" y2="185" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
+    <text x="444" y="166" text-anchor="middle" font-size="21" font-weight="500">MCP connector</text>
+    <text x="452" y="216" text-anchor="middle" font-size="18" fill="#3c4046">personal sign-in</text>
+    <text x="452" y="240" text-anchor="middle" font-size="18" fill="#3c4046">OAuth 2.1 · role</text>
 
-    <!-- server -->
-    <rect x="545" y="228" width="285" height="160" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="687" y="262" text-anchor="middle" font-size="23" font-weight="500">LC Connect server</text>
-    <rect x="563" y="274" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="296" text-anchor="middle" font-size="18">tools</text>
-    <rect x="563" y="310" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="332" text-anchor="middle" font-size="18">access rules per person</text>
-    <rect x="563" y="346" width="249" height="30" rx="4" fill="#f5f5f6"/>
-    <text x="687" y="368" text-anchor="middle" font-size="18">audit log of every change</text>
+    <!-- LC Connect -->
+    <rect x="572" y="66" width="300" height="236" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="722" y="102" text-anchor="middle" font-size="26" font-weight="500">LC Connect</text>
+    <text x="722" y="130" text-anchor="middle" font-size="18" fill="#71767d">connector + server</text>
+    <rect x="592" y="148" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="174" text-anchor="middle" font-size="20">tools</text>
+    <rect x="592" y="194" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="220" text-anchor="middle" font-size="20">access rules per person</text>
+    <rect x="592" y="240" width="260" height="38" rx="4" fill="#f5f5f6"/>
+    <text x="722" y="266" text-anchor="middle" font-size="20">audit log</text>
 
-    <!-- server <-> db -->
-    <line x1="832" y1="308" x2="898" y2="308" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
+    <!-- LC <-> db -->
+    <line x1="874" y1="185" x2="928" y2="185" stroke="#3a3d42" stroke-width="3" marker-start="url(#hd-ar)" marker-end="url(#hd-ar)"/>
 
     <!-- database -->
-    <rect x="900" y="228" width="264" height="160" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="1032" y="262" text-anchor="middle" font-size="23" font-weight="500">Database</text>
-    <text x="1032" y="296" text-anchor="middle" font-size="18" fill="#3c4046">leads · products</text>
-    <text x="1032" y="322" text-anchor="middle" font-size="18" fill="#3c4046">knowledge base</text>
-    <text x="1032" y="348" text-anchor="middle" font-size="18" fill="#3c4046">memory of corrections</text>
-    <text x="1032" y="374" text-anchor="middle" font-size="17" fill="#71767d">PostgreSQL</text>
+    <rect x="930" y="66" width="234" height="236" rx="8" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
+    <text x="1047" y="102" text-anchor="middle" font-size="26" font-weight="500">Database</text>
+    <text x="1047" y="160" text-anchor="middle" font-size="20" fill="#3c4046">leads</text>
+    <text x="1047" y="192" text-anchor="middle" font-size="20" fill="#3c4046">products</text>
+    <text x="1047" y="224" text-anchor="middle" font-size="20" fill="#3c4046">knowledge</text>
+    <text x="1047" y="272" text-anchor="middle" font-size="18" fill="#71767d">PostgreSQL</text>
 
     <!-- market research -->
-    <line x1="790" y1="390" x2="790" y2="476" stroke="#9aa0a6" stroke-width="2.5" marker-end="url(#hd-am)"/>
-    <rect x="585" y="478" width="295" height="84" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5"/>
-    <text x="732" y="512" text-anchor="middle" font-size="20" font-weight="500">Market research (Perplexity)</text>
-    <text x="732" y="542" text-anchor="middle" font-size="17" fill="#71767d">can be switched off</text>
-    <text x="900" y="498" font-size="17" fill="#3c4046">company names, websites,</text>
-    <text x="900" y="520" font-size="17" fill="#3c4046">product and market questions.</text>
-    <text x="900" y="542" font-size="17" fill="#3c4046">Never notes, contacts or users.</text>
-
-    <!-- legend -->
-    <rect x="30" y="482" width="40" height="22" rx="4" fill="#ffffff" stroke="#3a3d42" stroke-width="2"/>
-    <text x="82" y="499" font-size="18" fill="#3c4046">built and run for you</text>
-    <rect x="30" y="524" width="40" height="22" rx="4" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 5"/>
-    <text x="82" y="541" font-size="18" fill="#3c4046">your subscription, replaceable</text>
+    <line x1="722" y1="304" x2="722" y2="404" stroke="#9aa0a6" stroke-width="2.5" marker-end="url(#hd-am)"/>
+    <rect x="572" y="406" width="300" height="90" rx="8" fill="#f5f5f6" stroke="#9aa0a6" stroke-width="1.5"/>
+    <text x="722" y="442" text-anchor="middle" font-size="21" font-weight="500">Market research (Perplexity)</text>
+    <text x="722" y="474" text-anchor="middle" font-size="18" fill="#71767d">can be switched off</text>
+    <text x="892" y="428" font-size="18" fill="#3c4046">company names, websites,</text>
+    <text x="892" y="452" font-size="18" fill="#3c4046">product and market questions.</text>
+    <text x="892" y="476" font-size="18" fill="#3c4046">Never notes, contacts or users.</text>
   </g>
 </svg>
