@@ -42,6 +42,7 @@ Laser Components (Alice, probably Alex), 16:30 CET, in English. 9 slides; 8 and 
 - The confirmation prompt is a feature of the assistant app (Claude and ChatGPT tool approval) and is configurable per tool.
 - LC Connect enforces roles, access rules and the audit log on every write; it does not add its own confirmation gate.
 - Voice mode exists in the Claude and ChatGPT apps today.
+- Low friction is the design goal: nothing to install beyond adding the connector; the hard work (prompts, roles, corrections) sits with us. Adoption is the pilot's success measure: connected users and questions per week from the audit log; a tool people do not pull is not extended.
 - On the asks: "formal pilot" means terms follow in Munich; ask 4 answers Alice's 29 September point on company data before an NDA; propose Alex as the IT contact.
 
 ## 8. Security pack in one page
